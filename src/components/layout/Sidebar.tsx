@@ -1,0 +1,180 @@
+import React from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarHeader,
+  SidebarFooter,
+  useSidebar,
+} from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  LayoutDashboard,
+  Building2,
+  DollarSign,
+  Users,
+  UserCheck,
+  UserPlus,
+  Package,
+  ShoppingBag,
+  Calendar,
+  Truck,
+  Settings,
+  Bell,
+  ClipboardList,
+  PieChart,
+  LogOut,
+  ChefHat,
+  FileText,
+  Clock,
+  Camera,
+  Tags
+} from 'lucide-react';
+
+// Navigation items based on role
+const getNavigationItems = (role: string) => {
+  const baseItems = [
+    { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard }
+  ];
+
+  if (role === 'admin') {
+    return [
+      ...baseItems,
+      { title: 'Restaurants', url: '/restaurants', icon: Building2 },
+      { title: 'Finance Overview', url: '/finance', icon: PieChart },
+      { title: 'Managers', url: '/managers', icon: UserCheck },
+      { title: 'Staff Members', url: '/staff', icon: Users },
+      { title: 'Customers', url: '/customers', icon: UserPlus },
+      { title: 'Menu Items', url: '/items', icon: Package },
+      { title: 'Meal Plans', url: '/meals', icon: ShoppingBag },
+      { title: 'Daily Summary', url: '/daily-summary', icon: Calendar },
+        { title: 'Vendors', url: '/vendors', icon: Truck },
+        { title: 'Expense Categories', url: '/expense-categories', icon: Tags },
+        { title: 'Settings', url: '/settings', icon: Settings },
+      { title: 'Notifications', url: '/notifications', icon: Bell }
+    ];
+  }
+
+  if (role === 'manager') {
+    return [
+      ...baseItems,
+      { title: 'Income & Expense', url: '/finance', icon: DollarSign },
+      { title: 'Staff Management', url: '/staff', icon: Users },
+      { title: 'Customer Management', url: '/customers', icon: UserPlus },
+      { title: 'Menu Items', url: '/items', icon: Package },
+      { title: 'Meal Plans', url: '/meals', icon: ShoppingBag },
+      { title: 'Daily Tiffin Summary', url: '/daily-summary', icon: Calendar },
+      { title: 'Vendor Management', url: '/vendors', icon: Truck },
+      { title: 'Inventory', url: '/inventory', icon: ClipboardList },
+      { title: 'Monthly Menu Plan', url: '/menu-plan', icon: FileText }
+    ];
+  }
+
+  if (role === 'staff') {
+    return [
+      ...baseItems,
+      { title: 'Mark Attendance', url: '/attendance', icon: Clock },
+      { title: 'Leave Requests', url: '/leave-requests', icon: FileText }
+    ];
+  }
+
+  return baseItems;
+};
+
+export const AppSidebar = () => {
+  const { user, logout } = useAuth();
+  const { state } = useSidebar();
+  const location = useLocation();
+  
+  const collapsed = state === 'collapsed';
+  
+  if (!user) return null;
+
+  const navigationItems = getNavigationItems(user.role);
+  const currentPath = location.pathname;
+
+  const isActive = (path: string) => currentPath === path;
+  const getNavCls = ({ isActive }: { isActive: boolean }) =>
+    isActive 
+      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
+      : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground";
+
+  return (
+    <Sidebar className={`${collapsed ? "w-16" : "w-64"} bg-gradient-sidebar border-sidebar-border`} collapsible="icon">
+      <SidebarHeader className="border-b border-sidebar-border p-4">
+        <div className="flex items-center space-x-2">
+          <div className="bg-primary p-2 rounded-lg shadow-sm">
+            <ChefHat className="h-5 w-5 text-primary-foreground" />
+          </div>
+          {!collapsed && (
+            <div>
+              <h2 className="font-semibold text-sidebar-primary-foreground">Restaurant Manager</h2>
+              {user.restaurantName && (
+                <p className="text-xs text-sidebar-foreground">{user.restaurantName}</p>
+              )}
+            </div>
+          )}
+        </div>
+      </SidebarHeader>
+
+      <SidebarContent className="flex-1 overflow-y-auto">
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-foreground/70 uppercase tracking-wider text-xs font-semibold">
+            {user.role === 'admin' ? 'Administration' : user.role === 'manager' ? 'Management' : 'Staff Portal'}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navigationItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to={item.url} 
+                      className={getNavCls}
+                      title={collapsed ? item.title : undefined}
+                    >
+                      <item.icon className={`h-4 w-4 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="border-t border-sidebar-border p-4">
+        <div className="flex items-center space-x-3">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+              {user.name?.charAt(0) || 'U'}
+            </AvatarFallback>
+          </Avatar>
+          {!collapsed && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-sidebar-primary-foreground truncate">{user.name}</p>
+              <p className="text-xs text-sidebar-foreground capitalize">{user.role}</p>
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={logout}
+            className="text-sidebar-foreground hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/50"
+            title="Logout"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+      </SidebarFooter>
+    </Sidebar>
+  );
+};
