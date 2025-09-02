@@ -39,18 +39,15 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { usePagination } from "@/hooks/use-pagination";
 import { DataTablePagination } from "@/components/common/DataTablePagination";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { signUp } from "@/api/auth.api";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { StaffManagerForm } from "../common/StaffManagerForm";
+import { getStaffManager } from "@/api/managerStaff.api";
 
-const mockStaff = [
-  /* ... */
-];
 const mockAttendance = [
   /* ... */
 ];
@@ -62,21 +59,17 @@ const mockRestaurants = [
 ];
 
 const StaffManagement = () => {
-  const [staff] = useState(mockStaff);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [selectedStaff, setSelectedStaff] = useState<
-    (typeof mockStaff)[0] | null
-  >(null);
+  const [selectedStaff, setSelectedStaff] = useState<any>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [page, setPage] = useState(1);
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
-  const {
-    reset,
-  } = useForm({
+  const { reset } = useForm({
     defaultValues: {
       email: "",
       name: "",
@@ -112,36 +105,26 @@ const StaffManagement = () => {
     },
   });
 
-  const filteredStaff = staff.filter((member) => {
-    const matchesSearch =
-      member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      filterStatus === "all" || member.status === filterStatus;
-    return matchesSearch && matchesStatus;
+  const queryData = {
+    type: "staff",
+    search: searchTerm,
+    page,
+    limit: itemsPerPage,
+  };
+
+  const { data: getStaff } = useQuery({
+    queryKey: ["get-all-staff", queryData],
+    queryFn: () => getStaffManager(queryData),
   });
 
-  const {
-    currentPage,
-    totalPages,
-    paginatedData: paginatedStaff,
-    goToPage,
-    nextPage,
-    previousPage,
-    hasNextPage,
-    hasPreviousPage,
-    startIndex,
-    endIndex,
-    totalItems,
-  } = usePagination({
-    data: filteredStaff,
-    itemsPerPage,
-  });
+  const staff = getStaff?.payload?.data || [];
+  const totalItems = getStaff?.payload?.count || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  const handleViewStaff = (staffMember: (typeof mockStaff)[0]) => {
+  const handleViewStaff = (staffMember: any) => {
     setSelectedStaff(staffMember);
     setIsViewModalOpen(true);
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -283,7 +266,7 @@ const StaffManagement = () => {
       {/* Staff Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Staff Members ({filteredStaff.length})</CardTitle>
+          <CardTitle>Staff Members ({staff.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -299,7 +282,7 @@ const StaffManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedStaff.map((member) => (
+                {staff.map((member) => (
                   <TableRow key={member.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -349,10 +332,10 @@ const StaffManagement = () => {
                     <TableCell>
                       <Badge
                         variant={
-                          member.status === "active" ? "default" : "secondary"
+                          member.isActive ? "default" : "secondary"
                         }
                       >
-                        {member.status}
+                        {member.isActive ? "Active": "Deactive"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -382,17 +365,17 @@ const StaffManagement = () => {
             </Table>
           </div>
           <DataTablePagination
-            currentPage={currentPage}
+            currentPage={page}
             totalPages={totalPages}
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
-            startIndex={startIndex}
-            endIndex={endIndex}
-            hasNextPage={hasNextPage}
-            hasPreviousPage={hasPreviousPage}
-            onPageChange={goToPage}
-            onNextPage={nextPage}
-            onPreviousPage={previousPage}
+            startIndex={(page - 1) * itemsPerPage + 1}
+            endIndex={Math.min(page * itemsPerPage, totalItems)}
+            hasNextPage={page < totalPages}
+            hasPreviousPage={page > 1}
+            onPageChange={setPage}
+            onNextPage={() => setPage((p) => p + 1)}
+            onPreviousPage={() => setPage((p) => p - 1)}
             onItemsPerPageChange={setItemsPerPage}
           />
         </CardContent>
