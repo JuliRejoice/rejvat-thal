@@ -1,6 +1,4 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { 
   Pagination, 
   PaginationContent, 
@@ -129,7 +127,7 @@ export const DataTablePagination: React.FC<DataTablePaginationProps> = ({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-3 py-4 rounded-lg border bg-card">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span>
           Showing {startIndex} to {endIndex} of {totalItems} entries
@@ -141,9 +139,13 @@ export const DataTablePagination: React.FC<DataTablePaginationProps> = ({
               <span className="hidden sm:inline">Show</span>
               <Select
                 value={itemsPerPage.toString()}
-                onValueChange={(value) => onItemsPerPageChange(parseInt(value))}
+                onValueChange={(value) => {
+                  const next = parseInt(value);
+                  onItemsPerPageChange?.(next);
+                  onPageChange(1);
+                }}
               >
-                <SelectTrigger className="w-16 h-8">
+                <SelectTrigger className="w-20 h-8 rounded-md">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -168,7 +170,7 @@ export const DataTablePagination: React.FC<DataTablePaginationProps> = ({
             />
           </PaginationItem>
           
-          <div className="hidden sm:flex">
+          <div className="hidden sm:flex gap-2">
             {renderPageNumbers()}
           </div>
           

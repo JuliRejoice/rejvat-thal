@@ -1,9 +1,14 @@
 import axiosInstance from "./axiosInstace.config";
 
-export const getStaffManager = async ({ type, search="", page, limit }) => {
+export const getStaffManager = async ({ type, search="", page, limit, status }) => {
     try {
         const response = await axiosInstance.get(
-            `/user/getManagAndSta?type=${type}${search ? `&search=${search}` : ""}&page=${page}&limit=${limit}`
+            `/user/getManagAndSta
+            ?type=${type}
+            ${search ? `&search=${search}` : ""}
+            &page=${page}
+            &limit=${limit}
+            ${status !== undefined ? `&isActive=${status}`: ""}`
         );          
         
         console.log("Get manager and staff API Response:", response.data);

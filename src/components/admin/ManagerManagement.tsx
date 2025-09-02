@@ -88,6 +88,7 @@ const ManagerManagement = () => {
     search: searchTerm,
     page: page,
     limit: itemsPerPage,
+    ...(filterStatus !== "all" && { status: filterStatus === "active" }),
   };
   const { data: getManagers } = useQuery({
     queryKey: ["get-all-managers", queryData],

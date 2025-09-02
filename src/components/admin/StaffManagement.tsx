@@ -110,6 +110,7 @@ const StaffManagement = () => {
     search: searchTerm,
     page,
     limit: itemsPerPage,
+    ...(filterStatus !== "all" && { status: filterStatus === "active" }),
   };
 
   const { data: getStaff } = useQuery({
