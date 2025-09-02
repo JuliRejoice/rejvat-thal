@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 
 export const ResetPasswordForm = () => {
   const [formData, setFormData] = useState({
-    email: '',
     password: '',
     confirmPassword: ''
   });
@@ -25,13 +24,7 @@ export const ResetPasswordForm = () => {
   const location = useLocation();
   const { toast } = useToast();
   
-  const stateEmail = location.state?.email || '';
-
-  React.useEffect(() => {
-    if (stateEmail) {
-      setFormData(prev => ({ ...prev, email: stateEmail }));
-    }
-  }, [stateEmail]);
+  const email = location.state?.email || '';
 
   const { mutate: resetPass, isPending } = useMutation({
     mutationKey: ['reset-password'],
@@ -60,12 +53,7 @@ export const ResetPasswordForm = () => {
   };
 
   const validateForm = () => {
-    const { email, password, confirmPassword } = formData;
-    
-    if (!email.trim()) {
-      setError('Please enter your email address');
-      return false;
-    }
+    const { password, confirmPassword } = formData;
     
     if (!password.trim()) {
       setError('Please enter a new password');
@@ -99,7 +87,7 @@ export const ResetPasswordForm = () => {
     }
     
     resetPass({
-      email: formData.email,
+      email: email,
       password: formData.confirmPassword,
     });
   };
@@ -133,24 +121,6 @@ export const ResetPasswordForm = () => {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-
-              {/* Email Field */}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    required
-                    className="pl-10"
-                    disabled={isPending || !!stateEmail} // Disable if email came from state
-                  />
-                </div>
-              </div>
 
               {/* New Password Field */}
               <div className="space-y-2">
@@ -218,7 +188,7 @@ export const ResetPasswordForm = () => {
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={isPending || !formData.email.trim() || !formData.password.trim() || !formData.confirmPassword.trim()}
+                disabled={isPending || !formData.password.trim() || !formData.confirmPassword.trim()}
               >
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Reset Password

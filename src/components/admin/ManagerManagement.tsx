@@ -6,17 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePagination } from '@/hooks/use-pagination';
 import { DataTablePagination } from '@/components/common/DataTablePagination';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useMutation } from '@tanstack/react-query';
 import { signUp } from '@/api/auth.api';
+import { StaffManagerForm } from '../common/StaffManagerForm';
+import { useToast } from '@/hooks/use-toast';
 
-// Mock data
 const mockManagers = [
   {
     id: '1',
@@ -59,41 +58,27 @@ const ManagerManagement = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const isMobile = useIsMobile();
-  
-  // Form state
-  const [formData, setFormData] = useState({
-    email: '',
-    name: '',
-    password: '',
-    phone: '',
-    address: '',
-    restaurantId: '68b1467308fb326d4d8a7de1',
-    position: 'manager',
-    isUserType: 'manager',
-    file: null
-  });
+  const { toast } = useToast();
 
   const { mutate: createManager, isPending } = useMutation({
     mutationKey: ['sign-up'],
     mutationFn: signUp,
-    onSuccess: (data) => {
-      console.log('Manager created successfully:', data);
-      setIsAddModalOpen(false);
-      setFormData({
-        email: '',
-        name: '',
-        password: '',
-        phone: '',
-        address: '',
-        restaurantId: '68b1467308fb326d4d8a7de1',
-        position: 'manager',
-        isUserType: 'manager',
-        file: null
+    onSuccess: () => {
+      toast({
+        variant: "default",
+        title: "Manger created",
+        description: "Manger created successfully.",
       });
+      setIsAddModalOpen(false);
     },
     onError: (error) => {
-      console.error('Error creating manager:', error);
-    }
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create staff. Try again.",
+      });
+      console.error("Error creating staff:", error);
+    },
   });
 
   const filteredManagers = managers.filter(manager => {
@@ -122,44 +107,12 @@ const ManagerManagement = () => {
   });
 
   const handleStatusToggle = (managerId) => {
-    // Implementation for status toggle
     console.log('Toggle status for manager:', managerId);
   };
 
   const handleViewManager = (manager) => {
     setSelectedManager(manager);
     setIsViewModalOpen(true);
-  };
-
-  // Handle input changes
-  const handleInputChange = (e) => {
-    const { name, value, type, files } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'file' ? files[0] : value
-    }));
-  };
-
-  // Handle select changes
-  const handleSelectChange = (name, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // Validate required fields
-    console.log("formData", formData)
-    if (!formData.email || !formData.name || !formData.password || !formData.phone || !formData.address || !formData.restaurantId) {
-      alert('Please fill in all required fields');
-      return;
-    }
-    
-    // Call the API
-    createManager(formData);
   };
 
   return (
@@ -177,122 +130,17 @@ const ManagerManagement = () => {
               Add Manager
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>Add New Manager</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name *</Label>
-                  <Input 
-                    name="name" 
-                    id="name" 
-                    placeholder="Enter manager name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input 
-                    name="email" 
-                    id="email" 
-                    type="email" 
-                    placeholder="Enter email address"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password *</Label>
-                  <Input 
-                    name="password" 
-                    id="password" 
-                    type="password" 
-                    placeholder="Enter password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number *</Label>
-                  <Input 
-                    name="phone" 
-                    id="phone" 
-                    placeholder="Enter phone number"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="restaurantId">Restaurant *</Label>
-                  <Select 
-                    value={formData.restaurantId} 
-                    onValueChange={(value) => handleSelectChange('restaurantId', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select restaurant" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockRestaurants.map(restaurant => (
-                        <SelectItem key={restaurant.id} value={restaurant.id}>
-                          {restaurant.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address *</Label>
-                  <Textarea 
-                    name="address" 
-                    id="address" 
-                    placeholder="Enter address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="file">Upload Picture</Label>
-                  <Input 
-                    name="file" 
-                    id="file"
-                    type="file" 
-                    accept="image/*"
-                    onChange={handleInputChange}
-                  />
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button 
-                    className="flex-1" 
-                    type="submit"
-                    disabled={isPending}
-                  >
-                    {isPending ? 'Creating...' : 'Save Manager'}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    type="button"
-                    onClick={() => setIsAddModalOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </form>
+            <StaffManagerForm
+              restaurants={mockRestaurants}
+              onSubmit={createManager}
+              isPending={isPending}
+              type="manager"
+              onCancel={() => setIsAddModalOpen(false)}
+            />
           </DialogContent>
         </Dialog>
       </div>

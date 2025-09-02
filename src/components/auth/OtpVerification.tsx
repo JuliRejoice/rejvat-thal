@@ -44,7 +44,11 @@ export const OTPVerificationForm = () => {
           title: "OTP Verified successfully",
           description: "Please reset your password.",
         });
-        navigate("/reset-password");
+        navigate("/reset-password", {
+          state: { 
+            email: email,
+          } 
+        });
       } else {
         toast({
           variant: "destructive",
