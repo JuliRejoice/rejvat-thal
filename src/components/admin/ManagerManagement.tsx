@@ -1,67 +1,70 @@
-import React, { useState } from 'react';
-import { Plus, Search, Filter, Eye, Edit2, ToggleLeft, ToggleRight, Mail, Phone, MapPin } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { usePagination } from '@/hooks/use-pagination';
-import { DataTablePagination } from '@/components/common/DataTablePagination';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { useMutation } from '@tanstack/react-query';
-import { signUp } from '@/api/auth.api';
-import { StaffManagerForm } from '../common/StaffManagerForm';
-import { useToast } from '@/hooks/use-toast';
-
-const mockManagers = [
-  {
-    id: '1',
-    name: 'John Doe',
-    email: 'john@restaurant.com',
-    phone: '+91 9876543210',
-    restaurant: 'Spice Garden',
-    restaurantId: 'rest1',
-    joinDate: '2024-01-15',
-    status: 'active',
-    address: '123 Main St, Mumbai',
-    avatar: null
-  },
-  {
-    id: '2',
-    name: 'Sarah Wilson',
-    email: 'sarah@restaurant.com',
-    phone: '+91 9876543211',
-    restaurant: 'Curry House',
-    restaurantId: 'rest2',
-    joinDate: '2024-02-20',
-    status: 'inactive',
-    address: '456 Park Ave, Delhi',
-    avatar: null
-  }
-];
+import React, { useState } from "react";
+import {
+  Plus,
+  Search,
+  Filter,
+  Eye,
+  Edit2,
+  ToggleLeft,
+  ToggleRight,
+  Mail,
+  Phone,
+  MapPin,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DataTablePagination } from "@/components/common/DataTablePagination";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { signUp } from "@/api/auth.api";
+import { StaffManagerForm } from "../common/StaffManagerForm";
+import { useToast } from "@/hooks/use-toast";
+import { getStaffManager } from "@/api/managerStaff.api";
 
 const mockRestaurants = [
-  { id: 'rest1', name: 'Spice Garden' },
-  { id: 'rest2', name: 'Curry House' },
-  { id: 'rest3', name: 'Royal Kitchen' }
+  { id: "rest1", name: "Spice Garden" },
+  { id: "rest2", name: "Curry House" },
+  { id: "rest3", name: "Royal Kitchen" },
 ];
 
 const ManagerManagement = () => {
-  const [managers, setManagers] = useState(mockManagers);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedManager, setSelectedManager] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [page, setPage] = useState(1);
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
   const { mutate: createManager, isPending } = useMutation({
-    mutationKey: ['sign-up'],
+    mutationKey: ["sign-up"],
     mutationFn: signUp,
     onSuccess: () => {
       toast({
@@ -80,34 +83,33 @@ const ManagerManagement = () => {
       console.error("Error creating staff:", error);
     },
   });
-
-  const filteredManagers = managers.filter(manager => {
-    const matchesSearch = manager.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         manager.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || manager.status === filterStatus;
-    return matchesSearch && matchesStatus;
+  const queryData = {
+    type: "manager",
+    search: searchTerm,
+    page: page,
+    limit: itemsPerPage,
+  };
+  const { data: getManagers } = useQuery({
+    queryKey: ["get-all-managers", queryData],
+    queryFn: () => getStaffManager(queryData),
   });
 
-  const {
-    currentPage,
-    totalPages,
-    paginatedData: paginatedManagers,
-    goToPage,
-    nextPage,
-    previousPage,
-    hasNextPage,
-    hasPreviousPage,
-    startIndex,
-    endIndex,
-    totalItems,
-    reset
-  } = usePagination({
-    data: filteredManagers,
-    itemsPerPage
-  });
+  const managers = getManagers?.payload?.data || [];
+  const totalItems = getManagers?.payload?.count || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   const handleStatusToggle = (managerId) => {
-    console.log('Toggle status for manager:', managerId);
+    console.log("Toggle status for manager:", managerId);
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setPage(1);
+  };
+
+  const handleStatusFilter = (value: string) => {
+    setFilterStatus(value);
+    setPage(1);
   };
 
   const handleViewManager = (manager) => {
@@ -120,8 +122,12 @@ const ManagerManagement = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Manager Management</h1>
-          <p className="text-muted-foreground">Manage restaurant managers across all locations</p>
+          <h1 className="text-3xl font-bold text-foreground">
+            Manager Management
+          </h1>
+          <p className="text-muted-foreground">
+            Manage restaurant managers across all locations
+          </p>
         </div>
         <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
           <DialogTrigger asChild>
@@ -155,15 +161,12 @@ const ManagerManagement = () => {
                 <Input
                   placeholder="Search managers..."
                   value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    reset();
-                  }}
+                  onChange={(e) => handleSearch(e.target.value)}
                   className="pl-10"
                 />
               </div>
             </div>
-            <Select value={filterStatus} onValueChange={(value) => { setFilterStatus(value); reset(); }}>
+            <Select value={filterStatus} onValueChange={handleStatusFilter}>
               <SelectTrigger className={isMobile ? "w-full" : "w-48"}>
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue />
@@ -181,7 +184,7 @@ const ManagerManagement = () => {
       {/* Managers Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Managers ({filteredManagers.length})</CardTitle>
+          <CardTitle>Managers ({getManagers?.payload?.count})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -197,17 +200,24 @@ const ManagerManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedManagers.map((manager) => (
-                  <TableRow key={manager.id}>
+                {managers.map((manager) => (
+                  <TableRow key={manager._id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={manager.avatar || ''} />
-                          <AvatarFallback>{manager.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                          <AvatarImage src={manager.profileImage || ""} />
+                          <AvatarFallback>
+                            {manager.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </AvatarFallback>
                         </Avatar>
                         <div>
                           <div className="font-medium">{manager.name}</div>
-                          <div className="text-sm text-muted-foreground">{manager.email}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {manager.email}
+                          </div>
                           {isMobile && (
                             <div className="text-sm text-muted-foreground">
                               {manager.restaurant} • {manager.phone}
@@ -228,17 +238,25 @@ const ManagerManagement = () => {
                             <Phone className="h-3 w-3" />
                             {manager.phone}
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Mail className="h-3 w-3" />
-                            {manager.email}
-                          </div>
                         </div>
                       </TableCell>
                     )}
-                    {!isMobile && <TableCell>{manager.joinDate}</TableCell>}
+                    {!isMobile && (
+                      <TableCell>
+                        {manager.createdAt
+                          ? new Date(manager.createdAt).toLocaleDateString(
+                              "en-GB"
+                            )
+                          : "-"}
+                      </TableCell>
+                    )}
                     <TableCell>
-                      <Badge variant={manager.status === 'active' ? 'default' : 'secondary'}>
-                        {manager.status}
+                      <Badge
+                        variant={
+                          manager.isActive ? "default" : "secondary"
+                        }
+                      >
+                        {manager.isActive ? "Active": "Deactive"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -258,7 +276,7 @@ const ManagerManagement = () => {
                           size="sm"
                           onClick={() => handleStatusToggle(manager.id)}
                         >
-                          {manager.status === 'active' ? (
+                          {manager.status === "active" ? (
                             <ToggleLeft className="h-4 w-4 text-destructive" />
                           ) : (
                             <ToggleRight className="h-4 w-4 text-primary" />
@@ -272,18 +290,21 @@ const ManagerManagement = () => {
             </Table>
           </div>
           <DataTablePagination
-            currentPage={currentPage}
+            currentPage={page}
             totalPages={totalPages}
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
-            startIndex={startIndex}
-            endIndex={endIndex}
-            hasNextPage={hasNextPage}
-            hasPreviousPage={hasPreviousPage}
-            onPageChange={goToPage}
-            onNextPage={nextPage}
-            onPreviousPage={previousPage}
-            onItemsPerPageChange={setItemsPerPage}
+            startIndex={(page - 1) * itemsPerPage + 1}
+            endIndex={Math.min(page * itemsPerPage, totalItems)}
+            hasNextPage={page < totalPages}
+            hasPreviousPage={page > 1}
+            onPageChange={setPage}
+            onNextPage={() => setPage((p) => Math.min(p + 1, totalPages))}
+            onPreviousPage={() => setPage((p) => Math.max(p - 1, 1))}
+            onItemsPerPageChange={(val) => {
+              setItemsPerPage(val);
+              setPage(1);
+            }}
           />
         </CardContent>
       </Card>
@@ -298,52 +319,73 @@ const ManagerManagement = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={selectedManager.avatar || ''} />
+                  <AvatarImage src={selectedManager.avatar || ""} />
                   <AvatarFallback className="text-lg">
-                    {selectedManager.name.split(' ').map(n => n[0]).join('')}
+                    {selectedManager.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="text-lg font-semibold">{selectedManager.name}</h3>
-                  <Badge variant={selectedManager.status === 'active' ? 'default' : 'secondary'}>
+                  <h3 className="text-lg font-semibold">
+                    {selectedManager.name}
+                  </h3>
+                  <Badge
+                    variant={
+                      selectedManager.status === "active"
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
                     {selectedManager.status}
                   </Badge>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Email</span>
                   </div>
-                  <p className="text-sm text-muted-foreground pl-6">{selectedManager.email}</p>
+                  <p className="text-sm text-muted-foreground pl-6">
+                    {selectedManager.email}
+                  </p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Phone</span>
                   </div>
-                  <p className="text-sm text-muted-foreground pl-6">{selectedManager.phone}</p>
+                  <p className="text-sm text-muted-foreground pl-6">
+                    {selectedManager.phone}
+                  </p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Address</span>
                   </div>
-                  <p className="text-sm text-muted-foreground pl-6">{selectedManager.address}</p>
+                  <p className="text-sm text-muted-foreground pl-6">
+                    {selectedManager.address}
+                  </p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <span className="text-sm font-medium">Restaurant</span>
-                  <p className="text-sm text-muted-foreground">{selectedManager.restaurant}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedManager.restaurant}
+                  </p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <span className="text-sm font-medium">Join Date</span>
-                  <p className="text-sm text-muted-foreground">{selectedManager.joinDate}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedManager.joinDate}
+                  </p>
                 </div>
               </div>
             </div>
