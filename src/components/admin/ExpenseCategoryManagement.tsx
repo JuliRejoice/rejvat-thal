@@ -307,7 +307,7 @@ const ExpenseCategoryManagement = () => {
                 onClick={() => setFilterStatus('inactive')}
                 size="sm"
               >
-                Inactive
+                Deactive
               </Button>
             </div>
           </div>
@@ -344,7 +344,7 @@ const ExpenseCategoryManagement = () => {
               <XCircle className="h-8 w-8 text-warning" />
               <div>
                 <p className="text-2xl font-bold">{categories.filter(c => c.status === 'inactive').length}</p>
-                <p className="text-sm text-muted-foreground">Inactive</p>
+                <p className="text-sm text-muted-foreground">Deactive</p>
               </div>
             </div>
           </CardContent>

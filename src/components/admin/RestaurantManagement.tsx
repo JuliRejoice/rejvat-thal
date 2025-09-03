@@ -1,17 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  createRestaurant,
+  getRestaurants,
+  updateRestaurant,
+  updateRestaurantStatus,
+} from "@/api/restaurant.api";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -20,39 +15,51 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Building2,
-  Plus,
-  Search,
-  Eye,
-  Users,
-  MapPin,
-  Phone,
-  Mail,
-  Calendar,
-  CheckCircle,
-  XCircle,
-  Edit,
-  Filter,
-} from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
-  createRestaurant,
-  getRestaurants,
-  updateRestaurant,
-} from "@/api/restaurant.api";
-import { useToast } from "@/hooks/use-toast";
+  Building,
+  Building2,
+  Check,
+  CheckCircle,
+  Edit,
+  Eye,
+  Mail,
+  MapPin,
+  Phone,
+  Plus,
+  Search,
+  Trash2,
+  UserCheck,
+  Users,
+  UserX,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import { DataTablePagination } from "../common/DataTablePagination";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../ui/alert-dialog";
+import { ConfirmationDialog } from "../common/ConfirmationDialog";
 
 const RestaurantManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -61,6 +68,9 @@ const RestaurantManagement = () => {
   const [page, setPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [editingRestaurant, setEditingRestaurant] = useState<any | null>(null);
+  const [open, setIsOpen] = useState<boolean>(false);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<any>(null);
+
   const { toast } = useToast();
 
   const {
@@ -87,7 +97,18 @@ const RestaurantManagement = () => {
       });
       setIsCreateModalOpen(true);
     }
-  }, [editingRestaurant, reset]);  
+  }, [editingRestaurant, reset]);
+
+  const queryData = {
+    search: searchTerm,
+    page,
+    limit: itemsPerPage,
+    ...(filterStatus !== "all" && { status: filterStatus === "active" }),
+  };
+  const { data: getAllRestaurants, refetch } = useQuery({
+    queryKey: ["get-all-restaurant", queryData],
+    queryFn: () => getRestaurants(queryData),
+  });
 
   const { mutate: createRest, isPending } = useMutation({
     mutationKey: ["create-restaurant"],
@@ -99,6 +120,7 @@ const RestaurantManagement = () => {
         description: "Restaurant Created successfully.",
       });
       setIsCreateModalOpen(false);
+      refetch();
       reset();
     },
     onError: (error) => {
@@ -113,7 +135,8 @@ const RestaurantManagement = () => {
 
   const { mutate: updateRest, isPending: isUpdatePending } = useMutation({
     mutationKey: ["update-restaurant"],
-    mutationFn: ({ id, ...restaurantData }: any) => updateRestaurant(restaurantData, id),
+    mutationFn: ({ id, ...restaurantData }: any) =>
+      updateRestaurant(restaurantData, id),
     onSuccess: () => {
       toast({
         variant: "default",
@@ -122,6 +145,7 @@ const RestaurantManagement = () => {
       });
       setIsCreateModalOpen(false);
       setEditingRestaurant(null);
+      refetch();
       reset();
     },
     onError: (error) => {
@@ -134,18 +158,31 @@ const RestaurantManagement = () => {
     },
   });
 
-  console.log("filterStatus", filterStatus, filterStatus !== "all" && { status: filterStatus === "active" ? true : false })
-
-  const queryData = {
-    search: searchTerm,
-    page,
-    limit: itemsPerPage,
-    ...(filterStatus !== "all" && { status: filterStatus === "active" }),
-  };
-  const { data: getAllRestaurants } = useQuery({
-    queryKey: ["get-all-restaurant", queryData],
-    queryFn: () => getRestaurants(queryData),
-  });
+  const { mutate: updateStatus, isPending: isStatusUpdatePending } =
+    useMutation({
+      mutationKey: ["update-status"],
+      mutationFn: ({ id, isActive }: any) =>
+        updateRestaurantStatus(isActive, id),
+      onSuccess: () => {
+        toast({
+          variant: "default",
+          title: `Restaurant status Updated`,
+          description: "Restaurant status Updated successfully.",
+        });
+        setIsOpen(false);
+        setEditingRestaurant(null);
+        refetch();
+        reset();
+      },
+      onError: (error) => {
+        toast({
+          variant: "destructive",
+          title: "Restaurant update failed",
+          description: "Failed to update restaurant.",
+        });
+        console.error("Error creating restaurant:", error);
+      },
+    });
 
   const restaurants = getAllRestaurants?.payload?.data || [];
   const totalItems = getAllRestaurants?.payload?.count || 0;
@@ -286,8 +323,7 @@ const RestaurantManagement = () => {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <p>
-                <span className="font-medium">Name:</span>{" "}
-                {restaurant.name}
+                <span className="font-medium">Name:</span> {restaurant.name}
               </p>
               <p>
                 <span className="font-medium">Phone:</span> {restaurant.phone}
@@ -451,7 +487,7 @@ const RestaurantManagement = () => {
                 onClick={() => setFilterStatus("inactive")}
                 size="sm"
               >
-                Inactive
+                Deactive
               </Button>
             </div>
           </div>
@@ -583,17 +619,9 @@ const RestaurantManagement = () => {
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Badge
-                        variant={
-                          restaurant.isActive
-                            ? "default"
-                            : "secondary"
-                        }
+                        variant={restaurant.isActive ? "default" : "secondary"}
                       >
-                        {restaurant.isActive ? (
-                          "Active"
-                        ) : (
-                          "Deactive"
-                        )}
+                        {restaurant.isActive ? "Active" : "Deactive"}
                         {restaurant.status}
                       </Badge>
                     </div>
@@ -616,16 +644,19 @@ const RestaurantManagement = () => {
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant={
+                        variant="outline"
+                        className={`${
                           restaurant.isActive
-                            ? "success"
-                            : "destructive"
-                        }
+                            ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                            : "bg-red-100 border border-red-300 hover:bg-red-200"
+                        }`}
                         size="sm"
+                        onClick={() => {
+                          setIsOpen(!open);
+                          setSelectedRestaurant(restaurant);
+                        }}
                       >
-                        {restaurant.isActive
-                          ? "Activate"
-                          : "Deactivate"}
+                        {restaurant.isActive ? "Active" : "Deactive"}
                       </Button>
                     </div>
                   </TableCell>
@@ -649,6 +680,33 @@ const RestaurantManagement = () => {
           />
         </CardContent>
       </Card>
+      <ConfirmationDialog
+        open={open}
+        onOpenChange={(open) => {
+          if (!isStatusUpdatePending) {
+            setIsOpen(open);
+          }
+        }}
+        title={`${
+          selectedRestaurant?.isActive ? "Deactivate" : "Activate"
+        } Restaurant`}
+        description={`Are you sure you want to ${
+          selectedRestaurant?.isActive ? "deactivate" : "activate"
+        } "${selectedRestaurant?.name}"?`}
+        confirmText="Confirm"
+        confirmVariant={
+          selectedRestaurant?.isActive ? "destructive" : "success"
+        }
+        isLoading={isStatusUpdatePending}
+        onConfirm={() => {
+          if (selectedRestaurant) {
+            updateStatus({
+              id: selectedRestaurant._id,
+              isActive: !selectedRestaurant.isActive,
+            });
+          }
+        }}
+      />
     </div>
   );
 };

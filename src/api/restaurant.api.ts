@@ -44,6 +44,30 @@ export const updateRestaurant = async (restaurantData, id) => {
     }
 }
 
+export const updateRestaurantStatus = async (isActive, id) => {
+    try {
+        const response = await axiosInstance.put(`/restaurant/updateRestaurantStatus?id=${id}`, {
+            isActive: isActive
+        });
+
+        console.log("update restaurant status API Response:", response.data);
+
+        return response.data;
+
+    } catch (error) {
+        console.error('update restaurant status API error:', error);
+
+        if (error.response) {
+            const errorMessage = error.response.data.message;
+            throw new Error(errorMessage);
+        } else if (error.request) {
+            throw new Error('Network error. Please check your connection.');
+        } else {
+            throw new Error('An unexpected error occurred');
+        }
+    }
+}
+
 export const getRestaurants = async ({ search, page, limit, status }) => {
     try {
         const response = await axiosInstance.get(

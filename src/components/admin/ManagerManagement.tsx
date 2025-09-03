@@ -1,19 +1,25 @@
-import React, { useState } from "react";
-import {
-  Plus,
-  Search,
-  Filter,
-  Eye,
-  Edit2,
-  ToggleLeft,
-  ToggleRight,
-  Mail,
-  Phone,
-  MapPin,
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { signUp } from "@/api/auth.api";
+import { getStaffManager } from "@/api/managerStaff.api";
+import { DataTablePagination } from "@/components/common/DataTablePagination";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -22,29 +28,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DataTablePagination } from "@/components/common/DataTablePagination";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { signUp } from "@/api/auth.api";
-import { StaffManagerForm } from "../common/StaffManagerForm";
 import { useToast } from "@/hooks/use-toast";
-import { getStaffManager } from "@/api/managerStaff.api";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  Edit2,
+  Eye,
+  Filter,
+  Mail,
+  MapPin,
+  Phone,
+  Plus,
+  Search,
+  UserCheck,
+  UserX,
+} from "lucide-react";
+import { useState } from "react";
+import { StaffManagerForm } from "../common/StaffManagerForm";
 
 const mockRestaurants = [
   { id: "rest1", name: "Spice Garden" },
@@ -175,7 +175,7 @@ const ManagerManagement = () => {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="inactive">Deactive</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -253,11 +253,9 @@ const ManagerManagement = () => {
                     )}
                     <TableCell>
                       <Badge
-                        variant={
-                          manager.isActive ? "default" : "secondary"
-                        }
+                        variant={manager.isActive ? "default" : "secondary"}
                       >
-                        {manager.isActive ? "Active": "Deactive"}
+                        {manager.isActive ? "Active" : "Deactive"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -273,14 +271,19 @@ const ManagerManagement = () => {
                           <Edit2 className="h-4 w-4" />
                         </Button>
                         <Button
+                          className={`${
+                            manager.isActive
+                              ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                              : "bg-red-100 border border-red-300 hover:bg-red-200"
+                          }`}
+                          onClick={() => handleStatusToggle(manager.id)}
                           variant="outline"
                           size="sm"
-                          onClick={() => handleStatusToggle(manager.id)}
                         >
-                          {manager.status === "active" ? (
-                            <ToggleLeft className="h-4 w-4 text-destructive" />
+                          {manager.isActive ? (
+                            <UserCheck className="text-green-500" />
                           ) : (
-                            <ToggleRight className="h-4 w-4 text-primary" />
+                            <UserX className="text-red-500" />
                           )}
                         </Button>
                       </div>

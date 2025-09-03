@@ -278,7 +278,7 @@ const MenuItems = () => {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="inactive">Deactive</SelectItem>
               </SelectContent>
             </Select>
           </div>
