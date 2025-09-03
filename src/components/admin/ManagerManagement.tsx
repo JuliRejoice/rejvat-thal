@@ -1,5 +1,5 @@
 import { signUp } from "@/api/auth.api";
-import { getStaffManager, updateStatusStaffManager } from "@/api/managerStaff.api";
+import { getStaffManager, updateStatusStaffManager, updateStaffManager } from "@/api/managerStaff.api";
 import { DataTablePagination } from "@/components/common/DataTablePagination";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -47,12 +47,6 @@ import { useState } from "react";
 import { StaffManagerForm } from "../common/StaffManagerForm";
 import { ConfirmationDialog } from "../common/ConfirmationDialog";
 
-const mockRestaurants = [
-  { id: "rest1", name: "Spice Garden" },
-  { id: "rest2", name: "Curry House" },
-  { id: "rest3", name: "Royal Kitchen" },
-];
-
 const ManagerManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -63,29 +57,11 @@ const ManagerManagement = () => {
   const [page, setPage] = useState(1);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [selectedUpdateManager, setSelectedUpdateManager] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedEditManager, setSelectedEditManager] = useState<any>(null);
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
-  const { mutate: createManager, isPending } = useMutation({
-    mutationKey: ["sign-up"],
-    mutationFn: signUp,
-    onSuccess: () => {
-      toast({
-        variant: "default",
-        title: "Manger created",
-        description: "Manger created successfully.",
-      });
-      setIsAddModalOpen(false);
-    },
-    onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to create staff. Try again.",
-      });
-      console.error("Error creating staff:", error);
-    },
-  });
   const queryData = {
     type: "manager",
     search: searchTerm,
@@ -118,6 +94,51 @@ const ManagerManagement = () => {
         description: "Unable to update manager status. Please try again.",
       });
       console.error("Error update status manager:", error);
+    },
+  });
+  
+  const { mutate: createManager, isPending } = useMutation({
+    mutationKey: ["sign-up"],
+    mutationFn: signUp,
+    onSuccess: () => {
+      toast({
+        variant: "default",
+        title: "Manger created",
+        description: "Manger created successfully.",
+      });
+      setIsAddModalOpen(false);
+      refetch();
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create staff. Try again.",
+      });
+      console.error("Error creating staff:", error);
+    },
+  });
+
+  const { mutate: updateManager, isPending: isUpdatePending } = useMutation({
+    mutationKey: ["update-manager"],
+    mutationFn: ({ userData, id }: any) => updateStaffManager(userData, id),
+    onSuccess: () => {
+      toast({
+        variant: "default",
+        title: "Updated",
+        description: "Manager updated successfully.",
+      });
+      setIsEditModalOpen(false);
+      setSelectedEditManager(null);
+      refetch();
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Update failed",
+        description: "Unable to update manager. Please try again.",
+      });
+      console.error("Error updating manager:", error);
     },
   });
 
@@ -169,7 +190,6 @@ const ManagerManagement = () => {
               <DialogTitle>Add New Manager</DialogTitle>
             </DialogHeader>
             <StaffManagerForm
-              restaurants={mockRestaurants}
               onSubmit={createManager}
               isPending={isPending}
               type="manager"
@@ -294,7 +314,14 @@ const ManagerManagement = () => {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedEditManager(manager);
+                            setIsEditModalOpen(true);
+                          }}
+                        >
                           <Edit2 className="h-4 w-4" />
                         </Button>
                         <Button
@@ -420,6 +447,36 @@ const ManagerManagement = () => {
                 </div>
               </div>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Edit Manager</DialogTitle>
+          </DialogHeader>
+          {selectedEditManager && (
+            <StaffManagerForm
+              defaultValues={{
+                email: selectedEditManager.email || "",
+                name: selectedEditManager.name || "",
+                password: "",
+                phone: selectedEditManager.phone || "",
+                address: selectedEditManager.address || "",
+                restaurantId: selectedEditManager.restaurantId || "",
+                position: "manager",
+                isUserType: "manager",
+                file: selectedEditManager.profileImage || null,
+              }}
+              onSubmit={(data: any) =>
+                updateManager({ userData: data, id: selectedEditManager._id })
+              }
+              isPending={isUpdatePending}
+              type="manager"
+              mode="edit"
+              onCancel={() => setIsEditModalOpen(false)}
+            />
           )}
         </DialogContent>
       </Dialog>

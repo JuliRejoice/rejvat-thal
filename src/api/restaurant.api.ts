@@ -1,6 +1,38 @@
 import axiosInstance from "./axiosInstace.config";
 
-export const createRestaurant = async (restaurantData) => {
+type Restaurant = {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+}
+
+type ApiResponse<T> = {
+    success: boolean;
+    data: T;
+    message?: string;
+};
+
+type QueryData = {
+    search?: string;
+    page?: number;
+    limit?: number;
+    status?: boolean;
+}
+
+export type RestaurantData = {
+    _id: string;
+    email: string;
+    name: string;
+    phone: string;
+    address: string;
+    managerId: string;
+    isActive: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export const createRestaurant = async (restaurantData: Restaurant): Promise<ApiResponse<Restaurant>> => {
     try {
         const response = await axiosInstance.post(`/restaurant/createRestaurant`, restaurantData);
 
@@ -22,7 +54,7 @@ export const createRestaurant = async (restaurantData) => {
     }
 }
 
-export const updateRestaurant = async (restaurantData, id) => {
+export const updateRestaurant = async (restaurantData: Restaurant, id: string): Promise<ApiResponse<Restaurant>> => {
     try {
         const response = await axiosInstance.put(`/restaurant/updateRestaurant?id=${id}`, restaurantData);
 
@@ -44,7 +76,7 @@ export const updateRestaurant = async (restaurantData, id) => {
     }
 }
 
-export const updateRestaurantStatus = async (isActive, id) => {
+export const updateRestaurantStatus = async (isActive: boolean, id: string) => {
     try {
         const response = await axiosInstance.put(`/restaurant/updateRestaurantStatus?id=${id}`, {
             isActive: isActive
@@ -68,10 +100,10 @@ export const updateRestaurantStatus = async (isActive, id) => {
     }
 }
 
-export const getRestaurants = async ({ search, page, limit, status }) => {
+export const getRestaurants = async ({ search, page, limit, status }: QueryData) => {
     try {
         const response = await axiosInstance.get(
-            `/restaurant/getAllRestaurant?${search ? `&search=${search}&` : ""}page=${page}&limit=${limit}${status !== undefined ? `&isActive=${status}` : ""}
+            `/restaurant/getAllRestaurant${search ? `?search=${search}` : ""}${page ? `&page=${page}&` : ""}${limit ? `&limit=${limit}&` : ""}${status !== undefined ? `&isActive=${status}` : ""}
         `);
 
         console.log("get all restaurant API Response:", response.data);

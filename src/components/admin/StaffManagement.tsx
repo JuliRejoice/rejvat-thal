@@ -46,10 +46,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { signUp } from "@/api/auth.api";
 import { useToast } from "@/hooks/use-toast";
-import { useForm } from "react-hook-form";
 import { StaffManagerForm } from "../common/StaffManagerForm";
 import {
   getStaffManager,
+  updateStaffManager,
   updateStatusStaffManager,
 } from "@/api/managerStaff.api";
 import { ConfirmationDialog } from "../common/ConfirmationDialog";
@@ -60,9 +60,6 @@ const mockAttendance = [
 const mockLeaveRequests = [
   /* ... */
 ];
-const mockRestaurants = [
-  /* ... */
-];
 
 const StaffManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -70,6 +67,8 @@ const StaffManagement = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<any>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedEditStaff, setSelectedEditStaff] = useState<any>(null);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [page, setPage] = useState(1);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -77,42 +76,6 @@ const StaffManagement = () => {
 
   const isMobile = useIsMobile();
   const { toast } = useToast();
-
-  const { reset } = useForm({
-    defaultValues: {
-      email: "",
-      name: "",
-      password: "",
-      phone: "",
-      address: "",
-      restaurantId: "68b1467308fb326d4d8a7de1",
-      position: "staff",
-      isUserType: "staff",
-      file: null as File | null,
-    },
-  });
-
-  const { mutate: createStaff, isPending } = useMutation({
-    mutationKey: ["sign-up"],
-    mutationFn: signUp,
-    onSuccess: () => {
-      toast({
-        variant: "default",
-        title: "Success",
-        description: "Staff member created.",
-      });
-      setIsAddModalOpen(false);
-      reset();
-    },
-    onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to create staff. Try again.",
-      });
-      console.error("Error creating staff:", error);
-    },
-  });
 
   const queryData = {
     type: "staff",
@@ -149,6 +112,51 @@ const StaffManagement = () => {
       console.error("Error creating staff:", error);
     },
   });
+  
+  const { mutate: createStaff, isPending } = useMutation({
+    mutationKey: ["sign-up"],
+    mutationFn: signUp,
+    onSuccess: () => {
+      toast({
+        variant: "default",
+        title: "Success",
+        description: "Staff member created.",
+      });
+      setIsAddModalOpen(false);
+      refetch();
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create staff. Try again.",
+      });
+      console.error("Error creating staff:", error);
+    },
+  });
+
+  const { mutate: updateStaff, isPending: isUpdatePending } = useMutation({
+    mutationKey: ["update-staff"],
+    mutationFn: ({ userData, id }: any) => updateStaffManager(userData, id),
+    onSuccess: () => {
+      toast({
+        variant: "default",
+        title: "Updated",
+        description: "Staff member updated successfully.",
+      });
+      setIsEditModalOpen(false);
+      setSelectedEditStaff(null);
+      refetch();
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Update failed",
+        description: "Unable to update staff. Please try again.",
+      });
+      console.error("Error updating staff:", error);
+    },
+  })
 
   const staff = getStaff?.payload?.data || [];
   const totalItems = getStaff?.payload?.count || 0;
@@ -190,7 +198,6 @@ const StaffManagement = () => {
               </DialogTitle>
             </DialogHeader>
             <StaffManagerForm
-              restaurants={mockRestaurants}
               onSubmit={createStaff}
               isPending={isPending}
               type="staff"
@@ -274,7 +281,6 @@ const StaffManagement = () => {
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
-                    reset();
                   }}
                   className="pl-10"
                 />
@@ -284,7 +290,6 @@ const StaffManagement = () => {
               value={filterStatus}
               onValueChange={(value) => {
                 setFilterStatus(value);
-                reset();
               }}
             >
               <SelectTrigger className={isMobile ? "w-full" : "w-48"}>
@@ -383,7 +388,14 @@ const StaffManagement = () => {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedEditStaff(member);
+                            setIsEditModalOpen(true);
+                          }}
+                        >
                           <Edit2 className="h-4 w-4" />
                         </Button>
                         <Button
@@ -558,6 +570,40 @@ const StaffManagement = () => {
                 </div>
               </TabsContent>
             </Tabs>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Staff Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-3xl rounded-2xl shadow-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">
+              Edit staff member
+            </DialogTitle>
+          </DialogHeader>
+          {selectedEditStaff && (
+            <StaffManagerForm
+              defaultValues={{
+                email: selectedEditStaff.email || "",
+                name: selectedEditStaff.name || "",
+                password: "",
+                phone: selectedEditStaff.phone || "",
+                address: selectedEditStaff.address || "",
+                restaurantId:
+                  selectedEditStaff.restaurantId || "",
+                position: "staff",
+                isUserType: "staff",
+                file: selectedEditStaff.profileImage || null,
+              }}
+              onSubmit={(data: any) =>
+                updateStaff({ userData: data, id: selectedEditStaff._id })
+              }
+              isPending={isUpdatePending}
+              type="staff"
+              mode="edit"
+              onCancel={() => setIsEditModalOpen(false)}
+            />
           )}
         </DialogContent>
       </Dialog>
