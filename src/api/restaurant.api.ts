@@ -71,7 +71,7 @@ export const updateRestaurantStatus = async (isActive, id) => {
 export const getRestaurants = async ({ search, page, limit, status }) => {
     try {
         const response = await axiosInstance.get(
-            `/restaurant/getAllRestaurant?${search ? `&search=${search}` : ""}&page=${page}&limit=${limit}${status !== undefined ? `&isActive=${status}` : ""}
+            `/restaurant/getAllRestaurant?${search ? `&search=${search}&` : ""}page=${page}&limit=${limit}${status !== undefined ? `&isActive=${status}` : ""}
         `);
 
         console.log("get all restaurant API Response:", response.data);

@@ -10,6 +10,8 @@ import {
   Calendar,
   Clock,
   FileText,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,7 +48,11 @@ import { signUp } from "@/api/auth.api";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { StaffManagerForm } from "../common/StaffManagerForm";
-import { getStaffManager } from "@/api/managerStaff.api";
+import {
+  getStaffManager,
+  updateStatusStaffManager,
+} from "@/api/managerStaff.api";
+import { ConfirmationDialog } from "../common/ConfirmationDialog";
 
 const mockAttendance = [
   /* ... */
@@ -66,6 +72,9 @@ const StaffManagement = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [page, setPage] = useState(1);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [selectedUpdateStaff, setSelectedUpdateStaff] = useState<any>(null);
+
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
@@ -113,9 +122,32 @@ const StaffManagement = () => {
     ...(filterStatus !== "all" && { status: filterStatus === "active" }),
   };
 
-  const { data: getStaff } = useQuery({
+  const { data: getStaff, refetch } = useQuery({
     queryKey: ["get-all-staff", queryData],
     queryFn: () => getStaffManager(queryData),
+  });
+
+  const { mutate: updateStatus, isPending: isStatusUpdatePending } = useMutation({
+    mutationKey: ["update-status-staff"],
+    mutationFn: ({ id, isActive }: any) =>
+      updateStatusStaffManager(id, isActive),
+    onSuccess: () => {
+      toast({
+        variant: "default",
+        title: "Updated the staff status",
+        description: "Updated the staff status successfully.",
+      });
+      setIsConfirmOpen(false);
+      refetch();
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Staff status updation failed",
+        description: "Unable to update staff status. Please try again.",
+      });
+      console.error("Error creating staff:", error);
+    },
   });
 
   const staff = getStaff?.payload?.data || [];
@@ -125,7 +157,12 @@ const StaffManagement = () => {
   const handleViewStaff = (staffMember: any) => {
     setSelectedStaff(staffMember);
     setIsViewModalOpen(true);
-  }
+  };
+
+  const handleConfirmToggle = (member: any) => {
+    setSelectedUpdateStaff(member);
+    setIsConfirmOpen(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -284,7 +321,7 @@ const StaffManagement = () => {
               </TableHeader>
               <TableBody>
                 {staff.map((member) => (
-                  <TableRow key={member.id}>
+                  <TableRow key={member._id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
@@ -332,11 +369,9 @@ const StaffManagement = () => {
                     )}
                     <TableCell>
                       <Badge
-                        variant={
-                          member.isActive ? "default" : "secondary"
-                        }
+                        variant={member.isActive ? "default" : "secondary"}
                       >
-                        {member.isActive ? "Active": "Deactive"}
+                        {member.isActive ? "Active" : "Deactive"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -351,11 +386,20 @@ const StaffManagement = () => {
                         <Button variant="outline" size="sm">
                           <Edit2 className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm">
-                          {member.status === "active" ? (
-                            <ToggleLeft className="h-4 w-4 text-destructive" />
+                        <Button
+                          className={`${
+                            member.isActive
+                              ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                              : "bg-red-100 border border-red-300 hover:bg-red-200"
+                          }`}
+                          onClick={() => handleConfirmToggle(member)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          {member.isActive ? (
+                            <UserCheck className="text-green-500" />
                           ) : (
-                            <ToggleRight className="h-4 w-4 text-primary" />
+                            <UserX className="text-red-500" />
                           )}
                         </Button>
                       </div>
@@ -517,6 +561,31 @@ const StaffManagement = () => {
           )}
         </DialogContent>
       </Dialog>
+      <ConfirmationDialog
+        open={isConfirmOpen}
+        onOpenChange={(open) => {
+          if (!isStatusUpdatePending) {
+            setIsConfirmOpen(open);
+          }
+        }}
+        title={`${
+          selectedUpdateStaff?.isActive ? "Deactivate" : "Activate"
+        } Staff`}
+        description={`Are you sure you want to ${
+          selectedUpdateStaff?.isActive ? "deactivate" : "activate"
+        } this staff member?`}
+        confirmText={selectedUpdateStaff?.isActive ? "Deactivate" : "Activate"}
+        confirmVariant={selectedUpdateStaff?.isActive ? "destructive" : "success"}
+        isLoading={isStatusUpdatePending}
+        onConfirm={() => {
+          if (selectedUpdateStaff) {
+            updateStatus({
+              id: selectedUpdateStaff._id,
+              isActive: !selectedUpdateStaff.isActive,
+            });
+          }
+        }}
+      />
     </div>
   );
 };
