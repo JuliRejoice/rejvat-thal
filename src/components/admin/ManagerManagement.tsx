@@ -1,5 +1,5 @@
 import { signUp } from "@/api/auth.api";
-import { getStaffManager } from "@/api/managerStaff.api";
+import { getStaffManager, updateStatusStaffManager } from "@/api/managerStaff.api";
 import { DataTablePagination } from "@/components/common/DataTablePagination";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { StaffManagerForm } from "../common/StaffManagerForm";
+import { ConfirmationDialog } from "../common/ConfirmationDialog";
 
 const mockRestaurants = [
   { id: "rest1", name: "Spice Garden" },
@@ -60,6 +61,8 @@ const ManagerManagement = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [page, setPage] = useState(1);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [selectedUpdateManager, setSelectedUpdateManager] = useState<any>(null);
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
@@ -90,18 +93,37 @@ const ManagerManagement = () => {
     limit: itemsPerPage,
     ...(filterStatus !== "all" && { status: filterStatus === "active" }),
   };
-  const { data: getManagers } = useQuery({
+  const { data: getManagers, refetch } = useQuery({
     queryKey: ["get-all-managers", queryData],
     queryFn: () => getStaffManager(queryData),
+  });
+
+  const { mutate: updateStatus, isPending: isStatusUpdatePending } = useMutation({
+    mutationKey: ["update-status-staff"],
+    mutationFn: ({ id, isActive }: any) =>
+      updateStatusStaffManager(id, isActive),
+    onSuccess: () => {
+      toast({
+        variant: "default",
+        title: "Updated the manager status",
+        description: "Updated the manager status successfully.",
+      });
+      setIsConfirmOpen(false);
+      refetch();
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Manager status updation failed",
+        description: "Unable to update manager status. Please try again.",
+      });
+      console.error("Error update status manager:", error);
+    },
   });
 
   const managers = getManagers?.payload?.data || [];
   const totalItems = getManagers?.payload?.count || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-  const handleStatusToggle = (managerId) => {
-    console.log("Toggle status for manager:", managerId);
-  };
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
@@ -116,6 +138,11 @@ const ManagerManagement = () => {
   const handleViewManager = (manager) => {
     setSelectedManager(manager);
     setIsViewModalOpen(true);
+  };
+
+  const handleConfirmToggle = (member: any) => {
+    setSelectedUpdateManager(member);
+    setIsConfirmOpen(true);
   };
 
   return (
@@ -276,7 +303,7 @@ const ManagerManagement = () => {
                               ? "bg-green-100 border border-green-300 hover:bg-green-200"
                               : "bg-red-100 border border-red-300 hover:bg-red-200"
                           }`}
-                          onClick={() => handleStatusToggle(manager.id)}
+                          onClick={() => handleConfirmToggle(manager)}
                           variant="outline"
                           size="sm"
                         >
@@ -396,6 +423,31 @@ const ManagerManagement = () => {
           )}
         </DialogContent>
       </Dialog>
+      <ConfirmationDialog
+        open={isConfirmOpen}
+        onOpenChange={(open) => {
+          if (!isStatusUpdatePending) {
+            setIsConfirmOpen(open);
+          }
+        }}
+        title={`${
+          selectedUpdateManager?.isActive ? "Deactivate" : "Activate"
+        } Staff`}
+        description={`Are you sure you want to ${
+          selectedUpdateManager?.isActive ? "deactivate" : "activate"
+        } this staff member?`}
+        confirmText={selectedUpdateManager?.isActive ? "Deactivate" : "Activate"}
+        confirmVariant={selectedUpdateManager?.isActive ? "destructive" : "success"}
+        isLoading={isStatusUpdatePending}
+        onConfirm={() => {
+          if (selectedUpdateManager) {
+            updateStatus({
+              id: selectedUpdateManager._id,
+              isActive: !selectedUpdateManager.isActive,
+            });
+          }
+        }}
+      />
     </div>
   );
 };

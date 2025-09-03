@@ -27,3 +27,30 @@ export const getStaffManager = async ({ type, search="", page, limit, status }) 
         }
     }
 }
+
+export const updateStatusStaffManager = async (id, isActive) => {
+    try {
+        const response = await axiosInstance.put(`/user/updateUserStatus?id=${id}`, {
+            isActive: isActive
+        });
+        
+        console.log("update manager and staff status API Response:", response.data);
+        
+        return response.data;
+        
+    } catch (error) {
+        console.error('update manager and staff status API error:', error);
+        
+        // Handle different types of errors
+        if (error.response) {
+            const errorMessage = error.response.data.message;
+            throw new Error(errorMessage);
+        } else if (error.request) {
+            // Network error
+            throw new Error('Network error. Please check your connection.');
+        } else {
+            // Other error
+            throw new Error('An unexpected error occurred');
+        }
+    }
+}
