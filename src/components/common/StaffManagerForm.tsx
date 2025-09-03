@@ -1,19 +1,16 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { getRestaurants, RestaurantData } from "@/api/restaurant.api";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import { Eye, EyeOff, Lock } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import { Eye, EyeOff, Lock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { SearchableDropDown } from "./SearchableDropDown";
 
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 
@@ -21,21 +18,52 @@ interface StaffMangerFormProps {
   defaultValues?: any;
   onSubmit: (data: any) => void;
   isPending?: boolean;
-  restaurants: { id: string; name: string }[];
   type?: "staff" | "manager";
   onCancel?: () => void;
+  mode?: "create" | "edit";
 }
 
 export function StaffManagerForm({
   defaultValues,
   onSubmit,
   isPending,
-  restaurants,
   type = "staff",
   onCancel,
+  mode = "create",
 }: StaffMangerFormProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const { user } = useAuth();
   const { toast } = useToast();
+  const [restaurantsOptions, setRestaurantsOptions] = useState<
+    { id: string; name: string }[]
+  >([]);
+
+  const { data: getAllRestaurants } = useQuery({
+    queryKey: ["get-all-restaurant"],
+    queryFn: () => getRestaurants({}),
+  });
+  console.log("getAllRestaurants", getAllRestaurants);
+
+  useEffect(() => {
+    if (getAllRestaurants?.payload?.data) {
+      setRestaurantsOptions(
+        getAllRestaurants.payload.data.map((r: RestaurantData) => ({
+          id: r._id,
+          name: r.name,
+        }))
+      );
+    }
+  }, [getAllRestaurants]);
+
+  const handleSearch = async (query: string) => {
+    const res = await getRestaurants({ search: query });
+    setRestaurantsOptions(
+      res.payload.data.map((r: RestaurantData) => ({
+        id: r._id,
+        name: r.name,
+      }))
+    );
+  };
 
   const {
     register,
@@ -50,7 +78,7 @@ export function StaffManagerForm({
       password: "",
       phone: "",
       address: "",
-      restaurantId: "68b1467308fb326d4d8a7de1",
+      restaurantId: "",
       position: type,
       isUserType: type,
       file: null as File | null,
@@ -59,7 +87,7 @@ export function StaffManagerForm({
   });
 
   const internalSubmit = (data: any) => {
-    if (!data.file) {
+    if (mode === "create" && !data.file) {
       toast({
         variant: "destructive",
         title: "Validation Error",
@@ -105,44 +133,46 @@ export function StaffManagerForm({
               )}
             </div>
             {/* Password */}
-            <div className="space-y-2">
-              <Label htmlFor="password">Password *</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
-                  className="pl-10 pr-10"
-                  disabled={isPending}
-                  {...register("password", {
-                    required: "Password is required",
-                    pattern: {
-                      value: passwordRegex,
-                      message:
-                        "Must be at least 8 chars, include upper, lower, number & special char",
-                    },
-                  })}
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={isPending}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
+            {mode === "create" && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Password *</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    className="pl-10 pr-10"
+                    disabled={isPending}
+                    {...register("password", {
+                      required: "Password is required",
+                      pattern: {
+                        value: passwordRegex,
+                        message:
+                          "Must be at least 8 chars, include upper, lower, number & special char",
+                      },
+                    })}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={isPending}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-sm text-red-500">
+                    {errors.password.message as string}
+                  </p>
+                )}
               </div>
-              {errors.password && (
-                <p className="text-sm text-red-500">
-                  {errors.password.message as string}
-                </p>
-              )}
-            </div>
+            )}
             {/* Phone */}
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number *</Label>
@@ -162,21 +192,12 @@ export function StaffManagerForm({
           {/* Restaurant */}
           <div className="space-y-2">
             <Label htmlFor="restaurantId">Restaurant *</Label>
-            <Select
+            <SearchableDropDown
+              options={restaurantsOptions}
+              onSearch={handleSearch}
               value={watch("restaurantId")}
-              onValueChange={(value) => setValue("restaurantId", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select restaurant" />
-              </SelectTrigger>
-              <SelectContent>
-                {restaurants.map((restaurant) => (
-                  <SelectItem key={restaurant.id} value={restaurant.id}>
-                    {restaurant.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(val) => setValue("restaurantId", val)}
+            />
             {errors.restaurantId && (
               <p className="text-sm text-red-500">
                 {errors.restaurantId.message as string}
@@ -201,7 +222,9 @@ export function StaffManagerForm({
 
           {/* File Upload */}
           <div className="space-y-2">
-            <Label htmlFor="file">Upload Picture *</Label>
+            <Label htmlFor="file">
+              Upload Picture {mode === "create" ? "*" : "(optional)"}
+            </Label>
             <Input
               id="file"
               type="file"
@@ -213,29 +236,38 @@ export function StaffManagerForm({
                 })
               }
             />
-            {watch("file") ? (
-              <div className="relative w-24 h-24">
-                <img
-                  src={URL.createObjectURL(watch("file") as File)}
-                  alt="Preview"
-                  className="w-24 h-24 object-cover rounded-lg border"
-                />
-                <button
-                  type="button"
-                  onClick={() => setValue("file", null)}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow hover:bg-red-600"
+            {(function () {
+              const fileVal = watch("file") as File | string | null;
+              const preview =
+                fileVal instanceof File
+                  ? URL.createObjectURL(fileVal)
+                  : typeof fileVal === "string" && fileVal
+                  ? fileVal
+                  : null;
+              return preview ? (
+                <div className="relative w-24 h-24">
+                  <img
+                    src={preview}
+                    alt="Preview"
+                    className="w-24 h-24 object-cover rounded-lg border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setValue("file", null)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow hover:bg-red-600"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <label
+                  htmlFor="file"
+                  className="flex flex-col items-center justify-center h-24 border-2 border-dashed rounded-lg cursor-pointer text-muted-foreground hover:border-primary hover:text-primary transition w-full"
                 >
-                  ✕
-                </button>
-              </div>
-            ) : (
-              <label
-                htmlFor="file"
-                className="flex flex-col items-center justify-center h-24 border-2 border-dashed rounded-lg cursor-pointer text-muted-foreground hover:border-primary hover:text-primary transition w-full"
-              >
-                <span className="text-xs">Upload Profile photo</span>
-              </label>
-            )}
+                  <span className="text-xs">Upload Profile photo</span>
+                </label>
+              );
+            })()}
             {errors.file && (
               <p className="text-sm text-red-500">
                 {errors.file.message as string}
@@ -251,8 +283,12 @@ export function StaffManagerForm({
               disabled={isPending}
             >
               {isPending
-                ? "Saving..."
-                : `Save ${type === "manager" ? "Manager" : "Staff"}`}
+                ? mode === "create"
+                  ? "Saving..."
+                  : "Updating..."
+                : `${mode === "create" ? "Save" : "Update"} ${
+                    type === "manager" ? "Manager" : "Staff"
+                  }`}
             </Button>
             {onCancel && (
               <Button

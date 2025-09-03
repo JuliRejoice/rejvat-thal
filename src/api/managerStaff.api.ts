@@ -54,3 +54,41 @@ export const updateStatusStaffManager = async (id, isActive) => {
         }
     }
 }
+
+export const updateStaffManager = async (userData, id) => {
+    try {
+        const data = new FormData();
+        
+        data.append('email', userData.email);
+        data.append('name', userData.name);
+        data.append('phone', userData.phone);
+        data.append('address', userData.address);
+        data.append('restaurantId', userData.restaurantId);
+        data.append('position', userData.position || 'staff');
+        data.append('isUserType', userData.isUserType || 'staff');
+        
+        if (userData.file) {
+            data.append('file', userData.file);
+        }
+        const response = await axiosInstance.put(`/user/update?id=${id}`, data);
+        
+        console.log("update manager and staff status API Response:", response.data);
+        
+        return response.data;
+        
+    } catch (error) {
+        console.error('update manager and staff status API error:', error);
+        
+        // Handle different types of errors
+        if (error.response) {
+            const errorMessage = error.response.data.message;
+            throw new Error(errorMessage);
+        } else if (error.request) {
+            // Network error
+            throw new Error('Network error. Please check your connection.');
+        } else {
+            // Other error
+            throw new Error('An unexpected error occurred');
+        }
+    }
+}
