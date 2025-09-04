@@ -21,7 +21,7 @@ const AdminDashboard = () => {
     { name: 'Spice Garden', income: 45000, expense: 28000, customers: 150, status: 'active' },
     { name: 'Curry Palace', income: 38000, expense: 25000, customers: 120, status: 'active' },
     { name: 'Tiffin Express', income: 32000, expense: 22000, customers: 100, status: 'active' },
-    { name: 'Meal Master', income: 0, expense: 0, customers: 0, status: 'inactive' }
+    { name: 'Meal Master', income: 0, expense: 0, customers: 0, status: 'deactive' }
   ];
 
   const totalIncome = restaurantStats.reduce((sum, r) => sum + r.income, 0);

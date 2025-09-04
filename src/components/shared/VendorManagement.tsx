@@ -51,7 +51,7 @@ const mockVendors = [
     phone: '+91 9876543212',
     email: 'amit@dairyfresh.com',
     address: 'Dairy Complex, Mumbai',
-    status: 'inactive',
+    status: 'deactive',
     totalPaid: 15000,
     totalDue: 0,
     lastOrder: '2023-12-20'
@@ -332,7 +332,7 @@ const VendorManagement = () => {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Deactive</SelectItem>
+                <SelectItem value="deactive">Deactive</SelectItem>
               </SelectContent>
             </Select>
           </div>

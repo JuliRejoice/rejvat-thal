@@ -48,17 +48,6 @@ import {
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { DataTablePagination } from "../common/DataTablePagination";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "../ui/alert-dialog";
 import { ConfirmationDialog } from "../common/ConfirmationDialog";
 
 const RestaurantManagement = () => {
@@ -284,7 +273,7 @@ const RestaurantManagement = () => {
         <Button
           type="button"
           variant="outline"
-          onClick={() => setIsCreateModalOpen(false)}
+          onClick={() => {setIsCreateModalOpen(false); reset();}}
           disabled={isPending}
         >
           Cancel
@@ -483,8 +472,8 @@ const RestaurantManagement = () => {
                 Active
               </Button>
               <Button
-                variant={filterStatus === "inactive" ? "default" : "outline"}
-                onClick={() => setFilterStatus("inactive")}
+                variant={filterStatus === "deactive" ? "default" : "outline"}
+                onClick={() => setFilterStatus("deactive")}
                 size="sm"
               >
                 Deactive

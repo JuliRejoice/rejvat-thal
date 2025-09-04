@@ -39,7 +39,7 @@ const mockItems = [
     category: 'Bread',
     price: 25,
     description: 'Leavened bread with butter',
-    status: 'inactive',
+    status: 'deactive',
     restaurant: 'Spice Garden'
   },
   {
@@ -278,7 +278,7 @@ const MenuItems = () => {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Deactive</SelectItem>
+                <SelectItem value="deactive">Deactive</SelectItem>
               </SelectContent>
             </Select>
           </div>

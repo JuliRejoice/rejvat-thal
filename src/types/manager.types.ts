@@ -18,7 +18,7 @@ export type Manager = {
 };
   
 export type UIManager = Manager & {
-    status: 'active' | 'inactive';
+    status: 'active' | 'deactive';
     joinDate: string;
     restaurant: string;
     id: string;
