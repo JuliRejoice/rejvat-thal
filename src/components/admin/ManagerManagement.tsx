@@ -300,7 +300,12 @@ const ManagerManagement = () => {
                     )}
                     <TableCell>
                       <Badge
-                        variant={manager.isActive ? "default" : "secondary"}
+                        variant="outline"
+                        className={`${
+                          manager.isActive
+                            ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                            : "bg-red-100 border border-red-300 hover:bg-red-200"
+                        }`}
                       >
                         {manager.isActive ? "Active" : "Deactive"}
                       </Badge>
@@ -390,11 +395,12 @@ const ManagerManagement = () => {
                     {selectedManager.name}
                   </h3>
                   <Badge
-                    variant={
-                      selectedManager.status === "active"
-                        ? "default"
-                        : "secondary"
-                    }
+                    variant="outline"
+                    className={`${
+                      selectedManager.isActive
+                        ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                        : "bg-red-100 border border-red-300 hover:bg-red-200"
+                    }`}
                   >
                     {selectedManager.status}
                   </Badge>
