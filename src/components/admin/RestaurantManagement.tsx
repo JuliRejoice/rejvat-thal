@@ -619,7 +619,12 @@ const RestaurantManagement = () => {
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Badge
-                        variant={restaurant.isActive ? "default" : "secondary"}
+                        variant="outline"
+                        className={`${
+                          restaurant.isActive
+                            ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                            : "bg-red-100 border border-red-300 hover:bg-red-200"
+                        }`}
                       >
                         {restaurant.isActive ? "Active" : "Deactive"}
                         {restaurant.status}
@@ -656,7 +661,7 @@ const RestaurantManagement = () => {
                           setSelectedRestaurant(restaurant);
                         }}
                       >
-                        {restaurant.isActive ? "Active" : "Deactive"}
+                        {restaurant.isActive ? <UserCheck className="text-green-500"/> : <UserX className="text-red-500"/>}
                       </Button>
                     </div>
                   </TableCell>

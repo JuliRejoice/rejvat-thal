@@ -102,9 +102,16 @@ export const updateRestaurantStatus = async (isActive: boolean, id: string) => {
 
 export const getRestaurants = async ({ search, page, limit, status }: QueryData) => {
     try {
-        const response = await axiosInstance.get(
-            `/restaurant/getAllRestaurant${search ? `?search=${search}` : ""}${page ? `&page=${page}&` : ""}${limit ? `&limit=${limit}&` : ""}${status !== undefined ? `&isActive=${status}` : ""}
-        `);
+        const queryParams = new URLSearchParams();
+
+        if (search) queryParams.append("search", search);
+        if (page !== undefined) queryParams.append("page", String(page));
+        if (limit !== undefined) queryParams.append("limit", String(limit));
+        if (status !== undefined) queryParams.append("isActive", String(status));
+
+        const url = `/restaurant/getAllRestaurant${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
+
+        const response = await axiosInstance.get(url);
 
         console.log("get all restaurant API Response:", response.data);
 

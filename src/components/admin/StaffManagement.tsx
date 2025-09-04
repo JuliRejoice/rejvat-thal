@@ -374,7 +374,12 @@ const StaffManagement = () => {
                     )}
                     <TableCell>
                       <Badge
-                        variant={member.isActive ? "default" : "secondary"}
+                        variant="outline"
+                        className={`${
+                          member.isActive
+                            ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                            : "bg-red-100 border border-red-300 hover:bg-red-200"
+                        }`}
                       >
                         {member.isActive ? "Active" : "Deactive"}
                       </Badge>
