@@ -317,9 +317,10 @@ const StaffManagement = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Staff Member</TableHead>
-                  {!isMobile && <TableHead>Position</TableHead>}
+                  {/* {!isMobile && <TableHead>Position</TableHead>} */}
                   {!isMobile && <TableHead>Restaurant</TableHead>}
                   {!isMobile && <TableHead>Attendance</TableHead>}
+                  {!isMobile && <TableHead>Join Date</TableHead>}
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -351,12 +352,20 @@ const StaffManagement = () => {
                         </div>
                       </div>
                     </TableCell>
-                    {!isMobile && (
+                    {/* {!isMobile && (
                       <TableCell>
                         <Badge variant="outline">{member.position}</Badge>
                       </TableCell>
+                    )} */}
+                    {!isMobile && (
+                      <TableCell
+                        className={`${
+                          !member.restaurantId?.name && "text-gray-400"
+                        }`}
+                      >
+                        {member.restaurantId?.name || "N/A"}
+                      </TableCell>
                     )}
-                    {!isMobile && <TableCell>{member.restaurant}</TableCell>}
                     {!isMobile && (
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -368,6 +377,19 @@ const StaffManagement = () => {
                               className="bg-primary h-2 rounded-full"
                               style={{ width: `${member.attendanceRate}%` }}
                             />
+                          </div>
+                        </div>
+                      </TableCell>
+                    )}
+                    {!isMobile && (
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm font-medium">
+                            {member.joiningDate
+                              ? new Date(
+                                  selectedStaff.joiningDate
+                                ).toLocaleDateString("en-GB")
+                              : "-"}
                           </div>
                         </div>
                       </TableCell>
@@ -475,13 +497,14 @@ const StaffManagement = () => {
                       {selectedStaff.position}
                     </p>
                     <Badge
-                      variant={
-                        selectedStaff.status === "active"
-                          ? "default"
-                          : "secondary"
-                      }
+                      variant="outline"
+                      className={`${
+                        selectedStaff.isActive
+                          ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                          : "bg-red-100 border border-red-300 hover:bg-red-200"
+                      }`}
                     >
-                      {selectedStaff.status}
+                      {selectedStaff.isActive ? "Active" : "Deactive"}
                     </Badge>
                   </div>
                 </div>
@@ -502,13 +525,17 @@ const StaffManagement = () => {
                   <div>
                     <label className="text-sm font-medium">Restaurant</label>
                     <p className="text-sm text-muted-foreground">
-                      {selectedStaff.restaurant}
+                      {selectedStaff.restaurantId?.name}
                     </p>
                   </div>
                   <div>
                     <label className="text-sm font-medium">Join Date</label>
                     <p className="text-sm text-muted-foreground">
-                      {selectedStaff.joinDate}
+                      {selectedStaff.joiningDate
+                        ? new Date(
+                            selectedStaff.joiningDate
+                          ).toLocaleDateString("en-GB")
+                        : "-"}
                     </p>
                   </div>
                 </div>
@@ -595,8 +622,7 @@ const StaffManagement = () => {
                 password: "",
                 phone: selectedEditStaff.phone || "",
                 address: selectedEditStaff.address || "",
-                restaurantId:
-                  selectedEditStaff.restaurantId || "",
+                restaurantId: selectedEditStaff.restaurantId || "",
                 position: "staff",
                 isUserType: "staff",
                 file: selectedEditStaff.profileImage || null,
@@ -626,7 +652,9 @@ const StaffManagement = () => {
           selectedUpdateStaff?.isActive ? "deactivate" : "activate"
         } this staff member?`}
         confirmText={selectedUpdateStaff?.isActive ? "Deactivate" : "Activate"}
-        confirmVariant={selectedUpdateStaff?.isActive ? "destructive" : "success"}
+        confirmVariant={
+          selectedUpdateStaff?.isActive ? "destructive" : "success"
+        }
         isLoading={isStatusUpdatePending}
         onConfirm={() => {
           if (selectedUpdateStaff) {

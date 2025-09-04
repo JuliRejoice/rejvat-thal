@@ -79,14 +79,22 @@ export function StaffManagerForm({
       phone: "",
       address: "",
       restaurantId: "",
+      joiningDate: "",
       position: type,
       isUserType: type,
       file: null as File | null,
       ...defaultValues,
     },
+    mode: "onSubmit",
   });
 
+  useEffect(() => {
+    register("restaurantId", { required: "Select restaurant is required" });
+    register("file", { required: "Profile Picture is required" });
+  }, [register]);
+
   const internalSubmit = (data: any) => {
+    console.log("data**", data);
     if (mode === "create" && !data.file) {
       toast({
         variant: "destructive",
@@ -187,22 +195,43 @@ export function StaffManagerForm({
                 </p>
               )}
             </div>
-          </div>
 
-          {/* Restaurant */}
-          <div className="space-y-2">
-            <Label htmlFor="restaurantId">Restaurant *</Label>
-            <SearchableDropDown
-              options={restaurantsOptions}
-              onSearch={handleSearch}
-              value={watch("restaurantId")}
-              onChange={(val) => setValue("restaurantId", val)}
-            />
-            {errors.restaurantId && (
-              <p className="text-sm text-red-500">
-                {errors.restaurantId.message as string}
-              </p>
-            )}
+            {/* Restaurant */}
+            <div className="space-y-2">
+              <Label htmlFor="restaurantId">Restaurant *</Label>
+              <SearchableDropDown
+                options={restaurantsOptions}
+                onSearch={handleSearch}
+                value={watch("restaurantId")}
+                onChange={(val) => {
+                  setValue("restaurantId", val, {
+                    shouldValidate: true,
+                    shouldTouch: true,
+                  });
+                }}
+              />
+              {errors.restaurantId && (
+                <p className="text-sm text-red-500">
+                  {errors.restaurantId.message as string}
+                </p>
+              )}
+            </div>
+
+            {/* Joining Date */}
+            <div className="space-y-2">
+              <Label htmlFor="restaurantId">Joining Date *</Label>
+              <Input
+                type="date"
+                id="joiningDate"
+                placeholder="Select a joining data"
+                {...register("joiningDate", { required: "Joining date is required" })}
+              />
+              {errors.joiningDate && (
+                <p className="text-sm text-red-500">
+                  {errors.joiningDate.message as string}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Address */}

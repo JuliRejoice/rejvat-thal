@@ -1,5 +1,9 @@
 import { signUp } from "@/api/auth.api";
-import { getStaffManager, updateStatusStaffManager, updateStaffManager } from "@/api/managerStaff.api";
+import {
+  getStaffManager,
+  updateStatusStaffManager,
+  updateStaffManager,
+} from "@/api/managerStaff.api";
 import { DataTablePagination } from "@/components/common/DataTablePagination";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -74,29 +78,30 @@ const ManagerManagement = () => {
     queryFn: () => getStaffManager(queryData),
   });
 
-  const { mutate: updateStatus, isPending: isStatusUpdatePending } = useMutation({
-    mutationKey: ["update-status-staff"],
-    mutationFn: ({ id, isActive }: any) =>
-      updateStatusStaffManager(id, isActive),
-    onSuccess: () => {
-      toast({
-        variant: "default",
-        title: "Updated the manager status",
-        description: "Updated the manager status successfully.",
-      });
-      setIsConfirmOpen(false);
-      refetch();
-    },
-    onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Manager status updation failed",
-        description: "Unable to update manager status. Please try again.",
-      });
-      console.error("Error update status manager:", error);
-    },
-  });
-  
+  const { mutate: updateStatus, isPending: isStatusUpdatePending } =
+    useMutation({
+      mutationKey: ["update-status-staff"],
+      mutationFn: ({ id, isActive }: any) =>
+        updateStatusStaffManager(id, isActive),
+      onSuccess: () => {
+        toast({
+          variant: "default",
+          title: "Updated the manager status",
+          description: "Updated the manager status successfully.",
+        });
+        setIsConfirmOpen(false);
+        refetch();
+      },
+      onError: (error) => {
+        toast({
+          variant: "destructive",
+          title: "Manager status updation failed",
+          description: "Unable to update manager status. Please try again.",
+        });
+        console.error("Error update status manager:", error);
+      },
+    });
+
   const { mutate: createManager, isPending } = useMutation({
     mutationKey: ["sign-up"],
     mutationFn: signUp,
@@ -275,8 +280,12 @@ const ManagerManagement = () => {
                       </div>
                     </TableCell>
                     {!isMobile && (
-                      <TableCell>
-                        <div className="font-medium">{manager.restaurant}</div>
+                      <TableCell
+                        className={`${
+                          !manager.restaurantId?.name && "text-gray-400"
+                        }`}
+                      >
+                        {manager?.restaurantId?.name || "N/A"}
                       </TableCell>
                     )}
                     {!isMobile && (
@@ -291,8 +300,8 @@ const ManagerManagement = () => {
                     )}
                     {!isMobile && (
                       <TableCell>
-                        {manager.createdAt
-                          ? new Date(manager.createdAt).toLocaleDateString(
+                        {manager.joiningDate
+                          ? new Date(manager.joiningDate).toLocaleDateString(
                               "en-GB"
                             )
                           : "-"}
@@ -402,7 +411,7 @@ const ManagerManagement = () => {
                         : "bg-red-100 border border-red-300 hover:bg-red-200"
                     }`}
                   >
-                    {selectedManager.status}
+                    {selectedManager.isActive ? "Active" : "Deactive"}
                   </Badge>
                 </div>
               </div>
@@ -441,14 +450,18 @@ const ManagerManagement = () => {
                 <div className="space-y-2">
                   <span className="text-sm font-medium">Restaurant</span>
                   <p className="text-sm text-muted-foreground">
-                    {selectedManager.restaurant}
+                    {selectedManager.restaurantId?.name}
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <span className="text-sm font-medium">Join Date</span>
                   <p className="text-sm text-muted-foreground">
-                    {selectedManager.joinDate}
+                    {selectedManager.joiningDate
+                      ? new Date(
+                          selectedManager.joiningDate
+                        ).toLocaleDateString("en-GB")
+                      : "-"}
                   </p>
                 </div>
               </div>
@@ -499,8 +512,12 @@ const ManagerManagement = () => {
         description={`Are you sure you want to ${
           selectedUpdateManager?.isActive ? "deactivate" : "activate"
         } this staff member?`}
-        confirmText={selectedUpdateManager?.isActive ? "Deactivate" : "Activate"}
-        confirmVariant={selectedUpdateManager?.isActive ? "destructive" : "success"}
+        confirmText={
+          selectedUpdateManager?.isActive ? "Deactivate" : "Activate"
+        }
+        confirmVariant={
+          selectedUpdateManager?.isActive ? "destructive" : "success"
+        }
         isLoading={isStatusUpdatePending}
         onConfirm={() => {
           if (selectedUpdateManager) {
