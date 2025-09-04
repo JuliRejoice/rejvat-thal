@@ -4,7 +4,6 @@ import {
   Search,
   Filter,
   Eye,
-  Edit2,
   ToggleLeft,
   ToggleRight,
   Calendar,
@@ -12,6 +11,7 @@ import {
   FileText,
   UserCheck,
   UserX,
+  Edit,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -299,7 +299,7 @@ const StaffManagement = () => {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Deactive</SelectItem>
+                <SelectItem value="deactive">Deactive</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -401,7 +401,7 @@ const StaffManagement = () => {
                             setIsEditModalOpen(true);
                           }}
                         >
-                          <Edit2 className="h-4 w-4" />
+                          <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           className={`${

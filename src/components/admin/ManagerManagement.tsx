@@ -32,7 +32,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
-  Edit2,
+  Edit,
   Eye,
   Filter,
   Mail,
@@ -222,7 +222,7 @@ const ManagerManagement = () => {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Deactive</SelectItem>
+                <SelectItem value="deactive">Deactive</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -327,7 +327,7 @@ const ManagerManagement = () => {
                             setIsEditModalOpen(true);
                           }}
                         >
-                          <Edit2 className="h-4 w-4" />
+                          <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           className={`${

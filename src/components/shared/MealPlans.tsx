@@ -47,7 +47,7 @@ const mockMeals = [
     type: 'Complete Meal',
     price: 95,
     description: 'Authentic South Indian meal',
-    status: 'inactive',
+    status: 'deactive',
     items: [
       { name: 'Rice', quantity: 2, price: 30 },
       { name: 'Sambar', quantity: 1, price: 45 },
@@ -331,7 +331,7 @@ const MealPlans = () => {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Deactive</SelectItem>
+                <SelectItem value="deactive">Deactive</SelectItem>
               </SelectContent>
             </Select>
           </div>

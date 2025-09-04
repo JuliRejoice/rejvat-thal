@@ -1,27 +1,9 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+  createExpenseCategory,
+  getAllExpenseCategory,
+  updateExpenseCategory,
+} from "@/api/expenseCategory.api";
+import { DataTablePagination } from "@/components/common/DataTablePagination";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,181 +14,199 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Tags,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  BadgeCheck,
+  BadgeX,
+  CheckCircle,
+  Edit,
   Plus,
   Search,
-  Edit,
+  Tags,
   Trash2,
-  CheckCircle,
-  XCircle
-} from 'lucide-react';
-import { usePagination } from '@/hooks/use-pagination';
-import { DataTablePagination } from '@/components/common/DataTablePagination';
+  XCircle,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { ConfirmationDialog } from "../common/ConfirmationDialog";
 
-interface ExpenseCategory {
-  id: number;
+type ExpenseCat = {
+  _id: string;
   name: string;
   description: string;
-  status: 'active' | 'inactive';
-  createdDate: string;
-  usageCount: number;
-}
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
 
 const ExpenseCategoryManagement = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<ExpenseCategory | null>(null);
-
-  // Mock data
-  const [categories, setCategories] = useState<ExpenseCategory[]>([
-    {
-      id: 1,
-      name: 'Food & Ingredients',
-      description: 'Raw materials, vegetables, spices, and other food items',
-      status: 'active',
-      createdDate: '2024-01-15',
-      usageCount: 156
-    },
-    {
-      id: 2,
-      name: 'Kitchen Equipment',
-      description: 'Cooking utensils, appliances, and kitchen tools',
-      status: 'active',
-      createdDate: '2024-01-20',
-      usageCount: 23
-    },
-    {
-      id: 3,
-      name: 'Staff Salaries',
-      description: 'Monthly salaries and wages for all staff members',
-      status: 'active',
-      createdDate: '2024-01-25',
-      usageCount: 45
-    },
-    {
-      id: 4,
-      name: 'Utilities',
-      description: 'Electricity, water, gas, and internet bills',
-      status: 'active',
-      createdDate: '2024-02-01',
-      usageCount: 34
-    },
-    {
-      id: 5,
-      name: 'Marketing',
-      description: 'Advertising, promotions, and marketing materials',
-      status: 'inactive',
-      createdDate: '2024-02-10',
-      usageCount: 8
-    },
-    {
-      id: 6,
-      name: 'Transportation',
-      description: 'Delivery vehicles, fuel, and transportation costs',
-      status: 'active',
-      createdDate: '2024-02-15',
-      usageCount: 67
-    },
-    {
-      id: 7,
-      name: 'Rent',
-      description: 'Restaurant space rent and property taxes',
-      status: 'active',
-      createdDate: '2024-03-01',
-      usageCount: 12
-    },
-    {
-      id: 8,
-      name: 'Packaging',
-      description: 'Food containers, bags, and packaging materials',
-      status: 'active',
-      createdDate: '2024-03-10',
-      usageCount: 89
-    }
-  ]);
-
-  const filteredCategories = categories.filter(category => {
-    const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         category.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || category.status === filterStatus;
-    return matchesSearch && matchesFilter;
-  });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [isCreateEditModalOpen, setIsCreateEditModalOpen] = useState(false);
+  const [currentCategory, setCurrentCategory] = useState<ExpenseCat | null>(
+    null
+  );
+  const [selectedCategory, setSelectedCategory] = useState<ExpenseCat | null>(
+    null
+  );
+  const [open, setIsOpen] = useState<boolean>();
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [page, setPage] = useState(1);
+  const { toast } = useToast();
 
   const {
-    currentPage,
-    totalPages,
-    paginatedData,
-    goToPage,
-    nextPage,
-    previousPage,
-    startIndex,
-    endIndex,
-    totalItems
-  } = usePagination({ data: filteredCategories, itemsPerPage: 8 });
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      name: "",
+      description: "",
+    },
+  });
 
-  const handleCreateCategory = (formData: FormData) => {
-    const newCategory: ExpenseCategory = {
-      id: Math.max(...categories.map(c => c.id)) + 1,
-      name: formData.get('name') as string,
-      description: formData.get('description') as string,
-      status: 'active',
-      createdDate: new Date().toISOString().split('T')[0],
-      usageCount: 0
-    };
-    setCategories([...categories, newCategory]);
-    setIsCreateModalOpen(false);
+  useEffect(() => {
+    if (currentCategory) {
+      reset({
+        name: currentCategory.name ?? "",
+        description: currentCategory.description ?? "",
+      });
+    } else {
+      reset({ name: "", description: "" });
+    }
+  }, [currentCategory, reset]);
+
+  const queryData = {
+    search: searchTerm,
+    page: page,
+    limit: itemsPerPage,
+    ...(filterStatus !== "all" && { status: filterStatus === "active" }),
   };
 
-  const handleEditCategory = (formData: FormData) => {
-    if (!editingCategory) return;
-    
-    const updatedCategories = categories.map(category =>
-      category.id === editingCategory.id
-        ? {
-            ...category,
-            name: formData.get('name') as string,
-            description: formData.get('description') as string
-          }
-        : category
-    );
-    setCategories(updatedCategories);
-    setIsEditModalOpen(false);
-    setEditingCategory(null);
+  const {
+    data: expenseCatdata,
+    isPending,
+    refetch,
+  } = useQuery({
+    queryKey: ["get-all-expense-cate", queryData],
+    queryFn: () => getAllExpenseCategory(queryData),
+  });
+
+  const { mutate: createExpenseCat, isPending: isCreatePending } = useMutation({
+    mutationKey: ["create-expense-cat"],
+    mutationFn: createExpenseCategory,
+    onSuccess: () => {
+      toast({
+        variant: "default",
+        title: "Expense category create",
+        description: "Expense category created successfully.",
+      });
+      setIsCreateEditModalOpen(false);
+      setCurrentCategory(null);
+      refetch();
+      reset();
+    },
+    onError: (error) => {
+      toast({
+        variant: "default",
+        title: "Creation failed",
+        description: "Expense category creation failed.",
+      });
+      console.error("Error creating expense category:", error);
+    },
+  });
+
+  const { mutate: updateExpenseCat, isPending: isUpdatePending } = useMutation({
+    mutationKey: ["create-expense-cat"],
+    mutationFn: ({ expenseCatdata, id }: any) =>
+      updateExpenseCategory(expenseCatdata, id),
+    onSuccess: () => {
+      toast({
+        variant: "default",
+        title: "Expense category update",
+        description: "Expense category updated successfully.",
+      });
+      setIsCreateEditModalOpen(false);
+      setCurrentCategory(null);
+      setIsOpen(false);
+      refetch();
+      reset();
+    },
+    onError: (error) => {
+      toast({
+        variant: "default",
+        title: "Updation failed",
+        description: "Expense category updation failed.",
+      });
+      console.error("Error creating expense category:", error);
+    },
+  });
+
+  const categories = expenseCatdata?.payload?.data || [];
+  const totalItems = expenseCatdata?.payload?.count || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  const handleDeleteCategory = (categoryId: number) => {};
+
+  const onSubmit = (data: any) => {
+    if (currentCategory?._id) {
+      updateExpenseCat({ expenseCatdata: data, id: currentCategory._id });
+    } else {
+      createExpenseCat(data);
+    }
   };
 
-  const handleToggleStatus = (categoryId: number) => {
-    const updatedCategories = categories.map(category =>
-      category.id === categoryId
-        ? { ...category, status: category.status === 'active' ? 'inactive' as const : 'active' as const }
-        : category
-    );
-    setCategories(updatedCategories);
-  };
-
-  const handleDeleteCategory = (categoryId: number) => {
-    setCategories(categories.filter(category => category.id !== categoryId));
-  };
-
-  const CategoryFormModal = ({ 
-    isOpen, 
-    onClose, 
-    onSubmit, 
+  const CategoryFormModal = ({
+    isOpen,
+    // setIsOpen,
+    onClose,
+    onSubmit,
     category = null,
     title,
-    description 
+    description,
   }: {
     isOpen: boolean;
+    // setIsOpen?: (isOpen: boolean) => void;
     onClose: () => void;
-    onSubmit: (formData: FormData) => void;
-    category?: ExpenseCategory | null;
+    onSubmit: (data: any) => void;
+    category?: any;
     title: string;
     description: string;
   }) => (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        setIsCreateEditModalOpen(open);
+        if (!open) {
+          reset();
+        }
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -215,41 +215,52 @@ const ExpenseCategoryManagement = () => {
           </DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const formData = new FormData(e.currentTarget);
-            onSubmit(formData);
-          }}
-        >
+        <form onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Category Name</Label>
               <Input
                 id="name"
-                name="name"
+                {...register("name", { required: "Name is required" })}
                 placeholder="Enter category name"
-                defaultValue={category?.name || ''}
-                required
               />
+              {errors.name && (
+                <p className="text-sm text-red-500">
+                  {errors.name.message as string}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                name="description"
+                {...register("description", {
+                  required: "Description is required",
+                })}
                 placeholder="Enter category description"
-                defaultValue={category?.description || ''}
-                required
               />
+              {errors.description && (
+                <p className="text-sm text-red-500">
+                  {errors.description.message as string}
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isCreatePending || isUpdatePending}
+            >
               Cancel
             </Button>
-            <Button type="submit" className="bg-gradient-primary">
-              {category ? 'Update Category' : 'Create Category'}
+            <Button
+              type="submit"
+              className="bg-gradient-primary"
+              disabled={isCreatePending || isUpdatePending}
+            >
+              {category ? "Update Category" : "Create Category"}
             </Button>
           </DialogFooter>
         </form>
@@ -262,15 +273,21 @@ const ExpenseCategoryManagement = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Expense Categories</h1>
-          <p className="text-muted-foreground">Manage expense categories for better financial tracking</p>
+          <h1 className="text-3xl font-bold text-foreground">
+            Expense Categories
+          </h1>
+          <p className="text-muted-foreground">
+            Manage expense categories for better financial tracking
+          </p>
         </div>
-        <Button 
+        <Button
           className="bg-gradient-primary"
-          onClick={() => setIsCreateModalOpen(true)}
+          onClick={() => {
+            setCurrentCategory(null);
+            setIsCreateEditModalOpen(true);
+          }}
         >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Category
+          <Plus className="mr-2 h-4 w-4" /> Add Category
         </Button>
       </div>
 
@@ -289,22 +306,22 @@ const ExpenseCategoryManagement = () => {
             </div>
             <div className="flex gap-2">
               <Button
-                variant={filterStatus === 'all' ? 'default' : 'outline'}
-                onClick={() => setFilterStatus('all')}
+                variant={filterStatus === "all" ? "default" : "outline"}
+                onClick={() => setFilterStatus("all")}
                 size="sm"
               >
                 All
               </Button>
               <Button
-                variant={filterStatus === 'active' ? 'default' : 'outline'}
-                onClick={() => setFilterStatus('active')}
+                variant={filterStatus === "active" ? "default" : "outline"}
+                onClick={() => setFilterStatus("active")}
                 size="sm"
               >
                 Active
               </Button>
               <Button
-                variant={filterStatus === 'inactive' ? 'default' : 'outline'}
-                onClick={() => setFilterStatus('inactive')}
+                variant={filterStatus === "deactive" ? "default" : "outline"}
+                onClick={() => setFilterStatus("deactive")}
                 size="sm"
               >
                 Deactive
@@ -322,7 +339,9 @@ const ExpenseCategoryManagement = () => {
               <Tags className="h-8 w-8 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{categories.length}</p>
-                <p className="text-sm text-muted-foreground">Total Categories</p>
+                <p className="text-sm text-muted-foreground">
+                  Total Categories
+                </p>
               </div>
             </div>
           </CardContent>
@@ -332,7 +351,9 @@ const ExpenseCategoryManagement = () => {
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-8 w-8 text-success" />
               <div>
-                <p className="text-2xl font-bold">{categories.filter(c => c.status === 'active').length}</p>
+                <p className="text-2xl font-bold">
+                  {categories.filter((c) => c.status === "active").length}
+                </p>
                 <p className="text-sm text-muted-foreground">Active</p>
               </div>
             </div>
@@ -343,7 +364,9 @@ const ExpenseCategoryManagement = () => {
             <div className="flex items-center space-x-2">
               <XCircle className="h-8 w-8 text-warning" />
               <div>
-                <p className="text-2xl font-bold">{categories.filter(c => c.status === 'inactive').length}</p>
+                <p className="text-2xl font-bold">
+                  {categories.filter((c) => c.status === "deactive").length}
+                </p>
                 <p className="text-sm text-muted-foreground">Deactive</p>
               </div>
             </div>
@@ -354,7 +377,9 @@ const ExpenseCategoryManagement = () => {
             <div className="flex items-center space-x-2">
               <Tags className="h-8 w-8 text-metrics-expense" />
               <div>
-                <p className="text-2xl font-bold">{categories.reduce((sum, c) => sum + c.usageCount, 0)}</p>
+                <p className="text-2xl font-bold">
+                  {categories.reduce((sum, c) => sum + c.usageCount, 0) || 0}
+                </p>
                 <p className="text-sm text-muted-foreground">Total Usage</p>
               </div>
             </div>
@@ -373,16 +398,20 @@ const ExpenseCategoryManagement = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Category</TableHead>
-                  <TableHead className="hidden md:table-cell">Description</TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    Description
+                  </TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="hidden sm:table-cell">Usage</TableHead>
-                  <TableHead className="hidden lg:table-cell">Created</TableHead>
+                  {/* <TableHead className="hidden sm:table-cell">Usage</TableHead> */}
+                  <TableHead className="hidden lg:table-cell">
+                    Created
+                  </TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedData.map((category) => (
-                  <TableRow key={category.id}>
+                {categories.map((category) => (
+                  <TableRow key={category._id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <div className="p-2 bg-primary/10 rounded-lg">
@@ -391,10 +420,9 @@ const ExpenseCategoryManagement = () => {
                         <div>
                           <p className="font-medium">{category.name}</p>
                           <p className="text-sm text-muted-foreground md:hidden">
-                            {category.description.length > 30 
-                              ? `${category.description.substring(0, 30)}...` 
-                              : category.description
-                            }
+                            {category.description.length > 30
+                              ? `${category.description.substring(0, 30)}...`
+                              : category.description}
                           </p>
                         </div>
                       </div>
@@ -405,23 +433,33 @@ const ExpenseCategoryManagement = () => {
                       </p>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={category.status === 'active' ? 'default' : 'secondary'}>
-                        {category.status === 'active' ? (
-                          <CheckCircle className="mr-1 h-3 w-3" />
-                        ) : (
-                          <XCircle className="mr-1 h-3 w-3" />
-                        )}
-                        {category.status}
+                      <Badge
+                        variant="outline"
+                        className={`${
+                          category.isActive
+                            ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                            : "bg-red-100 border border-red-300 hover:bg-red-200"
+                        }`}
+                      >
+                        {category.isActive ? "Active" : "Deactive"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">
+                    {/* <TableCell className="hidden sm:table-cell">
                       <div className="text-center">
                         <p className="font-medium">{category.usageCount}</p>
-                        <p className="text-xs text-muted-foreground">expenses</p>
+                        <p className="text-xs text-muted-foreground">
+                          expenses
+                        </p>
                       </div>
-                    </TableCell>
+                    </TableCell> */}
                     <TableCell className="hidden lg:table-cell">
-                      <p className="text-sm">{category.createdDate}</p>
+                      <p className="text-sm">
+                        {category.createdAt
+                          ? new Date(category.createdAt).toLocaleDateString(
+                              "en-GB"
+                            )
+                          : "-"}
+                      </p>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
@@ -429,18 +467,26 @@ const ExpenseCategoryManagement = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            setEditingCategory(category);
-                            setIsEditModalOpen(true);
+                            setCurrentCategory(category); // category has _id, name, description, isActive
+                            setIsCreateEditModalOpen(true);
                           }}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
-                          variant={category.status === 'active' ? 'secondary' : 'default'}
+                          variant="default"
                           size="sm"
-                          onClick={() => handleToggleStatus(category.id)}
+                          onClick={() => {
+                            setIsOpen(true);
+                            setSelectedCategory(category);
+                          }}
+                          className={`${
+                            category.isActive
+                              ? "bg-green-100 border border-green-300 text-green-500 hover:bg-green-200"
+                              : "bg-red-100 border border-red-300 text-red-500 hover:bg-red-200"
+                          }`}
                         >
-                          {category.status === 'active' ? 'Deactivate' : 'Activate'}
+                          {category.isActive ? <BadgeCheck /> : <BadgeX />}
                         </Button>
                         {category.usageCount === 0 && (
                           <AlertDialog>
@@ -451,15 +497,21 @@ const ExpenseCategoryManagement = () => {
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Category</AlertDialogTitle>
+                                <AlertDialogTitle>
+                                  Delete Category
+                                </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to delete "{category.name}"? This action cannot be undone.
+                                  Are you sure you want to delete "
+                                  {category.name}"? This action cannot be
+                                  undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  onClick={() => handleDeleteCategory(category.id)}
+                                <AlertDialogAction
+                                  onClick={() =>
+                                    handleDeleteCategory(category.id)
+                                  }
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
                                   Delete
@@ -475,43 +527,71 @@ const ExpenseCategoryManagement = () => {
               </TableBody>
             </Table>
           </div>
-          
+
           <DataTablePagination
-            currentPage={currentPage}
+            currentPage={page}
             totalPages={totalPages}
-            itemsPerPage={8}
-            hasNextPage={currentPage < totalPages}
-            hasPreviousPage={currentPage > 1}
-            onPageChange={goToPage}
-            onPreviousPage={previousPage}
-            onNextPage={nextPage}
-            startIndex={startIndex}
-            endIndex={endIndex}
             totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            startIndex={(page - 1) * itemsPerPage + 1}
+            endIndex={Math.min(page * itemsPerPage, totalItems)}
+            hasNextPage={page < totalPages}
+            hasPreviousPage={page > 1}
+            onPageChange={setPage}
+            onNextPage={() => setPage((p) => Math.min(p + 1, totalPages))}
+            onPreviousPage={() => setPage((p) => Math.max(p - 1, 1))}
+            onItemsPerPageChange={(val) => {
+              setItemsPerPage(val);
+              setPage(1);
+            }}
           />
         </CardContent>
       </Card>
 
       {/* Create Category Modal */}
       <CategoryFormModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={handleCreateCategory}
-        title="Add New Category"
-        description="Create a new expense category for better financial tracking"
-      />
-
-      {/* Edit Category Modal */}
-      <CategoryFormModal
-        isOpen={isEditModalOpen}
+        isOpen={isCreateEditModalOpen}
+        // setIsOpen={setIsCreateEditModalOpen}
         onClose={() => {
-          setIsEditModalOpen(false);
-          setEditingCategory(null);
+          setIsCreateEditModalOpen(false);
+          setCurrentCategory(null);
+          reset();
         }}
-        onSubmit={handleEditCategory}
-        category={editingCategory}
-        title="Edit Category"
-        description="Update the expense category information"
+        onSubmit={onSubmit}
+        category={currentCategory}
+        title={currentCategory ? "Edit Category" : "Add New Category"}
+        description={
+          currentCategory
+            ? "Update the expense category information"
+            : "Create a new expense category"
+        }
+      />
+      <ConfirmationDialog
+        open={open}
+        onOpenChange={(open) => {
+          if (!isUpdatePending) {
+            setIsOpen(open);
+          }
+        }}
+        title={`${
+          selectedCategory?.isActive ? "Deactivate" : "Activate"
+        } Restaurant`}
+        description={`Are you sure you want to ${
+          selectedCategory?.isActive ? "deactivate" : "activate"
+        } "${selectedCategory?.name}"?`}
+        confirmText="Confirm"
+        confirmVariant={selectedCategory?.isActive ? "destructive" : "success"}
+        isLoading={isUpdatePending}
+        onConfirm={() => {
+          if (selectedCategory) {
+            updateExpenseCat({
+              expenseCatdata: {
+                isActive: !selectedCategory.isActive,
+              },
+              id: selectedCategory._id,
+            });
+          }
+        }}
       />
     </div>
   );
