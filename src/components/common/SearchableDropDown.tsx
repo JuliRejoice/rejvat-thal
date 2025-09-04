@@ -27,6 +27,8 @@ type SearchableDropDownProps = {
   onSearch?: (query: string) => void;
   value?: string;
   onChange?: (value: string) => void;
+  required?: boolean;
+  error?: string;
 };
 
 export function SearchableDropDown({
@@ -34,6 +36,8 @@ export function SearchableDropDown({
   onSearch,
   value,
   onChange,
+  required,
+  error
 }: SearchableDropDownProps) {
   const [open, setOpen] = React.useState(false);
   const [internalValue, setInternalValue] = React.useState("");
@@ -117,6 +121,9 @@ export function SearchableDropDown({
           </Command>
         </PopoverContent>
       </Popover>
+      {required && !selectedValue && (
+        <p className="mt-1 text-sm text-red-500">{error ?? "This field is required"}</p>
+      )}
     </div>
   );
 }
