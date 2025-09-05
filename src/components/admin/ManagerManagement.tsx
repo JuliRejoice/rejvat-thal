@@ -299,12 +299,14 @@ const ManagerManagement = () => {
                       </TableCell>
                     )}
                     {!isMobile && (
-                      <TableCell>
+                      <TableCell
+                        className={`${!manager.joiningDate && "text-gray-400"}`}
+                      >
                         {manager.joiningDate
                           ? new Date(manager.joiningDate).toLocaleDateString(
                               "en-GB"
                             )
-                          : "-"}
+                          : "N/A"}
                       </TableCell>
                     )}
                     <TableCell>
@@ -456,12 +458,18 @@ const ManagerManagement = () => {
 
                 <div className="space-y-2">
                   <span className="text-sm font-medium">Join Date</span>
-                  <p className="text-sm text-muted-foreground">
+                  <p
+                    className={`text-sm ${
+                      selectedManager.joiningDate
+                        ? "text-muted-foreground"
+                        : "text-gray-400"
+                    }`}
+                  >
                     {selectedManager.joiningDate
                       ? new Date(
                           selectedManager.joiningDate
                         ).toLocaleDateString("en-GB")
-                      : "-"}
+                      : "N/A"}
                   </p>
                 </div>
               </div>
