@@ -42,7 +42,6 @@ export function StaffManagerForm({
     queryKey: ["get-all-restaurant"],
     queryFn: () => getRestaurants({}),
   });
-  console.log("getAllRestaurants", getAllRestaurants);
 
   useEffect(() => {
     if (getAllRestaurants?.payload?.data) {
@@ -94,7 +93,6 @@ export function StaffManagerForm({
   }, [register]);
 
   const internalSubmit = (data: any) => {
-    console.log("data**", data);
     if (mode === "create" && !data.file) {
       toast({
         variant: "destructive",
@@ -224,6 +222,7 @@ export function StaffManagerForm({
                 type="date"
                 id="joiningDate"
                 placeholder="Select a joining data"
+                max={new Date().toISOString().split("T")[0]}
                 {...register("joiningDate", { required: "Joining date is required" })}
               />
               {errors.joiningDate && (

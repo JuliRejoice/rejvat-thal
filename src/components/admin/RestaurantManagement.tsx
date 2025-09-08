@@ -94,12 +94,12 @@ const RestaurantManagement = () => {
     limit: itemsPerPage,
     ...(filterStatus !== "all" && { status: filterStatus === "active" }),
   };
-  const { data: getAllRestaurants, refetch } = useQuery({
+  const { data: getAllRestaurants, refetch, isPending } = useQuery({
     queryKey: ["get-all-restaurant", queryData],
     queryFn: () => getRestaurants(queryData),
   });
 
-  const { mutate: createRest, isPending } = useMutation({
+  const { mutate: createRest, isPending: isCreatePending } = useMutation({
     mutationKey: ["create-restaurant"],
     mutationFn: createRestaurant,
     onSuccess: () => {
@@ -274,16 +274,16 @@ const RestaurantManagement = () => {
           type="button"
           variant="outline"
           onClick={() => {setIsCreateModalOpen(false); reset();}}
-          disabled={isPending}
+          disabled={isCreatePending}
         >
           Cancel
         </Button>
         <Button
           type="submit"
           className="bg-gradient-primary"
-          disabled={isPending || isUpdatePending}
+          disabled={isCreatePending || isUpdatePending}
         >
-          {(isPending || isUpdatePending) && (
+          {(isCreatePending || isUpdatePending) && (
             <div className="h-6 w-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           )}
           {editingRestaurant ? "Update Restaurant" : "Create Restaurant"}
