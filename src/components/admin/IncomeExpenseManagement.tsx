@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,19 +31,52 @@ import {
   Banknote,
   Smartphone
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useMutation, useQueries } from '@tanstack/react-query';
+import { getRestaurants } from '@/api/restaurant.api';
+import { getIncomeExpense, getTransactionByMethod, createIncomeExpense } from '@/api/incomeExpense.api';
+import { useToast } from '@/hooks/use-toast';
+import { IncomeExpenseForm } from '@/components/common/IncomeExpenseForm';
 
 const IncomeExpenseManagement = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedRestaurant, setSelectedRestaurant] = useState('all');
   const [viewType, setViewType] = useState('transactions');
+  const [openAddIncome, setOpenAddIncome] = useState(false);
+  const [openAddExpense, setOpenAddExpense] = useState(false);
 
-  // Mock data
-  const restaurants = [
-    { id: 'all', name: 'All Restaurants' },
-    { id: 'rest1', name: 'Spice Garden' },
-    { id: 'rest2', name: 'Curry Palace' },
-    { id: 'rest3', name: 'Tiffin Express' }
-  ];
+  const { toast } = useToast();
+
+  const queryArgs = useMemo(() => ({
+    restaurantId: selectedRestaurant !== 'all' ? selectedRestaurant : undefined,
+    startDate: selectedDate,
+    endDate: selectedDate,
+  }), [selectedDate, selectedRestaurant]);
+
+  const queriesResults = useQueries({
+    queries: [
+      {
+        queryKey: ['restaurants-admin'],
+        queryFn: () => getRestaurants({}),
+      },
+      {
+        queryKey: ['transactions-admin', queryArgs],
+        queryFn: () => getIncomeExpense(queryArgs),
+      },
+      {
+        queryKey: ['transactions-by-method-admin', queryArgs],
+        queryFn: () => getTransactionByMethod(queryArgs),
+      },
+    ],
+  });
+
+  const [restaurantsQuery, transactionsQuery, byMethodQuery] = queriesResults;
+
+  const restaurants = useMemo(() => {
+    const base = [{ id: 'all', name: 'All Restaurants' }];
+    const data = restaurantsQuery.data?.payload?.data || [];
+    return base.concat(data.map((r: any) => ({ id: r._id, name: r.name })));
+  }, [restaurantsQuery.data]);
 
   const balanceData = {
     openingBalance: 125000,
@@ -55,66 +88,38 @@ const IncomeExpenseManagement = () => {
     upiBalance: 22000
   };
 
-  const transactions = [
-    {
-      id: 1,
-      restaurant: 'Spice Garden',
-      type: 'income',
-      category: 'Tiffin Subscription',
-      amount: 15000,
-      paymentMethod: 'UPI',
-      time: '10:30 AM',
-      description: 'Monthly tiffin subscription payments',
-      customerCount: 25
-    },
-    {
-      id: 2,
-      restaurant: 'Curry Palace',
-      type: 'expense',
-      category: 'Raw Materials',
-      amount: 8500,
-      paymentMethod: 'Cash',
-      time: '11:15 AM',
-      description: 'Vegetable and grocery purchase',
-      vendor: 'Fresh Mart Suppliers'
-    },
-    {
-      id: 3,
-      restaurant: 'Spice Garden',
-      type: 'income',
-      category: 'Daily Orders',
-      amount: 12500,
-      paymentMethod: 'Card',
-      time: '01:20 PM',
-      description: 'Lunch orders payment',
-      customerCount: 45
-    },
-    {
-      id: 4,
-      restaurant: 'Tiffin Express',
-      type: 'expense',
-      category: 'Staff Salary',
-      amount: 15000,
-      paymentMethod: 'Bank Transfer',
-      time: '02:45 PM',
-      description: 'Monthly staff salary payment',
-      staffCount: 5
-    }
-  ];
+  
 
-  const paymentMethodStats = [
-    { method: 'Cash', income: 18500, expense: 12000, icon: Banknote, color: 'text-green-600' },
-    { method: 'Card', income: 15000, expense: 8000, icon: CreditCard, color: 'text-blue-600' },
-    { method: 'UPI', income: 11500, expense: 5000, icon: Smartphone, color: 'text-purple-600' },
-    { method: 'Bank Transfer', income: 0, expense: 3000, icon: DollarSign, color: 'text-orange-600' }
-  ];
+  const paymentMethodStats = useMemo(() => {
+    const rows = byMethodQuery.data?.payload?.data || [];
+    return rows.map((row: any) => ({
+      method: row.method?.type || 'N/A',
+      income: row.income || 0,
+      expense: row.expense || 0,
+      icon: row.method?.type === 'Card' ? CreditCard : row.method?.type === 'UPI' ? Smartphone : Banknote,
+      color: row.income - row.expense >= 0 ? 'text-green-600' : 'text-red-600',
+    }));
+  }, [byMethodQuery.data]);
 
-  const restaurantBalances = [
-    { name: 'Spice Garden', opening: 45000, income: 18000, expense: 10000, closing: 53000 },
-    { name: 'Curry Palace', opening: 35000, income: 15000, expense: 12000, closing: 38000 },
-    { name: 'Tiffin Express', opening: 25000, income: 12000, expense: 6000, closing: 31000 },
-    { name: 'Meal Master', opening: 20000, income: 0, expense: 0, closing: 20000 }
-  ];
+  const restaurantBalances: any[] = [];
+
+  const transactions = transactionsQuery.data?.payload?.data || [];
+
+  const { mutate: createTxn, isPending: isCreating } = useMutation({
+    mutationKey: ['create-income-expense-admin'],
+    mutationFn: createIncomeExpense,
+    onSuccess: () => {
+      toast({ variant: 'default', title: 'Success', description: 'Transaction added.' });
+      setOpenAddIncome(false);
+      setOpenAddExpense(false);
+      transactionsQuery.refetch();
+      byMethodQuery.refetch();
+    },
+    onError: (error) => {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to add transaction.' });
+      console.error('Error adding transaction:', error);
+    },
+  });
 
   return (
     <div className="space-y-6">
@@ -125,14 +130,46 @@ const IncomeExpenseManagement = () => {
           <p className="text-muted-foreground">Track financial transactions across all restaurants</p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export Report
-          </Button>
-          <Button variant="outline">
-            <Eye className="mr-2 h-4 w-4" />
-            Detailed View
-          </Button>
+          <Dialog open={openAddExpense} onOpenChange={(o) => setOpenAddExpense(o)}>
+            <DialogTrigger asChild>
+              <Button variant="destructive">
+                <TrendingDown className="mr-2 h-4 w-4" />
+                Add Expense
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl rounded-2xl shadow-lg">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-semibold">Add Expense</DialogTitle>
+              </DialogHeader>
+              <IncomeExpenseForm
+                type="expense"
+                onSubmit={(data: any) => createTxn(data)}
+                isPending={isCreating}
+                showRestaurantSelector={true}
+                onCancel={() => setOpenAddExpense(false)}
+              />
+            </DialogContent>
+          </Dialog>
+          <Dialog open={openAddIncome} onOpenChange={(o) => setOpenAddIncome(o)}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-success">
+                <TrendingUp className="mr-2 h-4 w-4" />
+                Add Income
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl rounded-2xl shadow-lg">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-semibold">Add Income</DialogTitle>
+              </DialogHeader>
+              <IncomeExpenseForm
+                type="income"
+                onSubmit={(data: any) => createTxn(data)}
+                isPending={isCreating}
+                showRestaurantSelector={true}
+                onCancel={() => setOpenAddIncome(false)}
+              />
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -287,9 +324,9 @@ const IncomeExpenseManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.map((transaction) => (
-                  <TableRow key={transaction.id}>
-                    <TableCell className="font-medium">{transaction.restaurant}</TableCell>
+                {transactions.map((transaction: any) => (
+                  <TableRow key={transaction._id}>
+                    <TableCell className="font-medium">{transaction?.restaurantId?.name || 'N/A'}</TableCell>
                     <TableCell>
                       <Badge variant={transaction.type === 'income' ? 'default' : 'destructive'}>
                         {transaction.type === 'income' ? (
@@ -300,16 +337,16 @@ const IncomeExpenseManagement = () => {
                         {transaction.type}
                       </Badge>
                     </TableCell>
-                    <TableCell>{transaction.category}</TableCell>
+                    <TableCell>{transaction?.expenseCategoryId?.name || 'N/A'}</TableCell>
                     <TableCell>
                       <span className={transaction.type === 'income' ? 'text-metrics-income' : 'text-metrics-expense'}>
-                        {transaction.type === 'income' ? '+' : '-'}₹{transaction.amount.toLocaleString()}
+                        {transaction.type === 'income' ? '+' : '-'}₹{Number(transaction.amount).toLocaleString()}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{transaction.paymentMethod}</Badge>
+                      <Badge variant="outline">{transaction?.method?.type || 'N/A'}</Badge>
                     </TableCell>
-                    <TableCell>{transaction.time}</TableCell>
+                    <TableCell>{new Date(transaction.date)?.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</TableCell>
                     <TableCell>{transaction.description}</TableCell>
                   </TableRow>
                 ))}

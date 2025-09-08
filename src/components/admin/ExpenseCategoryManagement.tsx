@@ -183,7 +183,6 @@ const ExpenseCategoryManagement = () => {
 
   const CategoryFormModal = ({
     isOpen,
-    // setIsOpen,
     onClose,
     onSubmit,
     category = null,
@@ -191,7 +190,6 @@ const ExpenseCategoryManagement = () => {
     description,
   }: {
     isOpen: boolean;
-    // setIsOpen?: (isOpen: boolean) => void;
     onClose: () => void;
     onSubmit: (data: any) => void;
     category?: any;

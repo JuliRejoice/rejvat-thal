@@ -42,7 +42,7 @@ export function SearchableDropDown({
   const [open, setOpen] = React.useState(false);
   const [internalValue, setInternalValue] = React.useState("");
   const selectedValue = value ?? internalValue;
-  console.log("NO**", options, selectedValue)
+
   return (
     <div>
       <Popover open={open} onOpenChange={setOpen}>

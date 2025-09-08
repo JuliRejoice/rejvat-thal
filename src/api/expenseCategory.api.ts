@@ -44,7 +44,12 @@ export const updateExpenseCategory = async (expenseCategoryData, id) => {
     }
 }
 
-export const getAllExpenseCategory = async ({ search, page, limit, status }) => {
+export const getAllExpenseCategory = async ({ search, page, limit, status }: {
+    search?: string
+    page?: number
+    limit?: number
+    status?: boolean
+  } = {}) => {
     try {
         const queryParams = new URLSearchParams();
         if(search) queryParams.append("search", search);
