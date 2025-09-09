@@ -384,10 +384,10 @@ const StaffManagement = () => {
                     {!isMobile && (
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <div className={`text-sm font-medium ${!member.joiningDate && "text-gray-400"}`}>
-                            {member.joiningDate
+                          <div className={`text-sm font-medium ${!member?.joiningDate && "text-gray-400"}`}>
+                            {member?.joiningDate
                               ? new Date(
-                                  selectedStaff.joiningDate
+                                  selectedStaff?.joiningDate
                                 ).toLocaleDateString("en-GB")
                               : "N/A"}
                           </div>
@@ -530,10 +530,10 @@ const StaffManagement = () => {
                   </div>
                   <div>
                     <label className="text-sm font-medium">Join Date</label>
-                    <p className={`text-sm ${selectedStaff.joiningDate ? "text-muted-foreground": "text-gray-400"}`}>
-                      {selectedStaff.joiningDate
+                    <p className={`text-sm ${selectedStaff?.joiningDate ? "text-muted-foreground": "text-gray-400"}`}>
+                      {selectedStaff?.joiningDate
                         ? new Date(
-                            selectedStaff.joiningDate
+                            selectedStaff?.joiningDate
                           ).toLocaleDateString("en-GB")
                         : "-"}
                     </p>

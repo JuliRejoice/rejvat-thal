@@ -8,7 +8,7 @@ export const PaymentMethodEmpty = () => (
       <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
         <Wallet className="h-5 w-5" />
       </div>
-      <p className="font-medium text-foreground">No payment method stats</p>
+      <p className="font-medium text-foreground">No payment method Balance</p>
       <p className="text-sm">Add an income or expense to see balances by method.</p>
     </div>
   </div>
