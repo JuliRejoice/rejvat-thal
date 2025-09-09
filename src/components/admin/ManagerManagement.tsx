@@ -44,12 +44,16 @@ import {
   Phone,
   Plus,
   Search,
+  User,
   UserCheck,
+  Users,
   UserX,
 } from "lucide-react";
 import { useState } from "react";
 import { StaffManagerForm } from "../common/StaffManagerForm";
 import { ConfirmationDialog } from "../common/ConfirmationDialog";
+import { StaffTableSkeleton, StatsCardsSkeleton } from "./SkeletonStaffManag";
+import { NoData } from "../common/NoData";
 
 const ManagerManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -73,7 +77,11 @@ const ManagerManagement = () => {
     limit: itemsPerPage,
     ...(filterStatus !== "all" && { status: filterStatus === "active" }),
   };
-  const { data: getManagers, refetch } = useQuery({
+  const {
+    data: getManagers,
+    refetch,
+    isPending: isGetManagersPending,
+  } = useQuery({
     queryKey: ["get-all-managers", queryData],
     queryFn: () => getStaffManager(queryData),
   });
@@ -204,6 +212,66 @@ const ManagerManagement = () => {
         </Dialog>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {isGetManagersPending ? (
+          <StatsCardsSkeleton />
+        ) : (
+          <>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Total Managers
+                    </p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {totalItems}
+                    </p>
+                  </div>
+                  <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Users className="h-4 w-4 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Active Managers
+                    </p>
+                    <p className="text-2xl font-bold text-primary">
+                      {getManagers?.payload?.active || 0}
+                    </p>
+                  </div>
+                  <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <UserCheck className="h-4 w-4 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Deactive Managers
+                    </p>
+                    <p className="text-2xl font-bold text-amber-600">
+                      {getManagers?.payload?.deactive || 0}
+                    </p>
+                  </div>
+                  <div className="h-8 w-8 bg-amber-100 rounded-lg flex items-center justify-center">
+                    <UserX className="h-4 w-4 text-amber-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </div>
+
       {/* Filters */}
       <Card>
         <CardContent className="p-6">
@@ -253,113 +321,129 @@ const ManagerManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {managers.map((manager) => (
-                  <TableRow key={manager?._id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={manager.profileImage || ""} />
-                          <AvatarFallback>
-                            {manager.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">{manager.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {manager.email}
-                          </div>
-                          {isMobile && (
-                            <div className="text-sm text-muted-foreground">
-                              {manager.restaurant} • {manager.phone}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                {isGetManagersPending ? (
+                  <StaffTableSkeleton />
+                ) : managers.length <= 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7}>
+                      <NoData
+                        icon={User}
+                        title="No Manager found"
+                        description="Add new managers to manage them here."
+                      />
                     </TableCell>
-                    {!isMobile && (
-                      <TableCell
-                        className={`${
-                          !manager?.restaurantId?.name && "text-gray-400"
-                        }`}
-                      >
-                        {manager?.restaurantId?.name || "N/A"}
-                      </TableCell>
-                    )}
-                    {!isMobile && (
+                  </TableRow>
+                ) : (
+                  managers.map((manager) => (
+                    <TableRow key={manager?._id}>
                       <TableCell>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Phone className="h-3 w-3" />
-                            {manager?.phone}
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={manager.profileImage || ""} />
+                            <AvatarFallback>
+                              {manager.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">{manager.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {manager.email}
+                            </div>
+                            {isMobile && (
+                              <div className="text-sm text-muted-foreground">
+                                {manager.restaurant} • {manager.phone}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </TableCell>
-                    )}
-                    {!isMobile && (
-                      <TableCell
-                        className={`${!manager?.joiningDate && "text-gray-400"}`}
-                      >
-                        {manager?.joiningDate
-                          ? new Date(manager?.joiningDate).toLocaleDateString(
-                              "en-GB"
-                            )
-                          : "N/A"}
-                      </TableCell>
-                    )}
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={`${
-                          manager?.isActive
-                            ? "bg-green-100 border border-green-300 hover:bg-green-200"
-                            : "bg-red-100 border border-red-300 hover:bg-red-200"
-                        }`}
-                      >
-                        {manager?.isActive ? "Active" : "Deactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1 sm:gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewManager(manager)}
+                      {!isMobile && (
+                        <TableCell
+                          className={`${
+                            !manager?.restaurantId?.name && "text-gray-400"
+                          }`}
                         >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedEditManager(manager);
-                            setIsEditModalOpen(true);
-                          }}
+                          {manager?.restaurantId?.name || "N/A"}
+                        </TableCell>
+                      )}
+                      {!isMobile && (
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 text-sm">
+                              <Phone className="h-3 w-3" />
+                              {manager?.phone}
+                            </div>
+                          </div>
+                        </TableCell>
+                      )}
+                      {!isMobile && (
+                        <TableCell
+                          className={`${
+                            !manager?.joiningDate && "text-gray-400"
+                          }`}
                         >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
+                          {manager?.joiningDate
+                            ? new Date(manager?.joiningDate).toLocaleDateString(
+                                "en-GB"
+                              )
+                            : "N/A"}
+                        </TableCell>
+                      )}
+                      <TableCell>
+                        <Badge
+                          variant="outline"
                           className={`${
                             manager?.isActive
                               ? "bg-green-100 border border-green-300 hover:bg-green-200"
                               : "bg-red-100 border border-red-300 hover:bg-red-200"
                           }`}
-                          onClick={() => handleConfirmToggle(manager)}
-                          variant="outline"
-                          size="sm"
                         >
-                          {manager?.isActive ? (
-                            <UserCheck className="text-green-500" />
-                          ) : (
-                            <UserX className="text-red-500" />
-                          )}
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          {manager?.isActive ? "Active" : "Deactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1 sm:gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewManager(manager)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedEditManager(manager);
+                              setIsEditModalOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            className={`${
+                              manager?.isActive
+                                ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                                : "bg-red-100 border border-red-300 hover:bg-red-200"
+                            }`}
+                            onClick={() => handleConfirmToggle(manager)}
+                            variant="outline"
+                            size="sm"
+                          >
+                            {manager?.isActive ? (
+                              <UserCheck className="text-green-500" />
+                            ) : (
+                              <UserX className="text-red-500" />
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
@@ -491,7 +575,7 @@ const ManagerManagement = () => {
                 password: "",
                 phone: selectedEditManager.phone || "",
                 address: selectedEditManager.address || "",
-                restaurantId: selectedEditManager.restaurantId || "",
+                restaurantId: selectedEditManager.restaurantId?._id || "",
                 position: "manager",
                 isUserType: "manager",
                 file: selectedEditManager.profileImage || null,

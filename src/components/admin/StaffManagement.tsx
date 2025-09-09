@@ -12,6 +12,7 @@ import {
   UserCheck,
   UserX,
   Edit,
+  User,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,8 @@ import {
   updateStatusStaffManager,
 } from "@/api/managerStaff.api";
 import { ConfirmationDialog } from "../common/ConfirmationDialog";
+import { StaffTableSkeleton, StatsCardsSkeleton } from "./SkeletonStaffManag";
+import { NoData } from "../common/NoData";
 
 const mockAttendance = [
   /* ... */
@@ -85,34 +88,39 @@ const StaffManagement = () => {
     ...(filterStatus !== "all" && { status: filterStatus === "active" }),
   };
 
-  const { data: getStaff, refetch } = useQuery({
+  const {
+    data: getStaff,
+    isPending: isGetStaffPending,
+    refetch,
+  } = useQuery({
     queryKey: ["get-all-staff", queryData],
     queryFn: () => getStaffManager(queryData),
   });
 
-  const { mutate: updateStatus, isPending: isStatusUpdatePending } = useMutation({
-    mutationKey: ["update-status-staff"],
-    mutationFn: ({ id, isActive }: any) =>
-      updateStatusStaffManager(id, isActive),
-    onSuccess: () => {
-      toast({
-        variant: "default",
-        title: "Updated the staff status",
-        description: "Updated the staff status successfully.",
-      });
-      setIsConfirmOpen(false);
-      refetch();
-    },
-    onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Staff status updation failed",
-        description: "Unable to update staff status. Please try again.",
-      });
-      console.error("Error creating staff:", error);
-    },
-  });
-  
+  const { mutate: updateStatus, isPending: isStatusUpdatePending } =
+    useMutation({
+      mutationKey: ["update-status-staff"],
+      mutationFn: ({ id, isActive }: any) =>
+        updateStatusStaffManager(id, isActive),
+      onSuccess: () => {
+        toast({
+          variant: "default",
+          title: "Updated the staff status",
+          description: "Updated the staff status successfully.",
+        });
+        setIsConfirmOpen(false);
+        refetch();
+      },
+      onError: (error) => {
+        toast({
+          variant: "destructive",
+          title: "Staff status updation failed",
+          description: "Unable to update staff status. Please try again.",
+        });
+        console.error("Error creating staff:", error);
+      },
+    });
+
   const { mutate: createStaff, isPending } = useMutation({
     mutationKey: ["sign-up"],
     mutationFn: signUp,
@@ -156,7 +164,7 @@ const StaffManagement = () => {
       });
       console.error("Error updating staff:", error);
     },
-  })
+  });
 
   const staff = getStaff?.payload?.data || [];
   const totalItems = getStaff?.payload?.count || 0;
@@ -208,66 +216,72 @@ const StaffManagement = () => {
       </div>
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Staff
-                </p>
-                <p className="text-2xl font-bold text-foreground">24</p>
-              </div>
-              <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Eye className="h-4 w-4 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Present Today
-                </p>
-                <p className="text-2xl font-bold text-primary">22</p>
-              </div>
-              <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Clock className="h-4 w-4 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  On Leave
-                </p>
-                <p className="text-2xl font-bold text-amber-600">2</p>
-              </div>
-              <div className="h-8 w-8 bg-amber-100 rounded-lg flex items-center justify-center">
-                <Calendar className="h-4 w-4 text-amber-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Leave Requests
-                </p>
-                <p className="text-2xl font-bold text-destructive">3</p>
-              </div>
-              <div className="h-8 w-8 bg-destructive/10 rounded-lg flex items-center justify-center">
-                <FileText className="h-4 w-4 text-destructive" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {isGetStaffPending ? (
+          <StatsCardsSkeleton />
+        ) : (
+          <>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Total Staff
+                    </p>
+                    <p className="text-2xl font-bold text-foreground">24</p>
+                  </div>
+                  <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Eye className="h-4 w-4 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Present Today
+                    </p>
+                    <p className="text-2xl font-bold text-primary">22</p>
+                  </div>
+                  <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Clock className="h-4 w-4 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      On Leave
+                    </p>
+                    <p className="text-2xl font-bold text-amber-600">2</p>
+                  </div>
+                  <div className="h-8 w-8 bg-amber-100 rounded-lg flex items-center justify-center">
+                    <Calendar className="h-4 w-4 text-amber-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Leave Requests
+                    </p>
+                    <p className="text-2xl font-bold text-destructive">3</p>
+                  </div>
+                  <div className="h-8 w-8 bg-destructive/10 rounded-lg flex items-center justify-center">
+                    <FileText className="h-4 w-4 text-destructive" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
       {/* Filters */}
       <Card>
@@ -326,125 +340,143 @@ const StaffManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {staff.map((member) => (
-                  <TableRow key={member._id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarFallback>
-                            {member.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">{member.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {member.email}
-                          </div>
-                          {isMobile && (
-                            <div className="text-sm text-muted-foreground">
-                              {member.position} • {member.restaurant} •{" "}
-                              {member.attendanceRate}%
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                {isGetStaffPending ? (
+                  <StaffTableSkeleton />
+                ) : staff.length <= 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7}>
+                      <NoData
+                        icon={User}
+                        title="No staff members found"
+                        description="Add new staff members to manage them here."
+                      />
                     </TableCell>
-                    {/* {!isMobile && (
+                  </TableRow>
+                ) : (
+                  staff.map((member) => (
+                    <TableRow key={member._id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback>
+                              {member.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">{member.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {member.email}
+                            </div>
+                            {isMobile && (
+                              <div className="text-sm text-muted-foreground">
+                                {member.position} • {member.restaurant} •{" "}
+                                {member.attendanceRate}%
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      {/* {!isMobile && (
                       <TableCell>
                         <Badge variant="outline">{member.position}</Badge>
                       </TableCell>
                     )} */}
-                    {!isMobile && (
-                      <TableCell
-                        className={`${
-                          !member.restaurantId?.name && "text-gray-400"
-                        }`}
-                      >
-                        {member.restaurantId?.name || "N/A"}
-                      </TableCell>
-                    )}
-                    {!isMobile && (
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm font-medium">
-                            {member.attendanceRate}%
+                      {!isMobile && (
+                        <TableCell
+                          className={`${
+                            !member.restaurantId?.name && "text-gray-400"
+                          }`}
+                        >
+                          {member.restaurantId?.name || "N/A"}
+                        </TableCell>
+                      )}
+                      {!isMobile && (
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm font-medium">
+                              {member.attendanceRate}%
+                            </div>
+                            <div className="w-16 bg-muted rounded-full h-2">
+                              <div
+                                className="bg-primary h-2 rounded-full"
+                                style={{ width: `${member.attendanceRate}%` }}
+                              />
+                            </div>
                           </div>
-                          <div className="w-16 bg-muted rounded-full h-2">
+                        </TableCell>
+                      )}
+                      {!isMobile && (
+                        <TableCell>
+                          <div className="flex items-center gap-2">
                             <div
-                              className="bg-primary h-2 rounded-full"
-                              style={{ width: `${member.attendanceRate}%` }}
-                            />
+                              className={`text-sm font-medium ${
+                                !member?.joiningDate && "text-gray-400"
+                              }`}
+                            >
+                              {member?.joiningDate
+                                ? new Date(
+                                    selectedStaff?.joiningDate
+                                  ).toLocaleDateString("en-GB")
+                                : "N/A"}
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                    )}
-                    {!isMobile && (
+                        </TableCell>
+                      )}
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className={`text-sm font-medium ${!member?.joiningDate && "text-gray-400"}`}>
-                            {member?.joiningDate
-                              ? new Date(
-                                  selectedStaff?.joiningDate
-                                ).toLocaleDateString("en-GB")
-                              : "N/A"}
-                          </div>
-                        </div>
-                      </TableCell>
-                    )}
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={`${
-                          member.isActive
-                            ? "bg-green-100 border border-green-300 hover:bg-green-200"
-                            : "bg-red-100 border border-red-300 hover:bg-red-200"
-                        }`}
-                      >
-                        {member.isActive ? "Active" : "Deactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1 sm:gap-2">
-                        <Button
+                        <Badge
                           variant="outline"
-                          size="sm"
-                          onClick={() => handleViewStaff(member)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedEditStaff(member);
-                            setIsEditModalOpen(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
                           className={`${
                             member.isActive
                               ? "bg-green-100 border border-green-300 hover:bg-green-200"
                               : "bg-red-100 border border-red-300 hover:bg-red-200"
                           }`}
-                          onClick={() => handleConfirmToggle(member)}
-                          variant="outline"
-                          size="sm"
                         >
-                          {member.isActive ? (
-                            <UserCheck className="text-green-500" />
-                          ) : (
-                            <UserX className="text-red-500" />
-                          )}
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          {member.isActive ? "Active" : "Deactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1 sm:gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewStaff(member)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedEditStaff(member);
+                              setIsEditModalOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            className={`${
+                              member.isActive
+                                ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                                : "bg-red-100 border border-red-300 hover:bg-red-200"
+                            }`}
+                            onClick={() => handleConfirmToggle(member)}
+                            variant="outline"
+                            size="sm"
+                          >
+                            {member.isActive ? (
+                              <UserCheck className="text-green-500" />
+                            ) : (
+                              <UserX className="text-red-500" />
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
@@ -530,7 +562,13 @@ const StaffManagement = () => {
                   </div>
                   <div>
                     <label className="text-sm font-medium">Join Date</label>
-                    <p className={`text-sm ${selectedStaff?.joiningDate ? "text-muted-foreground": "text-gray-400"}`}>
+                    <p
+                      className={`text-sm ${
+                        selectedStaff?.joiningDate
+                          ? "text-muted-foreground"
+                          : "text-gray-400"
+                      }`}
+                    >
                       {selectedStaff?.joiningDate
                         ? new Date(
                             selectedStaff?.joiningDate
@@ -622,9 +660,14 @@ const StaffManagement = () => {
                 password: "",
                 phone: selectedEditStaff.phone || "",
                 address: selectedEditStaff.address || "",
-                restaurantId: selectedEditStaff.restaurantId || "",
+                restaurantId: selectedEditStaff.restaurantId?._id || "",
                 position: "staff",
                 isUserType: "staff",
+                joiningDate: selectedEditStaff.joiningDate
+                  ? new Date(selectedEditStaff.joiningDate)
+                      .toISOString()
+                      .split("T")[0]
+                  : "",
                 file: selectedEditStaff.profileImage || null,
               }}
               onSubmit={(data: any) =>
