@@ -12,6 +12,9 @@ export const createIncomeExpense = async (incomeExpenseData) => {
         if(incomeExpenseData?.expenseCategoryId){
             incExpData.append("expenseCategoryId", incomeExpenseData?.expenseCategoryId);
         }
+        if(incomeExpenseData?.icnomeCategoryId){
+            incExpData.append("icnomeCategoryId", incomeExpenseData?.icnomeCategoryId);
+        }
         if (incomeExpenseData.file) {
             incExpData.append('file', incomeExpenseData.file);
         }

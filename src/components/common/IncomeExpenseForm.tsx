@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueries } from "@tanstack/react-query";
 import { getPaymentMethods } from "@/api/paymentMethod.api";
 import { getAllExpenseCategory } from "@/api/expenseCategory.api";
-import { getRestaurants, RestaurantData } from "@/api/restaurant.api";
+import { getAllIncomeCategory } from "@/api/incomeCategories.api";
 
 type IncomeExpenseFormMode = "create" | "edit";
 type IncomeExpenseType = "income" | "expense";
@@ -44,6 +44,9 @@ export function IncomeExpenseForm({
   const [expenseCategoriesOptions, setExpenseCategoriesOptions] = useState<
     { id: string; name: string }[]
   >([]);
+  const [incomeCategoriesOptions, setIncomeCategoriesOptions] = useState<
+    { id: string; name: string }[]
+  >([]);
 
   const {
     register,
@@ -55,6 +58,7 @@ export function IncomeExpenseForm({
   } = useForm({
     defaultValues: {
       expenseCategoryId: "",
+      icnomeCategoryId: "",
       amount: "",
       method: "",
       restaurantId: "",
@@ -78,10 +82,16 @@ export function IncomeExpenseForm({
         queryFn: () => getAllExpenseCategory({}),
         enabled: type === "expense",
       },
+      {
+        queryKey: ["income-categories"],
+        queryFn: () => getAllIncomeCategory({}),
+        enabled: type === "income",
+      },
     ],
   });
 
-  const [paymentMethodsQuery, expenseCategoriesQuery] = queriesResults;
+  const [paymentMethodsQuery, expenseCategoriesQuery, incomeCategoriesQuery] =
+    queriesResults;
   const paymentMethods = paymentMethodsQuery.data?.payload?.data || [];
 
   useEffect(() => {
@@ -96,6 +106,17 @@ export function IncomeExpenseForm({
   }, [expenseCategoriesQuery.data]);
 
   useEffect(() => {
+    if (incomeCategoriesQuery.data?.payload?.data) {
+      setIncomeCategoriesOptions(
+        incomeCategoriesQuery.data.payload.data.map((c: any) => ({
+          id: c._id,
+          name: c.name,
+        }))
+      );
+    }
+  }, [incomeCategoriesQuery.data]);
+
+  useEffect(() => {
     register("file", {
       required: mode === "create" ? "Receipt/Bill is required" : (false as any),
     });
@@ -105,12 +126,23 @@ export function IncomeExpenseForm({
       register("expenseCategoryId", {
         required: "Expense category is required",
       });
+    }else{
+      register("icnomeCategoryId", {
+        required: "Income category is required",
+      });
     }
   }, [register, type, mode]);
 
   const handleExpenseCategorySearch = async (query: string) => {
     const res = await getAllExpenseCategory({ search: query });
     setExpenseCategoriesOptions(
+      res.payload.data.map((c: any) => ({ id: c._id, name: c.name }))
+    );
+  };
+
+  const handleIncomeCategorySearch = async (query: string) => {
+    const res = await getAllIncomeCategory({ search: query });
+    setIncomeCategoriesOptions(
       res.payload.data.map((c: any) => ({ id: c._id, name: c.name }))
     );
   };
@@ -133,7 +165,7 @@ export function IncomeExpenseForm({
       <Card className="shadow-none">
         <CardContent className="space-y-6 pt-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {type === "expense" && (
+            {type === "expense" ? (
               <div className="space-y-2">
                 <Label htmlFor="expenseCategoryId">Expense Category *</Label>
                 <SearchableDropDown
@@ -150,6 +182,26 @@ export function IncomeExpenseForm({
                 {errors.expenseCategoryId && (
                   <p className="text-sm text-red-500">
                     {errors.expenseCategoryId.message as string}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="icnomeCategoryId">Income Category *</Label>
+                <SearchableDropDown
+                  options={incomeCategoriesOptions}
+                  onSearch={handleIncomeCategorySearch}
+                  value={watch("icnomeCategoryId")}
+                  onChange={(val) => {
+                    setValue("icnomeCategoryId", val, {
+                      shouldValidate: true,
+                      shouldTouch: true,
+                    });
+                  }}
+                />
+                {errors.icnomeCategoryId && (
+                  <p className="text-sm text-red-500">
+                    {errors.icnomeCategoryId.message as string}
                   </p>
                 )}
               </div>
