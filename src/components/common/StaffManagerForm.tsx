@@ -89,8 +89,8 @@ export function StaffManagerForm({
   });
 
   useEffect(() => {
-    register("restaurantId", { 
-      required: isManager ? false : "Select restaurant is required" 
+    register("restaurantId", {
+      required: isManager ? false : "Select restaurant is required",
     });
     register("file", { required: "Profile Picture is required" });
   }, [register, isManager]);
@@ -123,37 +123,49 @@ export function StaffManagerForm({
           <div className="grid grid-cols-2 gap-4">
             {/* Name */}
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name *</Label>
+              <div className="flex gap-3 items-baseline">
+                <Label htmlFor="name">Full Name *</Label>
+                {errors.name && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.name.message as string}
+                  </p>
+                )}
+              </div>
               <Input
                 id="name"
                 placeholder="Enter full name"
                 {...register("name", { required: "Name is required" })}
               />
-              {errors.name && (
-                <p className="text-sm text-red-500">
-                  {errors.name.message as string}
-                </p>
-              )}
             </div>
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
+              <div className="flex gap-3 items-baseline">
+                <Label htmlFor="email">Email *</Label>
+                {errors.email && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.email.message as string}
+                  </p>
+                )}
+              </div>
               <Input
                 id="email"
                 type="email"
                 placeholder="Enter email address"
+                readOnly={mode === "edit"}
                 {...register("email", { required: "Email is required" })}
               />
-              {errors.email && (
-                <p className="text-sm text-red-500">
-                  {errors.email.message as string}
-                </p>
-              )}
             </div>
             {/* Password */}
             {mode === "create" && (
               <div className="space-y-2">
-                <Label htmlFor="password">Password *</Label>
+                <div className="flex gap-3 items-baseline">
+                  <Label htmlFor="password">Password *</Label>
+                  {errors.password && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors.password.message as string}
+                    </p>
+                  )}
+                </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -166,8 +178,7 @@ export function StaffManagerForm({
                       required: "Password is required",
                       pattern: {
                         value: passwordRegex,
-                        message:
-                          "Must be at least 8 chars, include upper, lower, number & special char",
+                        message: "Min 8 chars, upper, lower, number & special",
                       },
                     })}
                   />
@@ -184,32 +195,75 @@ export function StaffManagerForm({
                     )}
                   </button>
                 </div>
-                {errors.password && (
-                  <p className="text-sm text-red-500">
-                    {errors.password.message as string}
-                  </p>
-                )}
               </div>
             )}
             {/* Phone */}
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number *</Label>
+              <div className="flex gap-3 items-baseline">
+                <Label htmlFor="phone">Phone Number *</Label>
+                {errors.phone && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.phone.message as string}
+                  </p>
+                )}
+              </div>
               <Input
                 id="phone"
                 placeholder="Enter phone number"
                 {...register("phone", { required: "Phone is required" })}
               />
-              {errors.phone && (
-                <p className="text-sm text-red-500">
-                  {errors.phone.message as string}
-                </p>
-              )}
+            </div>
+
+            {/* Salary */}
+            {type === "staff" && (
+              <div className="space-y-2">
+                <div className="flex gap-3 items-baseline">
+                  <Label htmlFor="salary">Salary *</Label>
+                  {errors.salary && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors.salary.message as string}
+                    </p>
+                  )}
+                </div>
+                <Input
+                  id="salary"
+                  placeholder="Enter salary"
+                  {...register("salary", { required: "Salary is required" })}
+                />
+              </div>
+            )}
+
+            {/* Joining Date */}
+            <div className="space-y-2">
+              <div className="flex gap-3 items-baseline">
+                <Label htmlFor="restaurantId">Joining Date *</Label>
+                {errors.joiningDate && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.joiningDate.message as string}
+                  </p>
+                )}
+              </div>
+              <Input
+                type="date"
+                id="joiningDate"
+                max={new Date().toISOString().split("T")[0]}
+                {...register("joiningDate", {
+                  required: "Joining date is required",
+                })}
+              />
             </div>
 
             {/* Restaurant */}
-            <div className="space-y-2">
-              <Label htmlFor="restaurantId">Restaurant *</Label>
-              {isManager ? (
+            <div className={`${type === "staff" && "col-span-2"} space-y-2`}>
+              <div className="flex gap-3 items-baseline">
+                <Label htmlFor="restaurantId">Restaurant *</Label>
+                {errors.restaurantId && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.restaurantId.message as string}
+                  </p>
+                )}
+              </div>
+              {isManager || mode === "edit" ? (
                 <Input
                   id="restaurantId"
                   value={
@@ -234,50 +288,38 @@ export function StaffManagerForm({
                   }}
                 />
               )}
-              {errors.restaurantId && (
-                <p className="text-sm text-red-500">
-                  {errors.restaurantId.message as string}
-                </p>
-              )}
-            </div>
-
-            {/* Joining Date */}
-            <div className="space-y-2">
-              <Label htmlFor="restaurantId">Joining Date *</Label>
-              <Input
-                type="date"
-                id="joiningDate"
-                max={new Date().toISOString().split("T")[0]}
-                {...register("joiningDate", { required: "Joining date is required" })}
-              />
-              {errors.joiningDate && (
-                <p className="text-sm text-red-500">
-                  {errors.joiningDate.message as string}
-                </p>
-              )}
             </div>
           </div>
 
           {/* Address */}
           <div className="space-y-2">
-            <Label htmlFor="address">Address *</Label>
+            <div className="flex gap-3 items-baseline">
+              <Label htmlFor="address">Address *</Label>
+              {errors.address && (
+                <p className="mt-1 text-xs text-red-500">
+                  {errors.address.message as string}
+                </p>
+              )}
+            </div>
             <Textarea
               id="address"
               placeholder="Enter address"
               {...register("address", { required: "Address is required" })}
             />
-            {errors.address && (
-              <p className="text-sm text-red-500">
-                {errors.address.message as string}
-              </p>
-            )}
           </div>
 
           {/* File Upload */}
           <div className="space-y-2">
-            <Label htmlFor="file">
-              Upload Picture {mode === "create" ? "*" : "(optional)"}
-            </Label>
+            <div className="flex gap-3 items-baseline">
+              <Label htmlFor="file">
+                Upload Picture {mode === "create" ? "*" : "(optional)"}
+              </Label>
+              {errors.file && (
+                <p className="mt-1 text-xs text-red-500">
+                  {errors.file.message as string}
+                </p>
+              )}
+            </div>
             <Input
               id="file"
               type="file"
@@ -321,20 +363,11 @@ export function StaffManagerForm({
                 </label>
               );
             })()}
-            {errors.file && (
-              <p className="text-sm text-red-500">
-                {errors.file.message as string}
-              </p>
-            )}
           </div>
 
           {/* Buttons */}
-          <div className="flex gap-3 pt-2">
-            <Button
-              className="flex-1 rounded-xl"
-              type="submit"
-              disabled={isPending}
-            >
+          <div className="flex justify-end gap-3 pt-2">
+            <Button className="rounded-xl" type="submit" disabled={isPending}>
               {isPending
                 ? mode === "create"
                   ? "Saving..."
