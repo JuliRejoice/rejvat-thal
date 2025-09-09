@@ -330,13 +330,13 @@ const ExpenseCategoryManagement = () => {
       </Card>
 
       {/* Category Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="shadow-card">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <Tags className="h-8 w-8 text-primary" />
               <div>
-                <p className="text-2xl font-bold">{categories.length}</p>
+                <p className="text-2xl font-bold">{totalItems}</p>
                 <p className="text-sm text-muted-foreground">
                   Total Categories
                 </p>
@@ -350,7 +350,7 @@ const ExpenseCategoryManagement = () => {
               <CheckCircle className="h-8 w-8 text-success" />
               <div>
                 <p className="text-2xl font-bold">
-                  {categories.filter((c) => c.status === "active").length}
+                  {expenseCatdata?.payload?.active}
                 </p>
                 <p className="text-sm text-muted-foreground">Active</p>
               </div>
@@ -363,22 +363,9 @@ const ExpenseCategoryManagement = () => {
               <XCircle className="h-8 w-8 text-warning" />
               <div>
                 <p className="text-2xl font-bold">
-                  {categories.filter((c) => c.status === "deactive").length}
+                  {expenseCatdata?.payload?.deactive}
                 </p>
                 <p className="text-sm text-muted-foreground">Deactive</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Tags className="h-8 w-8 text-metrics-expense" />
-              <div>
-                <p className="text-2xl font-bold">
-                  {categories.reduce((sum, c) => sum + c.usageCount, 0) || 0}
-                </p>
-                <p className="text-sm text-muted-foreground">Total Usage</p>
               </div>
             </div>
           </CardContent>
