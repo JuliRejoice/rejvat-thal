@@ -10,21 +10,33 @@ import { useMutation } from '@tanstack/react-query';
 import { resetPassword } from '@/api/auth.api';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useForm } from 'react-hook-form';
+
+type FormValues = {
+  password: string;
+  confirmPassword: string;
+};
 
 export const ResetPasswordForm = () => {
-  const [formData, setFormData] = useState({
-    password: '',
-    confirmPassword: ''
-  });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState('');
   const { setUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  
   const email = location.state?.email || '';
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<FormValues>({
+    defaultValues: {
+      password: '',
+      confirmPassword: '',
+    },
+  });
 
   const { mutate: resetPass, isPending } = useMutation({
     mutationKey: ['reset-password'],
@@ -38,59 +50,31 @@ export const ResetPasswordForm = () => {
         });
         navigate("/login");
       } else {
-        setError(data.message || 'Password reset failed');
+        toast({
+          variant: "destructive",
+          title: "Password",
+          description: data.message || "Password reset failed",
+        })
       }
     },
-    onError: (error) => {
-      console.error('reset-password error:', error);
-      setError(error.message || 'Password reset failed. Please try again.');
-    }
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Password",
+        description: error.message || "Password reset failed. Please try again.",
+      })
+    },
   });
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    setError(''); // Clear error on input change
-  };
-
-  const validateForm = () => {
-    const { password, confirmPassword } = formData;
-    
-    if (!password.trim()) {
-      setError('Please enter a new password');
-      return false;
-    }
-    
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return false;
-    }
-    
-    if (!confirmPassword.trim()) {
-      setError('Please confirm your password');
-      return false;
-    }
-    
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return false;
-    }
-    
-    return true;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    
-    if (!validateForm()) {
-      return;
-    }
-    
+  const onSubmit = (values: FormValues) => {
     resetPass({
-      email: email,
-      password: formData.confirmPassword,
+      email,
+      password: values.password,
     });
   };
+
+  const password = watch("password");
+  const confirmPassword = watch("confirmPassword");
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/20 p-4">
@@ -115,12 +99,7 @@ export const ResetPasswordForm = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
               {/* New Password Field */}
               <div className="space-y-2">
@@ -131,12 +110,19 @@ export const ResetPasswordForm = () => {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter new password"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    required
-                    className="pl-10 pr-10"
+                    {...register("password", {
+                      required: "Please enter a new password",
+                      minLength: {
+                        value: 6,
+                        message: "Password must be at least 6 characters long",
+                      },
+                    })}
+                    className="pl-10 pr-10 mb-1"
                     disabled={isPending}
                   />
+                  {errors.password && (
+                    <p className="text-sm text-red-500">{errors.password.message}</p>
+                  )}
                   <button
                     type="button"
                     className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
@@ -157,12 +143,17 @@ export const ResetPasswordForm = () => {
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm new password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    required
-                    className="pl-10 pr-10"
+                    {...register("confirmPassword", {
+                      required: "Please confirm your password",
+                      validate: (value) =>
+                        value === password || "Passwords do not match",
+                    })}
+                    className="pl-10 pr-10 mb-1"
                     disabled={isPending}
                   />
+                  {errors.confirmPassword && (
+                    <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
+                  )}
                   <button
                     type="button"
                     className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
@@ -174,21 +165,10 @@ export const ResetPasswordForm = () => {
                 </div>
               </div>
 
-              {/* Password Match Indicator */}
-              {formData.password && formData.confirmPassword && (
-                <div className="text-xs">
-                  {formData.password === formData.confirmPassword ? (
-                    <span className="text-green-600">Passwords match</span>
-                  ) : (
-                    <span className="text-red-600">Passwords do not match</span>
-                  )}
-                </div>
-              )}
-
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isPending || !formData.password.trim() || !formData.confirmPassword.trim()}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isPending}
               >
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Reset Password

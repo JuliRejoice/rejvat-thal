@@ -1,45 +1,53 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, ChefHat, Mail } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { forgetPassword } from '@/api/auth.api';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { useToast } from "@/components/ui/use-toast";
 
 export const ForgetPassForm = () => {
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState(''); 
   const navigate = useNavigate();
-
-  const { mutate: forgetPass, isPending,data } = useMutation({
+  const { toast } = useToast();
+  const { register, handleSubmit, reset, formState: { errors }, setValue } = useForm({ defaultValues: { email: "", } });
+  const { mutate: forgetPass, isPending } = useMutation({
     mutationKey: ['forget-password'],
     mutationFn: forgetPassword,
-    onSuccess: (data) => {
-      
+    onSuccess: (data, variables) => {
       if (data.success) {
-        return navigate("/otp-verification", { 
-            state: { 
-                email: email,
-            } 
-        }); 
+        toast({
+          title: 'OTP',
+          description: 'OTP send successfully',
+        });
+        reset()
+        return navigate("/otp-verification", {
+          state: { email: variables, }
+        });
       } else {
-        setError(data.message || 'forget-password failed');
+        toast({
+          variant: "destructive",
+          title: "Forget password failed",
+          description: data.message || "Something went wrong.",
+        });
       }
     },
     onError: (error) => {
-      console.error('forget-password error:', error);
-      setError(error.message || 'forget-password failed. Please try again.');
+      const errorMsg = error.message === "Not found." ? "Email is not found" : error.message;
+      toast({
+        variant: "destructive",
+        title: "Forget password failed",
+        description: errorMsg || "forget-password failed. Please try again.",
+      });
     }
   });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    forgetPass(email);
-  };
+  const onSubmit = ({ email }) => {
+    forgetPass({ email })
+  }
 
   const demoCredentials = [
     { role: 'Admin', email: 'admin@restaurant.com', password: 'password' },
@@ -66,32 +74,34 @@ export const ForgetPassForm = () => {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center">Forget Password</CardTitle>
             <CardDescription className="text-center">
-            Enter your email to receive a OTP for resetting your password
+              Enter your email to receive a OTP for resetting your password
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="email"
                     type="email"
                     placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="pl-10"
+                    {...register("email", {
+                      required: "Email is required",
+                      pattern: {
+                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                        message: "Please enter a valid email address",
+                      },
+                      onChange: (e) => setValue("email", e.target.value.toLowerCase()),
+                    })}
+                    className={`pl-10 ${errors.email && "border-red-500"}`}
                     disabled={isPending}
                   />
+
                 </div>
+                {errors.email && (
+                  <p className="text-sm text-red-500">{errors.email.message}</p>
+                )}
               </div>
 
               <Button type="submit" className="w-full" disabled={isPending}>
