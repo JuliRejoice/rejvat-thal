@@ -15,8 +15,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -42,6 +40,7 @@ import {
   CreditCard,
   Smartphone,
   Search,
+  Filter,
 } from "lucide-react";
 import { useMutation, useQueries } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -64,17 +63,20 @@ import {
   PaymentMethodEmpty,
   TransactionsEmpty,
 } from "./ManagerIncomeExpenseEmpty";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const ManagerIncomeExpense = () => {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
   const [type, setType] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [typeTransaction, setTypeTransaction] = useState("all");
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [isAddingIncome, setIsAddingIncome] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+
   const restaurantId = user.restaurantId;
 
   const { register, setValue, reset, unregister } = useForm({
@@ -97,7 +99,7 @@ const ManagerIncomeExpense = () => {
 
   const transactionQueryData = {
     ...queryData,
-    search: searchTerm,
+    ...(typeTransaction !== "all" && { search: typeTransaction }),
   };
 
   const queriesResults = useQueries({
@@ -141,14 +143,14 @@ const ManagerIncomeExpense = () => {
   const paymentMethodStats = getTransactionByMethodData?.payload?.method;
   const balanceData = getIncomeExpenseByRestData?.payload;
 
-  const { mutate: createIncExp } = useMutation({
+  const { mutate: createIncExp, isPending } = useMutation({
     mutationKey: ["create-income-expense-transaction"],
     mutationFn: createIncomeExpense,
     onSuccess: () => {
       toast({
         variant: "default",
-        title: `Restaurant Create`,
-        description: `Restaurant Created successfully.`,
+        title: `Add ${type !== "expense" ? "Income" : "Expense"} success`,
+        description: `Added ${type !== "expense" ? "Income" : "Expense"} successfully`,
       });
       setIsAddingExpense(false);
       setIsAddingIncome(false);
@@ -160,8 +162,8 @@ const ManagerIncomeExpense = () => {
     onError: (error) => {
       toast({
         variant: "destructive",
-        title: "Restaurant Creation failed",
-        description: "Failed to create restaurant.",
+        title: `Add ${type !== "expense" ? "Income" : "Expense"} failed`,
+        description: `Added ${type !== "expense" ? "Income" : "Expense"} failed. Try again later`,
       });
       console.error("Error creating restaurant:", error);
     },
@@ -185,6 +187,10 @@ const ManagerIncomeExpense = () => {
     }
   }, [type, register, unregister]);
 
+  const handleStatusFilter = (value: string) => {
+    setTypeTransaction(value);
+  };
+
   const transactions = getIncExpTransactionData?.payload?.data;
 
   const addSubmit = (data, type) => {
@@ -203,7 +209,7 @@ const ManagerIncomeExpense = () => {
     <IncomeExpenseForm
       type={entryType}
       onSubmit={(data: any) => addSubmit(data, entryType)}
-      isPending={false}
+      isPending={isPending}
       showRestaurantSelector={false}
       defaultValues={{ restaurantId: restaurantId, date: selectedDate }}
       onCancel={() => {
@@ -273,17 +279,7 @@ const ManagerIncomeExpense = () => {
       {/* Date Filter */}
       <Card className="shadow-card">
         <CardContent className="p-4">
-          <div className="flex items-end gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search transactions..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-                id="search"
-              />
-            </div>
+          <div className="flex gap-4">
             <div className="flex-1 max-w-xs">
               {/* <Label htmlFor="date">Select Date for transaction filter</Label> */}
               <Input
@@ -292,6 +288,19 @@ const ManagerIncomeExpense = () => {
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
               />
+            </div>
+            <div className="flex-1 max-w-xs">
+              <Select value={typeTransaction} onValueChange={handleStatusFilter}>
+                <SelectTrigger className={isMobile ? "w-full" : "w-48"}>
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Transactions</SelectItem>
+                  <SelectItem value="income">Income</SelectItem>
+                  <SelectItem value="expense">Expense</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>

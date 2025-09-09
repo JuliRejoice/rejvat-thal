@@ -33,6 +33,7 @@ export function StaffManagerForm({
 }: StaffMangerFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const { user } = useAuth();
+  const isManager = user?.role === "manager";
   const { toast } = useToast();
   const [restaurantsOptions, setRestaurantsOptions] = useState<
     { id: string; name: string }[]
@@ -88,9 +89,20 @@ export function StaffManagerForm({
   });
 
   useEffect(() => {
-    register("restaurantId", { required: "Select restaurant is required" });
+    register("restaurantId", { 
+      required: isManager ? false : "Select restaurant is required" 
+    });
     register("file", { required: "Profile Picture is required" });
-  }, [register]);
+  }, [register, isManager]);
+
+  useEffect(() => {
+    if (isManager && user?.restaurantId && !defaultValues?.restaurantId) {
+      setValue("restaurantId", user.restaurantId, {
+        shouldValidate: true,
+        shouldTouch: true,
+      });
+    }
+  }, [isManager, user?.restaurantId, setValue, defaultValues?.restaurantId]);
 
   const internalSubmit = (data: any) => {
     if (mode === "create" && !data.file) {
@@ -197,17 +209,31 @@ export function StaffManagerForm({
             {/* Restaurant */}
             <div className="space-y-2">
               <Label htmlFor="restaurantId">Restaurant *</Label>
-              <SearchableDropDown
-                options={restaurantsOptions}
-                onSearch={handleSearch}
-                value={watch("restaurantId")}
-                onChange={(val) => {
-                  setValue("restaurantId", val, {
-                    shouldValidate: true,
-                    shouldTouch: true,
-                  });
-                }}
-              />
+              {isManager ? (
+                <Input
+                  id="restaurantId"
+                  value={
+                    restaurantsOptions.find(
+                      (r) => r.id === watch("restaurantId")
+                    )?.name || ""
+                  }
+                  readOnly
+                  className="bg-gray-50"
+                  placeholder="Loading restaurant..."
+                />
+              ) : (
+                <SearchableDropDown
+                  options={restaurantsOptions}
+                  onSearch={handleSearch}
+                  value={watch("restaurantId")}
+                  onChange={(val) => {
+                    setValue("restaurantId", val, {
+                      shouldValidate: true,
+                      shouldTouch: true,
+                    });
+                  }}
+                />
+              )}
               {errors.restaurantId && (
                 <p className="text-sm text-red-500">
                   {errors.restaurantId.message as string}
@@ -221,7 +247,6 @@ export function StaffManagerForm({
               <Input
                 type="date"
                 id="joiningDate"
-                placeholder="Select a joining data"
                 max={new Date().toISOString().split("T")[0]}
                 {...register("joiningDate", { required: "Joining date is required" })}
               />

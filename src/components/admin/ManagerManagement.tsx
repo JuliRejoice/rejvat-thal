@@ -254,7 +254,7 @@ const ManagerManagement = () => {
               </TableHeader>
               <TableBody>
                 {managers.map((manager) => (
-                  <TableRow key={manager._id}>
+                  <TableRow key={manager?._id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
@@ -282,7 +282,7 @@ const ManagerManagement = () => {
                     {!isMobile && (
                       <TableCell
                         className={`${
-                          !manager.restaurantId?.name && "text-gray-400"
+                          !manager?.restaurantId?.name && "text-gray-400"
                         }`}
                       >
                         {manager?.restaurantId?.name || "N/A"}
@@ -293,17 +293,17 @@ const ManagerManagement = () => {
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 text-sm">
                             <Phone className="h-3 w-3" />
-                            {manager.phone}
+                            {manager?.phone}
                           </div>
                         </div>
                       </TableCell>
                     )}
                     {!isMobile && (
                       <TableCell
-                        className={`${!manager.joiningDate && "text-gray-400"}`}
+                        className={`${!manager?.joiningDate && "text-gray-400"}`}
                       >
-                        {manager.joiningDate
-                          ? new Date(manager.joiningDate).toLocaleDateString(
+                        {manager?.joiningDate
+                          ? new Date(manager?.joiningDate).toLocaleDateString(
                               "en-GB"
                             )
                           : "N/A"}
@@ -313,12 +313,12 @@ const ManagerManagement = () => {
                       <Badge
                         variant="outline"
                         className={`${
-                          manager.isActive
+                          manager?.isActive
                             ? "bg-green-100 border border-green-300 hover:bg-green-200"
                             : "bg-red-100 border border-red-300 hover:bg-red-200"
                         }`}
                       >
-                        {manager.isActive ? "Active" : "Deactive"}
+                        {manager?.isActive ? "Active" : "Deactive"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -342,7 +342,7 @@ const ManagerManagement = () => {
                         </Button>
                         <Button
                           className={`${
-                            manager.isActive
+                            manager?.isActive
                               ? "bg-green-100 border border-green-300 hover:bg-green-200"
                               : "bg-red-100 border border-red-300 hover:bg-red-200"
                           }`}
@@ -350,7 +350,7 @@ const ManagerManagement = () => {
                           variant="outline"
                           size="sm"
                         >
-                          {manager.isActive ? (
+                          {manager?.isActive ? (
                             <UserCheck className="text-green-500" />
                           ) : (
                             <UserX className="text-red-500" />
@@ -393,9 +393,9 @@ const ManagerManagement = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={selectedManager.avatar || ""} />
+                  <AvatarImage src={selectedManager?.avatar || ""} />
                   <AvatarFallback className="text-lg">
-                    {selectedManager.name
+                    {selectedManager?.name
                       .split(" ")
                       .map((n) => n[0])
                       .join("")}
@@ -425,7 +425,7 @@ const ManagerManagement = () => {
                     <span className="text-sm font-medium">Email</span>
                   </div>
                   <p className="text-sm text-muted-foreground pl-6">
-                    {selectedManager.email}
+                    {selectedManager?.email}
                   </p>
                 </div>
 
@@ -435,7 +435,7 @@ const ManagerManagement = () => {
                     <span className="text-sm font-medium">Phone</span>
                   </div>
                   <p className="text-sm text-muted-foreground pl-6">
-                    {selectedManager.phone}
+                    {selectedManager?.phone}
                   </p>
                 </div>
 
@@ -445,14 +445,14 @@ const ManagerManagement = () => {
                     <span className="text-sm font-medium">Address</span>
                   </div>
                   <p className="text-sm text-muted-foreground pl-6">
-                    {selectedManager.address}
+                    {selectedManager?.address}
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <span className="text-sm font-medium">Restaurant</span>
                   <p className="text-sm text-muted-foreground">
-                    {selectedManager.restaurantId?.name}
+                    {selectedManager?.restaurantId?.name}
                   </p>
                 </div>
 
@@ -460,14 +460,14 @@ const ManagerManagement = () => {
                   <span className="text-sm font-medium">Join Date</span>
                   <p
                     className={`text-sm ${
-                      selectedManager.joiningDate
+                      selectedManager?.joiningDate
                         ? "text-muted-foreground"
                         : "text-gray-400"
                     }`}
                   >
-                    {selectedManager.joiningDate
+                    {selectedManager?.joiningDate
                       ? new Date(
-                          selectedManager.joiningDate
+                          selectedManager?.joiningDate
                         ).toLocaleDateString("en-GB")
                       : "N/A"}
                   </p>
