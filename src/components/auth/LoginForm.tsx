@@ -23,12 +23,10 @@ import { signIn } from "@/api/auth.api";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { setToken, setUser as setStoredUser } from "@/lib/utils";
+import { useForm } from 'react-hook-form';
 
 export const LoginForm = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const { setUser } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -38,6 +36,7 @@ export const LoginForm = () => {
     mutationFn: signIn,
     onSuccess: (data) => {
       if (data.success) {
+        reset()
         setUser(data.payload);
         setToken(data.payload.token);
         setStoredUser(data.payload);
@@ -65,29 +64,20 @@ export const LoginForm = () => {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-    // reset field errors
-    setFieldErrors({});
-    const passwordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-
-
-    const errors: { email?: string; password?: string } = {};
-    if (!email) errors.email = "Email is required";
-    if (!password) {
-      errors.password = "Password is required";
-    } else if (!passwordRegex.test(password)) {
-      errors.password =
-        "Password must be at least 8 characters, include one uppercase, one lowercase, one number, and one special character";
-    }  
-
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
-      return;
-    }
-
+  const onSubmit = ({ email, password }) => {
     loginUser({ email, password });
   };
 
@@ -118,24 +108,30 @@ export const LoginForm = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {/* Email Field */}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="email"
                     type="email"
                     placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={`pl-10 ${fieldErrors.email ? "border-red-500" : ""}`}
+                    {...register("email", {
+                      required: "Email is required",
+                      pattern: {
+                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                        message: "Please enter a valid email address",
+                      },
+                      onChange: (e) => setValue("email", e.target.value.toLowerCase()),
+                    })}
+                    className={`pl-10 ${errors.email && "border-red-500"}`}
                     disabled={isPending}
                   />
+
                 </div>
-                {fieldErrors.email && (
-                  <p className="text-sm text-red-500">{fieldErrors.email}</p>
+                {errors.email && (
+                  <p className="text-sm text-red-500">{errors.email.message}</p>
                 )}
               </div>
 
@@ -145,14 +141,20 @@ export const LoginForm = () => {
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={`pl-10 pr-10 ${fieldErrors.password ? "border-red-500" : ""}`}
+                    {...register("password", {
+                      required: "Password is required",
+                      pattern: {
+                        value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-[\]{};':"\\|,.<>/?]).{8,}$/,
+                        message:
+                          "Password must be at least 8 characters, include uppercase, lowercase, number, and special character",
+                      },
+                    })}
+                    className={`pl-10 pr-10 ${errors.password && "border-red-500"}`}
                     disabled={isPending}
                   />
+
                   <button
                     type="button"
                     className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
@@ -166,8 +168,8 @@ export const LoginForm = () => {
                     )}
                   </button>
                 </div>
-                {fieldErrors.password && (
-                  <p className="text-sm text-red-500">{fieldErrors.password}</p>
+                {errors.password && (
+                  <p className="text-sm text-red-500">{errors.password.message}</p>
                 )}
               </div>
 
