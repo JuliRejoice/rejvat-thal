@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -38,17 +44,28 @@ import {
   PaymentMethodStatsSkeleton,
   TransactionTableSkeleton,
 } from "../manager/ManagerIncomeExpenseSkeletons";
-import { PaymentMethodEmpty, TransactionsEmpty } from "../manager/ManagerIncomeExpenseEmpty";
+import {
+  PaymentMethodEmpty,
+  TransactionsEmpty,
+} from "../manager/ManagerIncomeExpenseEmpty";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { DataTablePagination } from "../common/DataTablePagination";
 
 const IncomeExpenseManagement = () => {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+  const [selectedEndDate, setSelectedEndDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [selectedBalanceOverviewDate, setSelectedBalanceOverviewDate] =
+    useState(new Date().toISOString().split("T")[0]);
   const [typeTransaction, setTypeTransaction] = useState("all");
   const [restaurantsOptions, setRestaurantsOptions] = useState<
     { id: string; name: string }[]
   >([]);
+  const [page, setPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [restaurant, setRestaurant] = useState("");
   const isMobile = useIsMobile();
 
@@ -60,14 +77,21 @@ const IncomeExpenseManagement = () => {
     () => ({
       restaurantId: restaurant,
       startDate: selectedDate,
-      endDate: selectedDate,
+      endDate: selectedEndDate,
     }),
     [selectedDate, restaurant]
   );
-  
+
   const transactionQueryData = {
     ...queryArgs,
+    page,
+    limit: itemsPerPage,
     ...(typeTransaction !== "all" && { search: typeTransaction }),
+  };
+
+  const cardsQueryData = {
+    restaurantId: restaurant,
+    startDate: selectedBalanceOverviewDate,
   };
 
   const queriesResults = useQueries({
@@ -82,13 +106,13 @@ const IncomeExpenseManagement = () => {
         enabled: Boolean(restaurant),
       },
       {
-        queryKey: ["transactions-by-method-admin", queryArgs],
-        queryFn: () => getTransactionByMethod(queryArgs),
+        queryKey: ["transactions-by-method-admin", cardsQueryData],
+        queryFn: () => getTransactionByMethod(cardsQueryData),
         enabled: Boolean(restaurant),
       },
       {
-        queryKey: ["get-total-income-expense-by-rest", queryArgs],
-        queryFn: () => getIncomeExpenseByResto(queryArgs),
+        queryKey: ["get-total-income-expense-by-rest", cardsQueryData],
+        queryFn: () => getIncomeExpenseByResto(cardsQueryData),
         enabled: Boolean(restaurant),
       },
     ],
@@ -114,6 +138,11 @@ const IncomeExpenseManagement = () => {
     }
   }, [getAllRestaurants]);
 
+  useEffect(() => {
+    setSelectedEndDate(selectedBalanceOverviewDate);
+    setSelectedDate(selectedBalanceOverviewDate);
+  }, [selectedBalanceOverviewDate]);
+
   const handleSearch = async (query: string) => {
     const res = await getRestaurants({ search: query });
     setRestaurantsOptions(
@@ -123,10 +152,8 @@ const IncomeExpenseManagement = () => {
       }))
     );
   };
-  const {
-    data: getIncExpTransactionData,
-    isPending: isGetIncExpTranPending,
-  } = getIncExpTransactionQuery;
+  const { data: getIncExpTransactionData, isPending: isGetIncExpTranPending } =
+    getIncExpTransactionQuery;
   const {
     data: getIncomeExpenseByRestData,
     isPending: isGetIncomeExpenseByResPending,
@@ -139,6 +166,9 @@ const IncomeExpenseManagement = () => {
   const balanceData = getIncomeExpenseByRestData?.payload;
   const paymentMethodStats = getTransactionByMethodData?.payload?.method;
   const transactions = getIncExpTransactionData?.payload?.data;
+
+  const totalItems = getIncExpTransactionData?.payload?.count || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   const handleStatusFilter = (value: string) => {
     setTypeTransaction(value);
@@ -164,16 +194,6 @@ const IncomeExpenseManagement = () => {
           <div className="flex flex-col md:flex-row gap-4 items-end">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
               <div>
-                <Label htmlFor="date">Select Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={selectedDate}
-                  placeholder="dd-mm-yyyy"
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                />
-              </div>
-              <div>
                 <Label htmlFor="restaurant">Restaurant</Label>
                 <SearchableDropDown
                   options={restaurantsOptions}
@@ -184,20 +204,6 @@ const IncomeExpenseManagement = () => {
                   }}
                 />
               </div>
-              <div>
-                <Label htmlFor="typeFilter">Filter</Label>
-                  <Select value={typeTransaction} onValueChange={handleStatusFilter}>
-                    <SelectTrigger className={isMobile ? "w-full" : "w-48"}>
-                      <Filter className="h-4 w-4 mr-2" />
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Transactions</SelectItem>
-                      <SelectItem value="income">Income</SelectItem>
-                      <SelectItem value="expense">Expense</SelectItem>
-                    </SelectContent>
-                  </Select>
-              </div>
             </div>
           </div>
         </CardContent>
@@ -205,10 +211,18 @@ const IncomeExpenseManagement = () => {
 
       {/* Balance Overview */}
       <Card className="shadow-card">
-        <CardHeader>
+        <CardHeader className="flex-row justify-between items-center">
           <CardTitle>Balance Overview</CardTitle>
+            <div className="max-w-xs">
+              <Input
+                id="balanceOveviewDate"
+                type="date"
+                value={selectedBalanceOverviewDate}
+                onChange={(e) => setSelectedBalanceOverviewDate(e.target.value)}
+              />
+            </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {isGetIncomeExpenseByResPending || !balanceData ? (
               <BalanceOverviewSkeleton />
@@ -272,16 +286,10 @@ const IncomeExpenseManagement = () => {
               </>
             )}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Payment Method Wise Balance */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle>Payment Method Wise Balance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <h3 className="text-2xl font-semibold leading-none tracking-tight">
+            Payment Method Wise Balance
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {isGetTranByMthdPending ? (
               <PaymentMethodStatsSkeleton />
             ) : !paymentMethodStats || paymentMethodStats.length === 0 ? (
@@ -329,20 +337,62 @@ const IncomeExpenseManagement = () => {
 
       {/* Transaction List or Balance View */}
       <Card className="shadow-card">
-        <CardHeader>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <CardTitle>
             Transaction History - {new Date(selectedDate).toLocaleDateString()}
           </CardTitle>
+
+          {/* Right: Filters */}
+          <div className="flex gap-4">
+            <div className="flex-1 max-w-xs">
+              <Label htmlFor="date">Start Date</Label>
+              <Input
+                id="date"
+                type="date"
+                max={selectedEndDate}
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
+            </div>
+            <div className="flex-1 max-w-xs">
+              <Label htmlFor="endDate">End Date</Label>
+              <Input
+                id="endDate"
+                type="date"
+                max={new Date().toISOString().split("T")[0]}
+                min={selectedDate}
+                value={selectedEndDate}
+                onChange={(e) => setSelectedEndDate(e.target.value)}
+              />
+            </div>
+            <div className="flex-1 max-w-xs">
+              <Label htmlFor="transactionFilter">Filter</Label>
+              <Select
+                value={typeTransaction}
+                onValueChange={handleStatusFilter}
+              >
+                <SelectTrigger className={isMobile ? "w-full" : "w-48"}>
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Transactions</SelectItem>
+                  <SelectItem value="income">Income</SelectItem>
+                  <SelectItem value="expense">Expense</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Date</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Payment Method</TableHead>
-                <TableHead>Time</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Proof</TableHead>
               </TableRow>
@@ -359,6 +409,13 @@ const IncomeExpenseManagement = () => {
               ) : (
                 transactions?.map((transaction) => (
                   <TableRow key={transaction._id}>
+                    <TableCell>
+                      {new Date(transaction.date).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      })}
+                    </TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
@@ -401,13 +458,6 @@ const IncomeExpenseManagement = () => {
                         {transaction?.method?.type}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      {new Date(transaction.date)?.toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: true,
-                      })}
-                    </TableCell>
                     <TableCell className="max-w-xs">
                       <p className="text-sm truncate">
                         {transaction.description}
@@ -430,6 +480,20 @@ const IncomeExpenseManagement = () => {
               )}
             </TableBody>
           </Table>
+          <DataTablePagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            startIndex={(page - 1) * itemsPerPage + 1}
+            endIndex={Math.min(page * itemsPerPage, totalItems)}
+            hasNextPage={page < totalPages}
+            hasPreviousPage={page > 1}
+            onPageChange={setPage}
+            onNextPage={() => setPage((p) => p + 1)}
+            onPreviousPage={() => setPage((p) => p - 1)}
+            onItemsPerPageChange={setItemsPerPage}
+          />
         </CardContent>
       </Card>
     </div>

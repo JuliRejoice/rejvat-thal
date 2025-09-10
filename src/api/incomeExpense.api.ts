@@ -47,12 +47,16 @@ export const getIncomeExpense = async ({
     restaurantId,
     startDate,
     endDate,
-    search
+    search,
+    page,
+    limit
 }:{
     restaurantId?:any,
     startDate?:any,
     endDate?: any,
-    search?: any
+    search?: any,
+    page: any,
+    limit: any
 }) => {
     try {
 
@@ -61,6 +65,8 @@ export const getIncomeExpense = async ({
         if(search) queryParams.append("search", String(search));
         if(startDate !== undefined) queryParams.append("startDate", String(startDate));
         if(endDate !== undefined) queryParams.append("endDate", String(endDate));
+        if(page !== undefined) queryParams.append("page", String(page));
+        if(limit !== undefined) queryParams.append("limit", String(limit));
 
         const url = `/transaction/getAllTransaction${queryParams.toString() ? `?${queryParams.toString()}` : ""}`
 
