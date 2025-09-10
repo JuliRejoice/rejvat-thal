@@ -55,7 +55,7 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-center text-2xl font-bold text-metrics-income">
-              <Dirham className='pt-05' />
+              <Dirham className='pt-px' />
               {totalIncome.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -73,7 +73,7 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-center text-2xl font-bold text-metrics-expense">
-              <Dirham className='pt-05' /> {totalExpense.toLocaleString()}</div>
+              <Dirham className='pt-px' /> {totalExpense.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               <span className="text-metrics-expense">+8.2%</span> from last month
             </p>
@@ -88,7 +88,7 @@ const AdminDashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center text-2xl font-bold text-metrics-balance"> <Dirham className='pt-05' />{balance.toLocaleString()}</div>
+            <div className="flex items-center text-2xl font-bold text-metrics-balance"> <Dirham className='pt-px' />{balance.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               <span className="text-metrics-balance">+18.7%</span> from last month
             </p>
@@ -103,7 +103,7 @@ const AdminDashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center text-2xl font-bold text-metrics-customers"><Dirham className='pt-05' />{totalCustomers}</div>
+            <div className="flex items-center text-2xl font-bold text-metrics-customers"><Dirham className='pt-px' />{totalCustomers}</div>
             <p className="text-xs text-muted-foreground">
               <span className="text-metrics-customers">+5.3%</span> from last month
             </p>

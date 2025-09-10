@@ -138,7 +138,3 @@
     @apply bg-background text-foreground;
   }
 }
-
-.pt-05 {
-  padding-top: 1px;
-}
