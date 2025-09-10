@@ -578,6 +578,11 @@ const ManagerManagement = () => {
                 restaurantId: selectedEditManager.restaurantId?._id || "",
                 position: "manager",
                 isUserType: "manager",
+                joiningDate: selectedEditManager.joiningDate
+                  ? new Date(selectedEditManager.joiningDate)
+                      .toISOString()
+                      .split("T")[0]
+                  : "",
                 file: selectedEditManager.profileImage || null,
               }}
               onSubmit={(data: any) =>
