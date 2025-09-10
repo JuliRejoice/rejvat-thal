@@ -56,9 +56,9 @@ const getNavigationItems = (role: string) => {
       // { title: 'Menu Items', url: '/items', icon: Package },
       // { title: 'Meal Plans', url: '/meals', icon: ShoppingBag },
       // { title: 'Daily Summary', url: '/daily-summary', icon: Calendar },
-        { title: 'Vendors', url: '/vendors', icon: Truck },
-        { title: 'Expense Categories', url: '/expense-categories', icon: Tags },
-        { title: 'Settings', url: '/settings', icon: Settings },
+      { title: 'Vendors', url: '/vendors', icon: Truck },
+      { title: 'Expense Categories', url: '/expense-categories', icon: Tags },
+      { title: 'Settings', url: '/settings', icon: Settings },
       { title: 'Notifications', url: '/notifications', icon: Bell }
     ];
   }
@@ -103,8 +103,8 @@ export const AppSidebar = () => {
 
   const isActive = (path: string) => currentPath === path;
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
-    isActive 
-      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
+    isActive
+      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
       : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground";
 
   return (
@@ -135,9 +135,9 @@ export const AppSidebar = () => {
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
-                      className={getNavCls}
+                    <NavLink
+                      to={item.url}
+                      className={`${getNavCls} ${location.pathname === item.url ? "!bg-accent !text-black text-accent-foreground" : ""}`}
                       title={collapsed ? item.title : undefined}
                     >
                       <item.icon className={`h-4 w-4 ${collapsed ? 'mx-auto' : 'mr-3'}`} />

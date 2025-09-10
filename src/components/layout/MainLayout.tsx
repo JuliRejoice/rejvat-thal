@@ -22,7 +22,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         
         <div className="flex-1 flex flex-col">
           {/* Top Header */}
-          <header className="sticky top-0 z-50 h-16 border-b border-border bg-card shadow-sm flex items-center justify-between px-6">
+          <header className="sticky top-0 z-50 h-[4.4rem] border-b border-border bg-card shadow-sm flex items-center justify-between px-6">
             <div className="flex items-center space-x-4">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
             </div>

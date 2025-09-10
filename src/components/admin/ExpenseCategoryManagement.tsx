@@ -44,6 +44,7 @@ import {
   BadgeX,
   CheckCircle,
   Edit,
+  Eye,
   Plus,
   Search,
   Tags,
@@ -53,6 +54,7 @@ import {
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { ConfirmationDialog } from "../common/ConfirmationDialog";
+import { format } from "date-fns"
 
 type ExpenseCat = {
   _id: string;
@@ -76,6 +78,7 @@ const ExpenseCategoryManagement = () => {
   const [open, setIsOpen] = useState<boolean>();
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [page, setPage] = useState(1);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const { toast } = useToast();
 
   const {
@@ -221,6 +224,7 @@ const ExpenseCategoryManagement = () => {
                 id="name"
                 {...register("name", { required: "Name is required" })}
                 placeholder="Enter category name"
+                maxLength={40}
               />
               {errors.name && (
                 <p className="text-sm text-red-500">
@@ -266,6 +270,10 @@ const ExpenseCategoryManagement = () => {
     </Dialog>
   );
 
+  const handleViewCategory = (Category: any) => {
+    setSelectedCategory(Category);
+    setIsViewModalOpen(true)
+  };
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -420,11 +428,10 @@ const ExpenseCategoryManagement = () => {
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className={`${
-                          category.isActive
-                            ? "bg-green-100 border border-green-300 hover:bg-green-200"
-                            : "bg-red-100 border border-red-300 hover:bg-red-200"
-                        }`}
+                        className={`${category.isActive
+                          ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                          : "bg-red-100 border border-red-300 hover:bg-red-200"
+                          }`}
                       >
                         {category.isActive ? "Active" : "Deactive"}
                       </Badge>
@@ -441,13 +448,20 @@ const ExpenseCategoryManagement = () => {
                       <p className="text-sm">
                         {category.createdAt
                           ? new Date(category.createdAt).toLocaleDateString(
-                              "en-GB"
-                            )
+                            "en-GB"
+                          )
                           : "-"}
                       </p>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewCategory(category)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
@@ -465,11 +479,10 @@ const ExpenseCategoryManagement = () => {
                             setIsOpen(true);
                             setSelectedCategory(category);
                           }}
-                          className={`${
-                            category.isActive
-                              ? "bg-green-100 border border-green-300 text-green-500 hover:bg-green-200"
-                              : "bg-red-100 border border-red-300 text-red-500 hover:bg-red-200"
-                          }`}
+                          className={`${category.isActive
+                            ? "bg-green-100 border border-green-300 text-green-500 hover:bg-green-200"
+                            : "bg-red-100 border border-red-300 text-red-500 hover:bg-red-200"
+                            }`}
                         >
                           {category.isActive ? <BadgeCheck /> : <BadgeX />}
                         </Button>
@@ -545,12 +558,48 @@ const ExpenseCategoryManagement = () => {
         onSubmit={onSubmit}
         category={currentCategory}
         title={currentCategory ? "Edit Category" : "Add New Category"}
-        description={
-          currentCategory
-            ? "Update the expense category information"
-            : "Create a new expense category"
-        }
+        description={currentCategory ? "Update the expense category information" : "Create a new expense category"}
       />
+      {/* View Category Model  */}
+      {isViewModalOpen ? (
+        <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-gray-800">
+                Expense Categories
+              </DialogTitle>
+            </DialogHeader>
+
+            <CardContent className='p-0 m-0'  >
+              <div className="space-y-3 text-sm">
+                <p>
+                  <span className="font-medium text-gray-700">Category Name : </span>
+                  <span className="text-gray-900">{selectedCategory.name}</span>
+                </p>
+
+                <p>
+                  <span className="font-medium text-gray-700">Description : </span>
+                  <span className="text-gray-900">  {selectedCategory.description || "—"} </span>
+                </p>
+
+                <p>
+                  <span className="font-medium text-gray-700">Status : </span>
+                  <span className={`px-2 py-1 text-xs rounded-full ${selectedCategory.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                    }`} > {selectedCategory.isActive ? "Active" : "Inactive"}</span>
+                </p>
+
+                <p>
+                  <span className="font-medium text-gray-700">Created Date : </span>
+                  <span className="text-gray-900">
+                    {selectedCategory.createdAt ? format(new Date(selectedCategory.createdAt), "dd/MM/yyyy") : "—"}
+                  </span>
+                </p>
+              </div>
+            </CardContent>
+          </DialogContent>
+        </Dialog>
+      ) : null}
+
       <ConfirmationDialog
         open={open}
         onOpenChange={(open) => {
@@ -558,12 +607,10 @@ const ExpenseCategoryManagement = () => {
             setIsOpen(open);
           }
         }}
-        title={`${
-          selectedCategory?.isActive ? "Deactivate" : "Activate"
-        } Restaurant`}
-        description={`Are you sure you want to ${
-          selectedCategory?.isActive ? "deactivate" : "activate"
-        } "${selectedCategory?.name}"?`}
+        title={`${selectedCategory?.isActive ? "Deactivate" : "Activate"
+          } Restaurant`}
+        description={`Are you sure you want to ${selectedCategory?.isActive ? "deactivate" : "activate"
+          } "${selectedCategory?.name}"?`}
         confirmText="Confirm"
         confirmVariant={selectedCategory?.isActive ? "destructive" : "success"}
         isLoading={isUpdatePending}

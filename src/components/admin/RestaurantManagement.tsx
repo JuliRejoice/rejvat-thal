@@ -213,6 +213,7 @@ const RestaurantManagement = () => {
             {...register("phone", {
               required: "Restaurant contact is required",
             })}
+            maxLength={10}
           />
           {errors.phone && (
             <p className="text-sm text-red-500">
@@ -227,6 +228,7 @@ const RestaurantManagement = () => {
             type="email"
             placeholder="restaurant@email.com"
             {...register("email", { required: "Restaurant email is required" })}
+            maxLength={55}
           />
           {errors.email && (
             <p className="text-sm text-red-500">
@@ -560,9 +562,10 @@ const RestaurantManagement = () => {
                     <div className="flex items-center space-x-3">
                       <div>
                         <p className="font-medium">{restaurant.name}</p>
-                        <p className="text-sm text-muted-foreground flex items-center">
+                        <p className="text-sm text-muted-foreground flex items-center overflow-hidden">
                           <MapPin className="h-3 w-3 mr-1" />
-                          {restaurant.address.split(",")[0]}
+                          {restaurant.address ? restaurant.address.length > 70 ? `${restaurant.address.substring(0, 70)} ...` : restaurant.address
+                            : "-"}
                         </p>
                       </div>
                     </div>
@@ -609,11 +612,10 @@ const RestaurantManagement = () => {
                     <div className="flex items-center space-x-2">
                       <Badge
                         variant="outline"
-                        className={`${
-                          restaurant.isActive
-                            ? "bg-green-100 border border-green-300 hover:bg-green-200"
-                            : "bg-red-100 border border-red-300 hover:bg-red-200"
-                        }`}
+                        className={`${restaurant.isActive
+                          ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                          : "bg-red-100 border border-red-300 hover:bg-red-200"
+                          }`}
                       >
                         {restaurant.isActive ? "Active" : "Deactive"}
                         {restaurant.status}
@@ -639,18 +641,17 @@ const RestaurantManagement = () => {
                       </Button>
                       <Button
                         variant="outline"
-                        className={`${
-                          restaurant.isActive
-                            ? "bg-green-100 border border-green-300 hover:bg-green-200"
-                            : "bg-red-100 border border-red-300 hover:bg-red-200"
-                        }`}
+                        className={`${restaurant.isActive
+                          ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                          : "bg-red-100 border border-red-300 hover:bg-red-200"
+                          }`}
                         size="sm"
                         onClick={() => {
                           setIsOpen(!open);
                           setSelectedRestaurant(restaurant);
                         }}
                       >
-                        {restaurant.isActive ? <UserCheck className="text-green-500"/> : <UserX className="text-red-500"/>}
+                        {restaurant.isActive ? <UserCheck className="text-green-500" /> : <UserX className="text-red-500" />}
                       </Button>
                     </div>
                   </TableCell>
@@ -681,12 +682,10 @@ const RestaurantManagement = () => {
             setIsOpen(open);
           }
         }}
-        title={`${
-          selectedRestaurant?.isActive ? "Deactivate" : "Activate"
-        } Restaurant`}
-        description={`Are you sure you want to ${
-          selectedRestaurant?.isActive ? "deactivate" : "activate"
-        } "${selectedRestaurant?.name}"?`}
+        title={`${selectedRestaurant?.isActive ? "Deactivate" : "Activate"
+          } Restaurant`}
+        description={`Are you sure you want to ${selectedRestaurant?.isActive ? "deactivate" : "activate"
+          } "${selectedRestaurant?.name}"?`}
         confirmText="Confirm"
         confirmVariant={
           selectedRestaurant?.isActive ? "destructive" : "success"

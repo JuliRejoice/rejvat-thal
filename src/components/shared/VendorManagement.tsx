@@ -166,10 +166,11 @@ const VendorManagement = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="vendorName">Vendor Name</Label>
-                <Input 
-                  id="vendorName" 
-                  placeholder="Enter vendor name" 
+                <Input
+                  id="vendorName"
+                  placeholder="Enter vendor name"
                   defaultValue={editingVendor?.name || ''}
+                  maxLength={40}
                 />
               </div>
               <div className="space-y-2">
@@ -189,34 +190,37 @@ const VendorManagement = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="contact">Contact Person</Label>
-                <Input 
-                  id="contact" 
-                  placeholder="Enter contact person name" 
+                <Input
+                  id="contact"
+                  placeholder="Enter contact person name"
                   defaultValue={editingVendor?.contact || ''}
+                  maxLength={40}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
-                <Input 
-                  id="phone" 
-                  placeholder="Enter phone number" 
+                <Input
+                  id="phone"
+                  placeholder="Enter phone number"
                   defaultValue={editingVendor?.phone || ''}
+                  maxLength={10}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="Enter email address" 
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter email address"
                   defaultValue={editingVendor?.email || ''}
+                  maxLength={55}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
-                <Textarea 
-                  id="address" 
-                  placeholder="Enter vendor address" 
+                <Textarea
+                  id="address"
+                  placeholder="Enter vendor address"
                   defaultValue={editingVendor?.address || ''}
                 />
               </div>
@@ -538,9 +542,8 @@ const VendorManagement = () => {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className={`font-medium ${
-                          transaction.type === 'payment' ? 'text-green-600' : 'text-destructive'
-                        }`}>
+                        <p className={`font-medium ${transaction.type === 'payment' ? 'text-green-600' : 'text-destructive'
+                          }`}>
                           {transaction.type === 'payment' ? '+' : '-'}₹{transaction.amount.toLocaleString()}
                         </p>
                         <Badge variant={transaction.type === 'payment' ? 'default' : 'secondary'}>
