@@ -33,6 +33,7 @@ import {
   Tags
 } from 'lucide-react';
 import Logo from '../../asset/img/logo.png'
+import smallLogo from '../../asset/img/smallLogo.png'
 
 // Navigation items based on role
 const getNavigationItems = (role: string) => {
@@ -105,7 +106,7 @@ export const AppSidebar = () => {
       <SidebarHeader className="border-b border-sidebar-border pt-4 pb-0">
         <div className="flex items-center justify-center">
           <div className="flex justify-center mb-3">
-            <img src={Logo} alt='' className='w-52' />
+            <img src={collapsed ? smallLogo : Logo} alt='' className='w-52' />
           </div>
           {!collapsed && (
             <div>
