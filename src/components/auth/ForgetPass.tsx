@@ -2,13 +2,14 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ChefHat, Mail } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, Mail } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { forgetPassword } from '@/api/auth.api';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useToast } from "@/components/ui/use-toast";
+import Logo from '../../asset/img/logo.png'
 
 export const ForgetPassForm = () => {
   const navigate = useNavigate();
@@ -58,24 +59,14 @@ export const ForgetPassForm = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/20 p-4">
       <div className="w-full max-w-md space-y-6">
-        {/* Logo & Branding */}
-        <div className="text-center space-y-2">
-          <div className="flex justify-center">
-            <div className="bg-gradient-primary p-3 rounded-2xl shadow-lg">
-              <ChefHat className="h-8 w-8 text-primary-foreground" />
-            </div>
-          </div>
-          <h1 className="text-3xl font-bold text-foreground">Restaurant Manager</h1>
-          <p className="text-muted-foreground">Manage your restaurant operations efficiently</p>
-        </div>
 
         {/* Forget-password Form */}
         <Card className="shadow-card">
-          <CardHeader className="space-y-1">
+          <CardHeader className="space-y-1 pb-0">
+            <div className="flex justify-center mb-3">
+              <img src={Logo} alt='' className='w-52' />
+            </div>
             <CardTitle className="text-2xl text-center">Forget Password</CardTitle>
-            <CardDescription className="text-center">
-              Enter your email to receive a OTP for resetting your password
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

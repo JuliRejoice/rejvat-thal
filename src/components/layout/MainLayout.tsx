@@ -19,7 +19,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        
         <div className="flex-1 flex flex-col">
           {/* Top Header */}
           <header className="sticky top-0 z-50 h-[4.4rem] border-b border-border bg-card shadow-sm flex items-center justify-between px-6">
@@ -43,7 +42,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 </Avatar>
                 <div className="hidden sm:block">
                   <p className="text-sm font-medium">{user.name}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{user?.email}</p>
                 </div>
               </div>
             </div>
