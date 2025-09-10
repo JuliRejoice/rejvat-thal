@@ -135,6 +135,7 @@ export function StaffManagerForm({
                 id="name"
                 placeholder="Enter full name"
                 {...register("name", { required: "Name is required" })}
+                maxLength={40}
               />
             </div>
             {/* Email */}
@@ -153,6 +154,7 @@ export function StaffManagerForm({
                 placeholder="Enter email address"
                 readOnly={mode === "edit"}
                 {...register("email", { required: "Email is required" })}
+                maxLength={50}
               />
             </div>
             {/* Password */}
@@ -211,6 +213,7 @@ export function StaffManagerForm({
                 id="phone"
                 placeholder="Enter phone number"
                 {...register("phone", { required: "Phone is required" })}
+                maxLength={10}
               />
             </div>
 
@@ -229,6 +232,7 @@ export function StaffManagerForm({
                   id="salary"
                   placeholder="Enter salary"
                   {...register("salary", { required: "Salary is required" })}
+                  maxLength={8}
                 />
               </div>
             )}
@@ -372,9 +376,8 @@ export function StaffManagerForm({
                 ? mode === "create"
                   ? "Saving..."
                   : "Updating..."
-                : `${mode === "create" ? "Save" : "Update"} ${
-                    type === "manager" ? "Manager" : "Staff"
-                  }`}
+                : `${mode === "create" ? "Save" : "Update"} ${type === "manager" ? "Manager" : "Staff"
+                }`}
             </Button>
             {onCancel && (
               <Button

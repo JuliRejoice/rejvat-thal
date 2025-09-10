@@ -362,9 +362,8 @@ const ManagerManagement = () => {
                       </TableCell>
                       {!isMobile && (
                         <TableCell
-                          className={`${
-                            !manager?.restaurantId?.name && "text-gray-400"
-                          }`}
+                          className={`${!manager?.restaurantId?.name && "text-gray-400"
+                            }`}
                         >
                           {manager?.restaurantId?.name || "N/A"}
                         </TableCell>
@@ -381,25 +380,23 @@ const ManagerManagement = () => {
                       )}
                       {!isMobile && (
                         <TableCell
-                          className={`${
-                            !manager?.joiningDate && "text-gray-400"
-                          }`}
+                          className={`${!manager?.joiningDate && "text-gray-400"
+                            }`}
                         >
                           {manager?.joiningDate
                             ? new Date(manager?.joiningDate).toLocaleDateString(
-                                "en-GB"
-                              )
+                              "en-GB"
+                            )
                             : "N/A"}
                         </TableCell>
                       )}
                       <TableCell>
                         <Badge
                           variant="outline"
-                          className={`${
-                            manager?.isActive
-                              ? "bg-green-100 border border-green-300 hover:bg-green-200"
-                              : "bg-red-100 border border-red-300 hover:bg-red-200"
-                          }`}
+                          className={`${manager?.isActive
+                            ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                            : "bg-red-100 border border-red-300 hover:bg-red-200"
+                            }`}
                         >
                           {manager?.isActive ? "Active" : "Deactive"}
                         </Badge>
@@ -424,11 +421,10 @@ const ManagerManagement = () => {
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
-                            className={`${
-                              manager?.isActive
-                                ? "bg-green-100 border border-green-300 hover:bg-green-200"
-                                : "bg-red-100 border border-red-300 hover:bg-red-200"
-                            }`}
+                            className={`${manager?.isActive
+                              ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                              : "bg-red-100 border border-red-300 hover:bg-red-200"
+                              }`}
                             onClick={() => handleConfirmToggle(manager)}
                             variant="outline"
                             size="sm"
@@ -491,11 +487,10 @@ const ManagerManagement = () => {
                   </h3>
                   <Badge
                     variant="outline"
-                    className={`${
-                      selectedManager.isActive
-                        ? "bg-green-100 border border-green-300 hover:bg-green-200"
-                        : "bg-red-100 border border-red-300 hover:bg-red-200"
-                    }`}
+                    className={`${selectedManager.isActive
+                      ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                      : "bg-red-100 border border-red-300 hover:bg-red-200"
+                      }`}
                   >
                     {selectedManager.isActive ? "Active" : "Deactive"}
                   </Badge>
@@ -543,16 +538,15 @@ const ManagerManagement = () => {
                 <div className="space-y-2">
                   <span className="text-sm font-medium">Join Date</span>
                   <p
-                    className={`text-sm ${
-                      selectedManager?.joiningDate
-                        ? "text-muted-foreground"
-                        : "text-gray-400"
-                    }`}
+                    className={`text-sm ${selectedManager?.joiningDate
+                      ? "text-muted-foreground"
+                      : "text-gray-400"
+                      }`}
                   >
                     {selectedManager?.joiningDate
                       ? new Date(
-                          selectedManager?.joiningDate
-                        ).toLocaleDateString("en-GB")
+                        selectedManager?.joiningDate
+                      ).toLocaleDateString("en-GB")
                       : "N/A"}
                   </p>
                 </div>
@@ -603,12 +597,10 @@ const ManagerManagement = () => {
             setIsConfirmOpen(open);
           }
         }}
-        title={`${
-          selectedUpdateManager?.isActive ? "Deactivate" : "Activate"
-        } Staff`}
-        description={`Are you sure you want to ${
-          selectedUpdateManager?.isActive ? "deactivate" : "activate"
-        } this staff member?`}
+        title={`${selectedUpdateManager?.isActive ? "Deactivate" : "Activate"
+          } Staff`}
+        description={`Are you sure you want to ${selectedUpdateManager?.isActive ? "deactivate" : "activate"
+          } this staff member?`}
         confirmText={
           selectedUpdateManager?.isActive ? "Deactivate" : "Activate"
         }
