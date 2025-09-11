@@ -522,12 +522,12 @@ const ManagerIncomeExpense = () => {
                       </Badge>
                     </TableCell>
                     <TableCell
-                      className={`${
-                        !transaction?.expenseCategoryId?.name || transaction?.incomeCategoryId?.name && "text-gray-400"
-                      }`}
+                      className={`${!(transaction?.expenseCategoryId?.name || transaction?.incomeCategoryId?.name) ? "text-gray-400" : ""
+                        }`}
                     >
                       {transaction?.expenseCategoryId?.name || transaction?.incomeCategoryId?.name || "N/A"}
                     </TableCell>
+
                     <TableCell>
                       <span
                         className={

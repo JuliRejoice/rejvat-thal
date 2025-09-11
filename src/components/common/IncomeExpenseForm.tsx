@@ -18,6 +18,7 @@ import { useQueries } from "@tanstack/react-query";
 import { getPaymentMethods } from "@/api/paymentMethod.api";
 import { getAllExpenseCategory } from "@/api/expenseCategory.api";
 import { getAllIncomeCategory } from "@/api/incomeCategories.api";
+import { getAllVendors } from "@/api/vendor.api";
 
 type IncomeExpenseFormMode = "create" | "edit";
 type IncomeExpenseType = "income" | "expense";
@@ -47,6 +48,7 @@ export function IncomeExpenseForm({
   const [vendorOptions, setVendorOptions] = useState<
     { id: string; name: string }[]
   >([]);
+  const [vendorExpense, setVendorExpense] = useState("");
   const [incomeCategoriesOptions, setIncomeCategoriesOptions] = useState<
     { id: string; name: string }[]
   >([]);
@@ -87,9 +89,9 @@ export function IncomeExpenseForm({
         enabled: type === "expense",
       },
       {
-        queryKey: ["income-categories"],
-        queryFn: () => getAllIncomeCategory({}),
-        enabled: type === "income",
+        queryKey: ["get-all-vendors"],
+        queryFn: () => getAllVendors({}),
+        enabled: type === "expense" && Boolean(vendorExpense),
       },
       {
         queryKey: ["income-categories"],
@@ -99,9 +101,9 @@ export function IncomeExpenseForm({
     ],
   });
 
-  const [paymentMethodsQuery, expenseCategoriesQuery, incomeCategoriesQuery] =
+  const [paymentMethodsQuery, expenseCategoriesQuery, getVendorsQuery, incomeCategoriesQuery] =
     queriesResults;
-  const paymentMethods = paymentMethodsQuery.data?.payload?.data || [];
+  const paymentMethods = paymentMethodsQuery?.data?.payload?.data || [];
 
   useEffect(() => {
     if (expenseCategoriesQuery.data?.payload?.data) {
@@ -126,6 +128,17 @@ export function IncomeExpenseForm({
   }, [incomeCategoriesQuery.data]);
 
   useEffect(() => {
+    if (getVendorsQuery?.data?.payload?.data) {
+      setVendorOptions(
+        getVendorsQuery?.data?.payload?.data.map((c: any) => ({
+          id: c._id,
+          name: c.name + " " + `(${c.email})`,
+        }))
+      );
+    }
+  }, [getVendorsQuery?.data]);
+
+  useEffect(() => {
     register("file", {
       required: mode === "create" ? "Receipt/Bill is required" : (false as any),
     });
@@ -146,6 +159,13 @@ export function IncomeExpenseForm({
     const res = await getAllExpenseCategory({ search: query });
     setExpenseCategoriesOptions(
       res.payload.data.map((c: any) => ({ id: c._id, name: c.name }))
+    );
+  };
+
+  const handleVendorSearch = async (query: string) => {
+    const res = await getAllVendors({ search: query });
+    setVendorOptions(
+      res.payload.data.map((c: any) => ({ id: c._id, name: c.name + " " + `(${c.email})` }))
     );
   };
 
@@ -186,6 +206,7 @@ export function IncomeExpenseForm({
                       shouldValidate: true,
                       shouldTouch: true,
                     });
+                    setVendorExpense(val);
                   }}
                 />
                 {errors.expenseCategoryId && (
@@ -197,14 +218,11 @@ export function IncomeExpenseForm({
             ) : (
               <div className="space-y-2">
                 <Label htmlFor="incomeCategoryId">Income Category *</Label>
-                <Label htmlFor="incomeCategoryId">Income Category *</Label>
                 <SearchableDropDown
                   options={incomeCategoriesOptions}
                   onSearch={handleIncomeCategorySearch}
                   value={watch("incomeCategoryId")}
-                  value={watch("incomeCategoryId")}
                   onChange={(val) => {
-                    setValue("incomeCategoryId", val, {
                     setValue("incomeCategoryId", val, {
                       shouldValidate: true,
                       shouldTouch: true,
@@ -212,22 +230,20 @@ export function IncomeExpenseForm({
                   }}
                 />
                 {errors.incomeCategoryId && (
-                {errors.incomeCategoryId && (
                   <p className="text-sm text-red-500">
-                    {errors.incomeCategoryId.message as string}
                     {errors.incomeCategoryId.message as string}
                   </p>
                 )}
               </div>
             )}
 
-            {/* {
-              type === "expense" && "" &&
+            {
+              type === "expense" && watch("expenseCategoryId") === "68bff6c834305c04a6926d1f" &&
               <div className="space-y-2">
                 <Label htmlFor="vendorId">Vendor *</Label>
                 <SearchableDropDown
-                  options={expenseCategoriesOptions}
-                  onSearch={handleExpenseCategorySearch}
+                  options={vendorOptions}
+                  onSearch={handleVendorSearch}
                   value={watch("vendorId")}
                   onChange={(val) => {
                     setValue("vendorId", val, {
@@ -236,13 +252,13 @@ export function IncomeExpenseForm({
                     });
                   }}
                 />
-                {errors.expenseCategoryId && (
+                {errors.vendorId && (
                   <p className="text-sm text-red-500">
-                    {errors.expenseCategoryId.message as string}
+                    {errors.vendorId.message as string}
                   </p>
                 )}
               </div>
-            } */}
+            }
 
             <div className="space-y-2">
               <Label htmlFor="amount">Amount (₹) *</Label>

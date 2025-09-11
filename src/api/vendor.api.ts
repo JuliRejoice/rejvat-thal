@@ -70,12 +70,18 @@ export const updateVendorStatus = async (isActive, id) => {
 
 export const getAllVendors = async ({
     page,
-    limit
+    limit,
+    search
+}:{
+    page?: any,
+    limit?: any,
+    search?: any
 }) => {
     try {
         const queryParams = new URLSearchParams();
         if (page !== undefined) queryParams.append("page", String(page));
         if (limit !== undefined) queryParams.append("limit", String(limit));
+        if (search) queryParams.append("search", String(search));
         
         const url = `/vendor/getAllVendor${queryParams.toString() ? `?${queryParams.toString()}` : ""}`
         const response = await axiosInstance.get(url);

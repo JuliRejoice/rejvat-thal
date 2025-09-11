@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronRight, Filter } from "lucide-react";
+import { Filter } from "lucide-react";
 import { useQueries } from "@tanstack/react-query";
 import { getAllExpenseCategory } from "@/api/expenseCategory.api";
 import { getAllIncomeCategory } from "@/api/incomeCategories.api";
@@ -33,21 +33,32 @@ export default function TransactionTypeSelector({
   setIncomeCategoryId: any;
   setExpenseCategoryId: any;
 }) {
-  const [type, setType] = useState<TransactionType>(initialSelection?.type ?? "all");
-  const [incomeCategoryIds, setIncomeCategoryIds] = useState<string[]>(
+  const [appliedType, setAppliedType] = useState<TransactionType>(initialSelection?.type ?? "all");
+  const [appliedIncomeCategoryIds, setAppliedIncomeCategoryIds] = useState<string[]>(
     initialSelection?.type === "income" ? initialSelection?.categoryIds ?? [] : []
   );
-  const [expenseCategoryIds, setExpenseCategoryIds] = useState<string[]>(
+  const [appliedExpenseCategoryIds, setAppliedExpenseCategoryIds] = useState<string[]>(
     initialSelection?.type === "expense" ? initialSelection?.categoryIds ?? [] : []
   );
 
-  useEffect(() => {
-    setIncomeCategoryId(incomeCategoryIds)
-  }, [incomeCategoryIds])  
+  const [tempType, setTempType] = useState<TransactionType>(initialSelection?.type ?? "all");
+  const [tempIncomeCategoryIds, setTempIncomeCategoryIds] = useState<string[]>(
+    initialSelection?.type === "income" ? initialSelection?.categoryIds ?? [] : []
+  );
+  const [tempExpenseCategoryIds, setTempExpenseCategoryIds] = useState<string[]>(
+    initialSelection?.type === "expense" ? initialSelection?.categoryIds ?? [] : []
+  );
+  const [tempSelectAllIncome, setTempSelectAllIncome] = useState<boolean>(false);
+  const [tempSelectAllExpense, setTempSelectAllExpense] = useState<boolean>(false);
+  const [open, setOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    setExpenseCategoryId(expenseCategoryIds)
-  }, [expenseCategoryIds])
+    setIncomeCategoryId(appliedType === "income" ? appliedIncomeCategoryIds : []);
+  }, [appliedType, appliedIncomeCategoryIds])
+
+  useEffect(() => {
+    setExpenseCategoryId(appliedType === "expense" ? appliedExpenseCategoryIds : []);
+  }, [appliedType, appliedExpenseCategoryIds])
 
   const queries = useQueries({
     queries: [
@@ -73,80 +84,225 @@ export default function TransactionTypeSelector({
 
   useEffect(() => {
     if (!onChange) return;
-    const categoryIds = type === "income" ? incomeCategoryIds : type === "expense" ? expenseCategoryIds : [];
-    onChange({ type, categoryIds });
-  }, [type, incomeCategoryIds, expenseCategoryIds]);
+    const categoryIds = appliedType === "income" ? appliedIncomeCategoryIds : appliedType === "expense" ? appliedExpenseCategoryIds : [];
+    onChange({ type: appliedType, categoryIds });
+  }, [appliedType, appliedIncomeCategoryIds, appliedExpenseCategoryIds]);
 
-  const toggle = (id: string, t: "income" | "expense") => {
+  const toggleTempCategory = (id: string, t: "income" | "expense") => {
     if (t === "income") {
-      setType("income");
-      setIncomeCategoryIds((prev) =>
+      setTempType("income");
+      setTempSelectAllExpense(false);
+      setTempExpenseCategoryIds([]);
+      setTempSelectAllIncome(false);
+      setTempIncomeCategoryIds((prev) =>
         prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
       );
     } else {
-      setType("expense");
-      setExpenseCategoryIds((prev) =>
+      setTempType("expense");
+      setTempSelectAllIncome(false);
+      setTempIncomeCategoryIds([]);
+      setTempSelectAllExpense(false);
+      setTempExpenseCategoryIds((prev) =>
         prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
       );
     }
   };
 
-  const makeButtonLabel = () => {
-    if (type === "all") return "All Transactions";
-    return type === "income" ? "Income" : "Expense";
+  const handleSelectAll = (t: "income" | "expense") => {
+    if (t === "income") {
+      setTempType("income");
+      setTempSelectAllIncome((prev) => {
+        const next = !prev;
+        if (next) {
+          setTempIncomeCategoryIds(incomeCategories.map((c: any) => c._id));
+          setTempSelectAllExpense(false);
+          setTempExpenseCategoryIds([]);
+        } else {
+          setTempIncomeCategoryIds([]);
+        }
+        return next;
+      });
+    } else {
+      setTempType("expense");
+      setTempSelectAllExpense((prev) => {
+        const next = !prev;
+        if (next) {
+          setTempExpenseCategoryIds(expenseCategories.map((c: any) => c._id));
+          setTempSelectAllIncome(false);
+          setTempIncomeCategoryIds([]);
+        } else {
+          setTempExpenseCategoryIds([]);
+        }
+        return next;
+      });
+    }
   };
 
+  const handleApply = () => {
+    if (tempType === "income") {
+      setAppliedType("income");
+      setAppliedIncomeCategoryIds(tempSelectAllIncome ? [] : tempIncomeCategoryIds);
+      setAppliedExpenseCategoryIds([]);
+    } else if (tempType === "expense") {
+      setAppliedType("expense");
+      setAppliedExpenseCategoryIds(tempSelectAllExpense ? [] : tempExpenseCategoryIds);
+      setAppliedIncomeCategoryIds([]);
+    } else {
+      setAppliedType("all");
+      setAppliedIncomeCategoryIds([]);
+      setAppliedExpenseCategoryIds([]);
+    }
+    setOpen(false);
+  };
+
+  const handleCancel = () => {
+    setTempType(appliedType);
+    setTempIncomeCategoryIds(appliedIncomeCategoryIds);
+    setTempExpenseCategoryIds(appliedExpenseCategoryIds);
+    setTempSelectAllIncome(false);
+    setTempSelectAllExpense(false);
+  };
+
+  const makeButtonLabel = () => {
+    if (appliedType === "all") return "All Transactions";
+    return appliedType === "income" ? "Income" : "Expense";
+  };
+
+  const clearFilter = () => {
+    setAppliedType("all");
+    setAppliedIncomeCategoryIds([]);
+    setAppliedExpenseCategoryIds([]);
+    setTempType("all");
+    setTempIncomeCategoryIds([]);
+    setTempExpenseCategoryIds([]);
+    setTempSelectAllIncome(false);
+    setTempSelectAllExpense(false);
+  };
+
+  const isFiltered = appliedType !== "all";
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="min-w-48 justify-start">
-          <Filter className="h-4 w-4 mr-2" />
-          {makeButtonLabel()}
-        </Button>
-      </DropdownMenuTrigger>
+    <>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="min-w-48 justify-start relative">
+            <Filter className="h-4 w-4 mr-2" />
+            {makeButtonLabel()}
+            {isFiltered && <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-blue-500" />}
+          </Button>
+        </DropdownMenuTrigger>
 
-      <DropdownMenuContent className="w-72">
-        <DropdownMenuItem onClick={() => setType("all")} className="flex items-center">
-          All Transactions
-          {type === "all" && <span className="ml-auto h-2 w-2 rounded-full bg-blue-500" />}
-        </DropdownMenuItem>
+        <DropdownMenuContent className="w-72">
+          <div className="px-3 py-2 text-sm flex items-center justify-between">
+            <span className="font-medium text-muted-foreground">Filter</span>
+            <button
+              className="text-blue-600 hover:underline"
+              onClick={(e) => {
+                e.preventDefault();
+                clearFilter();
+              }}
+            >
+              Clear All
+            </button>
+          </div>
+          <div className="h-px bg-border" />
 
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger onClick={() => setType("income")} className="flex items-center">
-            Income
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-72">
-            {incomeCategories.map((c: any) => (
-              <DropdownMenuItem
-                key={c._id}
-                onClick={() => toggle(c._id, "income")}
-                onSelect={(e) => e.preventDefault()}
+            <DropdownMenuItem
+              onClick={() => {
+                setTempType("all");
+                setTempIncomeCategoryIds([]);
+                setTempExpenseCategoryIds([]);
+                setTempSelectAllIncome(false);
+                setTempSelectAllExpense(false);
+              }}
+              onSelect={(e) => e.preventDefault()}
+              className="flex items-center"
+            >
+              <Checkbox checked={tempType === "all"} className="mr-2" />
+              All Transactions
+            </DropdownMenuItem>
+
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="flex items-center">
+                Income
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-72">
+                <DropdownMenuItem
+                  onClick={() => handleSelectAll("income")}
+                  onSelect={(e) => e.preventDefault()}
+                  className="border-b border-blue-500"
+                >
+                  <Checkbox checked={tempSelectAllIncome} className="mr-2" />
+                  Select All
+                </DropdownMenuItem>
+                {incomeCategories.map((c: any) => (
+                  <DropdownMenuItem
+                    key={c._id}
+                    onClick={() => toggleTempCategory(c._id, "income")}
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    <Checkbox
+                      checked={tempSelectAllIncome || tempIncomeCategoryIds.includes(c._id)}
+                      className="mr-2"
+                    />
+                    {c.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="flex items-center">
+                Expense
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-72">
+                <DropdownMenuItem
+                  onClick={() => handleSelectAll("expense")}
+                  onSelect={(e) => e.preventDefault()}
+                  className="border-b border-blue-500 pb-2"
+                >
+                  <Checkbox checked={tempSelectAllExpense} className="mr-2" />
+                  Select All
+                </DropdownMenuItem>
+                {expenseCategories.map((c: any) => (
+                  <DropdownMenuItem
+                    key={c._id}
+                    onClick={() => toggleTempCategory(c._id, "expense")}
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    <Checkbox
+                      checked={tempSelectAllExpense || tempExpenseCategoryIds.includes(c._id)}
+                      className="mr-2"
+                    />
+                    {c.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+
+            {/* Actions */}
+            <div className="px-2 py-2 flex gap-2 justify-end">
+              <button
+                className="text-sm px-3 py-1 rounded border"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleCancel();
+                }}
               >
-                <Checkbox checked={incomeCategoryIds.includes(c._id)} className="mr-2" />
-                {c.name}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger onClick={() => setType("expense")} className="flex items-center">
-            Expense
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-72">
-            {expenseCategories.map((c: any) => (
-              <DropdownMenuItem
-                key={c._id}
-                onClick={() => toggle(c._id, "expense")}
-                onSelect={(e) => e.preventDefault()}
+                Cancel
+              </button>
+              <button
+                className="text-sm px-3 py-1 rounded bg-primary text-primary-foreground"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleApply();
+                }}
               >
-                <Checkbox checked={expenseCategoryIds.includes(c._id)} className="mr-2" />
-                {c.name}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-      </DropdownMenuContent>
-    </DropdownMenu>
+                Apply
+              </button>
+            </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
   );
 }

@@ -9,6 +9,9 @@ export const createIncomeExpense = async (incomeExpenseData) => {
         incExpData.append("description", incomeExpenseData?.description);
         incExpData.append("date", incomeExpenseData?.date);
         incExpData.append("type", incomeExpenseData?.type);
+        if (incomeExpenseData?.vendorId) {
+            incExpData.append("vendorId", incomeExpenseData?.vendorId);
+        }
         if (incomeExpenseData?.expenseCategoryId) {
             incExpData.append("expenseCategoryId", incomeExpenseData?.expenseCategoryId);
         }
