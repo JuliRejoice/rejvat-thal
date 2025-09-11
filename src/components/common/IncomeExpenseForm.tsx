@@ -197,11 +197,14 @@ export function IncomeExpenseForm({
             ) : (
               <div className="space-y-2">
                 <Label htmlFor="incomeCategoryId">Income Category *</Label>
+                <Label htmlFor="incomeCategoryId">Income Category *</Label>
                 <SearchableDropDown
                   options={incomeCategoriesOptions}
                   onSearch={handleIncomeCategorySearch}
                   value={watch("incomeCategoryId")}
+                  value={watch("incomeCategoryId")}
                   onChange={(val) => {
+                    setValue("incomeCategoryId", val, {
                     setValue("incomeCategoryId", val, {
                       shouldValidate: true,
                       shouldTouch: true,
@@ -209,7 +212,9 @@ export function IncomeExpenseForm({
                   }}
                 />
                 {errors.incomeCategoryId && (
+                {errors.incomeCategoryId && (
                   <p className="text-sm text-red-500">
+                    {errors.incomeCategoryId.message as string}
                     {errors.incomeCategoryId.message as string}
                   </p>
                 )}
