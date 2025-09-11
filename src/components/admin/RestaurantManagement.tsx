@@ -49,6 +49,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { DataTablePagination } from "../common/DataTablePagination";
 import { ConfirmationDialog } from "../common/ConfirmationDialog";
+import SkeletonRestaurantManag from './SkeletonRestaurantManag';
 import { NoData } from '../common/NoData';
 
 const RestaurantManagement = () => {
@@ -276,7 +277,7 @@ const RestaurantManagement = () => {
         <Button
           type="button"
           variant="outline"
-          onClick={() => {setIsCreateModalOpen(false); reset();}}
+          onClick={() => { setIsCreateModalOpen(false); reset(); }}
           disabled={isCreatePending}
         >
           Cancel
@@ -557,36 +558,7 @@ const RestaurantManagement = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isRestaurantPending ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <div>
-                          <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-2" />
-                          <div className="h-3 w-52 bg-gray-200 rounded animate-pulse" />
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-2">
-                        <div className="h-3 w-28 bg-gray-200 rounded animate-pulse" />
-                        <div className="h-3 w-36 bg-gray-200 rounded animate-pulse" />
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="h-6 w-20 bg-gray-200 rounded animate-pulse" />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse" />
-                        <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse" />
-                        <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse" />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : restaurants.length ? restaurants.map((restaurant) => (
+              {isRestaurantPending ? <SkeletonRestaurantManag /> : restaurants.length ? restaurants.map((restaurant) => (
                 <TableRow key={restaurant._id}>
                   <TableCell>
                     <div className="flex items-center space-x-3">
@@ -600,6 +572,14 @@ const RestaurantManagement = () => {
                       </div>
                     </div>
                   </TableCell>
+                  {/* <TableCell>
+                    <div>
+                      <p className="font-medium">{restaurant.manager}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {restaurant.staff} staff members
+                      </p>
+                    </div>
+                  </TableCell> */}
                   <TableCell>
                     <div className="space-y-1">
                       <p className="text-sm flex items-center">
@@ -612,6 +592,24 @@ const RestaurantManagement = () => {
                       </p>
                     </div>
                   </TableCell>
+                  {/* <TableCell>
+                    <div className="text-center">
+                      <p className="font-medium">{restaurant.customers}</p>
+                      <p className="text-xs text-muted-foreground">
+                        active customers
+                      </p>
+                    </div>
+                  </TableCell> */}
+                  {/* <TableCell>
+                    <div>
+                      <p className="font-medium">
+                        ₹{restaurant.monthlyRevenue.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {restaurant.todayOrders} orders today
+                      </p>
+                    </div>
+                  </TableCell> */}
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Badge
@@ -622,6 +620,7 @@ const RestaurantManagement = () => {
                           }`}
                       >
                         {restaurant.isActive ? "Active" : "Deactive"}
+                        {restaurant.status}
                       </Badge>
                     </div>
                   </TableCell>
@@ -639,10 +638,14 @@ const RestaurantManagement = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => setEditingRestaurant(restaurant)}
-                      >  <Edit className="h-4 w-4" />  </Button>
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="outline"
-                        className={`${restaurant.isActive ? "bg-green-100 border border-green-300 hover:bg-green-200" : "bg-red-100 border border-red-300 hover:bg-red-200"
+                        className={`${restaurant.isActive
+                          ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                          : "bg-red-100 border border-red-300 hover:bg-red-200"
                           }`}
                         size="sm"
                         onClick={() => {
@@ -665,7 +668,6 @@ const RestaurantManagement = () => {
                 </TableCell>
               </TableRow>
               }</TableBody>
-
           </Table>
           <DataTablePagination
             currentPage={page}
