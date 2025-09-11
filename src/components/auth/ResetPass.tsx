@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, ChefHat, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Lock, Eye, EyeOff } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { resetPassword } from '@/api/auth.api';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
+import Logo from '../../asset/img/logo.png'
 
 type FormValues = {
   password: string;
@@ -79,24 +79,13 @@ export const ResetPasswordForm = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/20 p-4">
       <div className="w-full max-w-md space-y-6">
-        {/* Logo & Branding */}
-        <div className="text-center space-y-2">
-          <div className="flex justify-center">
-            <div className="bg-gradient-primary p-3 rounded-2xl shadow-lg">
-              <ChefHat className="h-8 w-8 text-primary-foreground" />
-            </div>
-          </div>
-          <h1 className="text-3xl font-bold text-foreground">Restaurant Manager</h1>
-          <p className="text-muted-foreground">Manage your restaurant operations efficiently</p>
-        </div>
-
         {/* Reset Password Form */}
         <Card className="shadow-card">
-          <CardHeader className="space-y-1">
+          <CardHeader className="space-y-1 pb-0">
+            <div className="flex justify-center mb-3">
+              <img src={Logo} alt='' className='w-52' />
+            </div>
             <CardTitle className="text-2xl text-center">Reset Password</CardTitle>
-            <CardDescription className="text-center">
-              Enter your email and create a new password
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

@@ -22,22 +22,18 @@ import {
   DollarSign,
   Users,
   UserCheck,
-  UserPlus,
-  Package,
-  ShoppingBag,
-  Calendar,
   Truck,
   Settings,
   Bell,
   ClipboardList,
   PieChart,
   LogOut,
-  ChefHat,
   FileText,
   Clock,
-  Camera,
   Tags
 } from 'lucide-react';
+import Logo from '../../asset/img/logo.png'
+import smallLogo from '../../asset/img/smallLogo.png'
 
 // Navigation items based on role
 const getNavigationItems = (role: string) => {
@@ -93,9 +89,7 @@ export const AppSidebar = () => {
   const { user, logout } = useAuth();
   const { state } = useSidebar();
   const location = useLocation();
-  
   const collapsed = state === 'collapsed';
-  
   if (!user) return null;
 
   const navigationItems = getNavigationItems(user.role);
@@ -109,17 +103,16 @@ export const AppSidebar = () => {
 
   return (
     <Sidebar className={`${collapsed ? "w-16" : "w-64"} bg-gradient-sidebar border-sidebar-border`} collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border p-4">
-        <div className="flex items-center space-x-2">
-          <div className="bg-primary p-2 rounded-lg shadow-sm">
-            <ChefHat className="h-5 w-5 text-primary-foreground" />
+      <SidebarHeader className="border-b border-sidebar-border pt-4 pb-0">
+        <div className="flex items-center justify-center">
+          <div className="flex justify-center mb-3">
+            <img src={collapsed ? smallLogo : Logo} alt='' className='w-52' />
           </div>
           {!collapsed && (
             <div>
-              <h2 className="font-semibold text-sidebar-primary-foreground">Restaurant Manager</h2>
-              {user.restaurantName && (
+              {/* {user.restaurantName && (
                 <p className="text-xs text-sidebar-foreground">{user.restaurantName}</p>
-              )}
+              )} */}
             </div>
           )}
         </div>
@@ -128,7 +121,7 @@ export const AppSidebar = () => {
       <SidebarContent className="flex-1 overflow-y-auto">
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/70 uppercase tracking-wider text-xs font-semibold">
-            {user.role === 'admin' ? 'Administration' : user.role === 'manager' ? 'Management' : 'Staff Portal'}
+            {user.role === 'admin' ? 'Admin Portal' : user.role === 'manager' ? 'Mangaer Portal' : 'Staff Portal'}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
