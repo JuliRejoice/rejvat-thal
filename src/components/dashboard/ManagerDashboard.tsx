@@ -124,7 +124,7 @@ const ManagerDashboard = () => {
       </div>
 
       {/* Meal Orders Summary */}
-      <Card className="shadow-card">
+      {/* <Card className="shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
@@ -153,10 +153,10 @@ const ManagerDashboard = () => {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Recent Transactions & Today's Deliveries */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="shadow-card">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -236,7 +236,7 @@ const ManagerDashboard = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
     </div>
   );
 };

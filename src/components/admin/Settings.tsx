@@ -138,7 +138,7 @@ const Settings = () => {
                 Expenses above this amount will require image upload
               </p>
             </div>
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="currency">Currency</Label>
               <Select value={settings.currency} onValueChange={(value) => handleSettingChange('currency', value)}>
                 <SelectTrigger>
@@ -185,12 +185,12 @@ const Settings = () => {
                   <SelectItem value="april">April</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 
         {/* Notification Settings */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
@@ -237,10 +237,10 @@ const Settings = () => {
               />
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* System Settings */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
@@ -279,7 +279,7 @@ const Settings = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       {/* Security Notice */}
