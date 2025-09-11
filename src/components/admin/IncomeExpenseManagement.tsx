@@ -427,10 +427,11 @@ const IncomeExpenseManagement = () => {
                       </Badge>
                     </TableCell>
                     <TableCell
-                      className={`${!transaction?.expenseCategoryId?.name && "text-gray-400"
-                        }`}
+                      className={`${
+                        !transaction?.expenseCategoryId?.name || transaction?.incomeCategoryId?.name && "text-gray-400"
+                      }`}
                     >
-                      {transaction?.expenseCategoryId?.name || "N/A"}
+                      {transaction?.expenseCategoryId?.name || transaction?.incomeCategoryId?.name || "N/A"}
                     </TableCell>
                     <TableCell>
                       <span
