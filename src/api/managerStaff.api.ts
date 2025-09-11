@@ -64,9 +64,13 @@ export const updateStaffManager = async (userData, id) => {
         data.append('phone', userData.phone);
         data.append('address', userData.address);
         data.append('restaurantId', userData.restaurantId);
+        data.append('joiningDate', userData.joiningDate);
         data.append('position', userData.position || 'staff');
         data.append('isUserType', userData.isUserType || 'staff');
         
+        if (userData.salary) {
+            data.append('salary', userData.salary);
+        }
         if (userData.file) {
             data.append('file', userData.file);
         }

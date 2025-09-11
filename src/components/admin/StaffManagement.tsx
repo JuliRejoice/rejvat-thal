@@ -670,6 +670,7 @@ const StaffManagement = () => {
                       .toISOString()
                       .split("T")[0]
                   : "",
+                salary: selectedEditStaff?.salary,
                 file: selectedEditStaff.profileImage || null,
               }}
               onSubmit={(data: any) =>

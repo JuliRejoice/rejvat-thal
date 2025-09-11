@@ -44,6 +44,9 @@ export function IncomeExpenseForm({
   const [expenseCategoriesOptions, setExpenseCategoriesOptions] = useState<
     { id: string; name: string }[]
   >([]);
+  const [vendorOptions, setVendorOptions] = useState<
+    { id: string; name: string }[]
+  >([]);
   const [incomeCategoriesOptions, setIncomeCategoriesOptions] = useState<
     { id: string; name: string }[]
   >([]);
@@ -58,7 +61,8 @@ export function IncomeExpenseForm({
   } = useForm({
     defaultValues: {
       expenseCategoryId: "",
-      icnomeCategoryId: "",
+      incomeCategoryId: "",
+      vendorId: "",
       amount: "",
       method: "",
       restaurantId: "",
@@ -81,6 +85,11 @@ export function IncomeExpenseForm({
         queryKey: ["expense-categories"],
         queryFn: () => getAllExpenseCategory({}),
         enabled: type === "expense",
+      },
+      {
+        queryKey: ["income-categories"],
+        queryFn: () => getAllIncomeCategory({}),
+        enabled: type === "income",
       },
       {
         queryKey: ["income-categories"],
@@ -126,8 +135,8 @@ export function IncomeExpenseForm({
       register("expenseCategoryId", {
         required: "Expense category is required",
       });
-    }else{
-      register("icnomeCategoryId", {
+    } else {
+      register("incomeCategoryId", {
         required: "Income category is required",
       });
     }
@@ -187,25 +196,48 @@ export function IncomeExpenseForm({
               </div>
             ) : (
               <div className="space-y-2">
-                <Label htmlFor="icnomeCategoryId">Income Category *</Label>
+                <Label htmlFor="incomeCategoryId">Income Category *</Label>
                 <SearchableDropDown
                   options={incomeCategoriesOptions}
                   onSearch={handleIncomeCategorySearch}
-                  value={watch("icnomeCategoryId")}
+                  value={watch("incomeCategoryId")}
                   onChange={(val) => {
-                    setValue("icnomeCategoryId", val, {
+                    setValue("incomeCategoryId", val, {
                       shouldValidate: true,
                       shouldTouch: true,
                     });
                   }}
                 />
-                {errors.icnomeCategoryId && (
+                {errors.incomeCategoryId && (
                   <p className="text-sm text-red-500">
-                    {errors.icnomeCategoryId.message as string}
+                    {errors.incomeCategoryId.message as string}
                   </p>
                 )}
               </div>
             )}
+
+            {/* {
+              type === "expense" && "" &&
+              <div className="space-y-2">
+                <Label htmlFor="vendorId">Vendor *</Label>
+                <SearchableDropDown
+                  options={expenseCategoriesOptions}
+                  onSearch={handleExpenseCategorySearch}
+                  value={watch("vendorId")}
+                  onChange={(val) => {
+                    setValue("vendorId", val, {
+                      shouldValidate: true,
+                      shouldTouch: true,
+                    });
+                  }}
+                />
+                {errors.expenseCategoryId && (
+                  <p className="text-sm text-red-500">
+                    {errors.expenseCategoryId.message as string}
+                  </p>
+                )}
+              </div>
+            } */}
 
             <div className="space-y-2">
               <Label htmlFor="amount">Amount (₹) *</Label>
@@ -287,8 +319,8 @@ export function IncomeExpenseForm({
                 fileVal instanceof File
                   ? URL.createObjectURL(fileVal)
                   : typeof fileVal === "string" && fileVal
-                  ? fileVal
-                  : null;
+                    ? fileVal
+                    : null;
               return preview ? (
                 <div className="relative w-24 h-24">
                   <img
@@ -347,9 +379,8 @@ export function IncomeExpenseForm({
                 ? mode === "create"
                   ? "Saving..."
                   : "Updating..."
-                : `${mode === "create" ? "Save" : "Update"} ${
-                    type === "income" ? "Income" : "Expense"
-                  }`}
+                : `${mode === "create" ? "Save" : "Update"} ${type === "income" ? "Income" : "Expense"
+                }`}
             </Button>
             {onCancel && (
               <Button

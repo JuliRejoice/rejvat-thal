@@ -48,8 +48,8 @@ import {
   PaymentMethodEmpty,
   TransactionsEmpty,
 } from "../manager/ManagerIncomeExpenseEmpty";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { DataTablePagination } from "../common/DataTablePagination";
+import TransactionFilterDropdown from "../common/TransactionTypeSelector";
 
 const IncomeExpenseManagement = () => {
   const [selectedDate, setSelectedDate] = useState(
@@ -61,13 +61,14 @@ const IncomeExpenseManagement = () => {
   const [selectedBalanceOverviewDate, setSelectedBalanceOverviewDate] =
     useState(new Date().toISOString().split("T")[0]);
   const [typeTransaction, setTypeTransaction] = useState("all");
+  const [expenseCategoryId, setExpenseCategoryId] = useState([]);
+  const [incomeCategoryId, setIncomeCategoryId] = useState([]);
   const [restaurantsOptions, setRestaurantsOptions] = useState<
     { id: string; name: string }[]
   >([]);
   const [page, setPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [restaurant, setRestaurant] = useState("");
-  const isMobile = useIsMobile();
 
   useEffect(() => {
     setRestaurant(restaurantsOptions[0]?.id);
@@ -86,12 +87,15 @@ const IncomeExpenseManagement = () => {
     ...queryArgs,
     page,
     limit: itemsPerPage,
-    ...(typeTransaction !== "all" && { search: typeTransaction }),
+    ...(typeTransaction !== "all" && { type: typeTransaction }),
+    ...(expenseCategoryId?.length > 0 && { categoryId: expenseCategoryId }),
+    ...(incomeCategoryId?.length > 0 && { categoryId: incomeCategoryId }),
   };
 
   const cardsQueryData = {
     restaurantId: restaurant,
     startDate: selectedBalanceOverviewDate,
+    endDate: selectedBalanceOverviewDate,
   };
 
   const queriesResults = useQueries({
@@ -170,10 +174,6 @@ const IncomeExpenseManagement = () => {
   const totalItems = getIncExpTransactionData?.payload?.count || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  const handleStatusFilter = (value: string) => {
-    setTypeTransaction(value);
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -213,14 +213,14 @@ const IncomeExpenseManagement = () => {
       <Card className="shadow-card">
         <CardHeader className="flex-row justify-between items-center">
           <CardTitle>Balance Overview</CardTitle>
-            <div className="max-w-xs">
-              <Input
-                id="balanceOveviewDate"
-                type="date"
-                value={selectedBalanceOverviewDate}
-                onChange={(e) => setSelectedBalanceOverviewDate(e.target.value)}
-              />
-            </div>
+          <div className="max-w-xs">
+            <Input
+              id="balanceOveviewDate"
+              type="date"
+              value={selectedBalanceOverviewDate}
+              onChange={(e) => setSelectedBalanceOverviewDate(e.target.value)}
+            />
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -366,21 +366,14 @@ const IncomeExpenseManagement = () => {
               />
             </div>
             <div className="flex-1 max-w-xs">
-              <Label htmlFor="transactionFilter">Filter</Label>
-              <Select
-                value={typeTransaction}
-                onValueChange={handleStatusFilter}
-              >
-                <SelectTrigger className={isMobile ? "w-full" : "w-48"}>
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Transactions</SelectItem>
-                  <SelectItem value="income">Income</SelectItem>
-                  <SelectItem value="expense">Expense</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Filter</Label>
+              <TransactionFilterDropdown
+                onChange={({ type }) => {
+                  setTypeTransaction(type);
+                }}
+                setIncomeCategoryId={setIncomeCategoryId}
+                setExpenseCategoryId={setExpenseCategoryId}
+              />
             </div>
           </div>
         </CardHeader>
@@ -419,11 +412,10 @@ const IncomeExpenseManagement = () => {
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className={`${
-                          transaction.type === "income"
-                            ? "bg-green-100 border border-green-300 hover:bg-green-200"
-                            : "bg-red-100 border border-red-300 hover:bg-red-200"
-                        }`}
+                        className={`${transaction.type === "income"
+                          ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                          : "bg-red-100 border border-red-300 hover:bg-red-200"
+                          }`}
                       >
                         {transaction.type === "income" ? (
                           <TrendingUp className="mr-1 h-3 w-3" />
@@ -435,9 +427,8 @@ const IncomeExpenseManagement = () => {
                       </Badge>
                     </TableCell>
                     <TableCell
-                      className={`${
-                        !transaction?.expenseCategoryId?.name && "text-gray-400"
-                      }`}
+                      className={`${!transaction?.expenseCategoryId?.name && "text-gray-400"
+                        }`}
                     >
                       {transaction?.expenseCategoryId?.name || "N/A"}
                     </TableCell>
