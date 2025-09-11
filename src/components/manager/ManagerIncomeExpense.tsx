@@ -62,6 +62,7 @@ import {
 } from "./ManagerIncomeExpenseEmpty";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DataTablePagination } from "../common/DataTablePagination";
+import TransactionFilterDropdown from "../common/TransactionTypeSelector";
 
 const ManagerIncomeExpense = () => {
   const [selectedDate, setSelectedDate] = useState(
@@ -76,11 +77,12 @@ const ManagerIncomeExpense = () => {
   const [page, setPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [typeTransaction, setTypeTransaction] = useState("all");
+  const [expenseCategoryId, setExpenseCategoryId] = useState([]);
+  const [incomeCategoryId, setIncomeCategoryId] = useState([]);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [isAddingIncome, setIsAddingIncome] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const isMobile = useIsMobile();
 
   const restaurantId = user.restaurantId;
 
@@ -92,6 +94,7 @@ const ManagerIncomeExpense = () => {
   const { register, setValue, reset, unregister } = useForm({
     defaultValues: {
       expenseCategoryId: "",
+      incomeCategoryId: "",
       amount: "",
       method: "",
       restaurantId: "",
@@ -110,13 +113,16 @@ const ManagerIncomeExpense = () => {
   const cardsQueryData = {
     restaurantId: restaurantId,
     startDate: selectedBalanceOverviewDate,
+    endDate: selectedBalanceOverviewDate,
   };
 
   const transactionQueryData = {
     ...queryData,
     page,
     limit: itemsPerPage,
-    ...(typeTransaction !== "all" && { search: typeTransaction }),
+    ...(typeTransaction !== "all" && { type: typeTransaction }),
+    ...(expenseCategoryId?.length > 0 && { categoryId: expenseCategoryId }),
+    ...(incomeCategoryId?.length > 0 && { categoryId: incomeCategoryId }),
   };
 
   const queriesResults = useQueries({
@@ -170,9 +176,8 @@ const ManagerIncomeExpense = () => {
       toast({
         variant: "default",
         title: `Add ${type !== "expense" ? "Income" : "Expense"} success`,
-        description: `Added ${
-          type !== "expense" ? "Income" : "Expense"
-        } successfully`,
+        description: `Added ${type !== "expense" ? "Income" : "Expense"
+          } successfully`,
       });
       setIsAddingExpense(false);
       setIsAddingIncome(false);
@@ -185,9 +190,8 @@ const ManagerIncomeExpense = () => {
       toast({
         variant: "destructive",
         title: `Add ${type !== "expense" ? "Income" : "Expense"} failed`,
-        description: `Added ${
-          type !== "expense" ? "Income" : "Expense"
-        } failed. Try again later`,
+        description: `Added ${type !== "expense" ? "Income" : "Expense"
+          } failed. Try again later`,
       });
       console.error("Error creating restaurant:", error);
     },
@@ -206,14 +210,14 @@ const ManagerIncomeExpense = () => {
       register("expenseCategoryId", {
         required: "Expense category is required",
       });
+      unregister("incomeCategoryId");
     } else {
+      register("incomeCategoryId", {
+        required: "Income category is required",
+      });
       unregister("expenseCategoryId");
     }
   }, [type, register, unregister]);
-
-  const handleStatusFilter = (value: string) => {
-    setTypeTransaction(value);
-  };
 
   const transactions = getIncExpTransactionData?.payload?.data;
 
@@ -304,14 +308,14 @@ const ManagerIncomeExpense = () => {
       <Card className="shadow-card">
         <CardHeader className="flex-row justify-between items-center">
           <CardTitle>Balance Overview</CardTitle>
-            <div className="max-w-xs">
-              <Input
-                id="balanceOveviewDate"
-                type="date"
-                value={selectedBalanceOverviewDate}
-                onChange={(e) => setSelectedBalanceOverviewDate(e.target.value)}
-              />
-            </div>
+          <div className="max-w-xs">
+            <Input
+              id="balanceOveviewDate"
+              type="date"
+              value={selectedBalanceOverviewDate}
+              onChange={(e) => setSelectedBalanceOverviewDate(e.target.value)}
+            />
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -458,20 +462,13 @@ const ManagerIncomeExpense = () => {
             </div>
             <div className="flex-1 max-w-xs">
               <Label htmlFor="transactionFilter">Filter</Label>
-              <Select
-                value={typeTransaction}
-                onValueChange={handleStatusFilter}
-              >
-                <SelectTrigger className={isMobile ? "w-full" : "w-48"}>
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Transactions</SelectItem>
-                  <SelectItem value="income">Income</SelectItem>
-                  <SelectItem value="expense">Expense</SelectItem>
-                </SelectContent>
-              </Select>
+              <TransactionFilterDropdown
+                onChange={({ type }) => {
+                  setTypeTransaction(type);
+                }}
+                setIncomeCategoryId={setIncomeCategoryId}
+                setExpenseCategoryId={setExpenseCategoryId}
+              />
             </div>
           </div>
         </CardHeader>
@@ -510,11 +507,10 @@ const ManagerIncomeExpense = () => {
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className={`${
-                          transaction.type === "income"
-                            ? "bg-green-100 border border-green-300 hover:bg-green-200"
-                            : "bg-red-100 border border-red-300 hover:bg-red-200"
-                        }`}
+                        className={`${transaction.type === "income"
+                          ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                          : "bg-red-100 border border-red-300 hover:bg-red-200"
+                          }`}
                       >
                         {transaction.type === "income" ? (
                           <TrendingUp className="mr-1 h-3 w-3" />
@@ -526,11 +522,10 @@ const ManagerIncomeExpense = () => {
                       </Badge>
                     </TableCell>
                     <TableCell
-                      className={`${
-                        !transaction?.expenseCategoryId?.name && "text-gray-400"
-                      }`}
+                      className={`${!transaction?.expenseCategoryId?.name || !transaction?.incomeCategoryId?.name && "text-gray-400"
+                        }`}
                     >
-                      {transaction?.expenseCategoryId?.name || "N/A"}
+                      {transaction?.expenseCategoryId?.name || !transaction?.incomeCategoryId?.name || "N/A"}
                     </TableCell>
                     <TableCell>
                       <span
