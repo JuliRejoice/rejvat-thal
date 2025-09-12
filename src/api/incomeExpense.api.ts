@@ -52,6 +52,7 @@ export const getIncomeExpense = async ({
     endDate,
     type,
     categoryId,
+    paymentMethodId,
     page,
     limit
 }: {
@@ -60,6 +61,7 @@ export const getIncomeExpense = async ({
     endDate?: any,
     type?: any,
     categoryId?: any,
+    paymentMethodId: any,
     page: any,
     limit: any
 }) => {
@@ -72,6 +74,7 @@ export const getIncomeExpense = async ({
         if (endDate !== undefined) params.endDate = endDate;
         if (page !== undefined) params.page = page;
         if (limit !== undefined) params.limit = limit;
+        if (paymentMethodId) params.paymentMethodId = paymentMethodId;
         if (categoryId && Array.isArray(categoryId)) params.categoryId = categoryId;
 
         const response = await axiosInstance.get('/transaction/getAllTransaction', { params });

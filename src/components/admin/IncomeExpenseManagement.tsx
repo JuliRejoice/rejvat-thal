@@ -30,6 +30,8 @@ import {
   TrendingDown,
   Filter,
   Receipt,
+  ChevronDown,
+  X,
 } from "lucide-react";
 import { useQueries } from "@tanstack/react-query";
 import { getRestaurants } from "@/api/restaurant.api";
@@ -50,8 +52,12 @@ import {
 } from "../manager/ManagerIncomeExpenseEmpty";
 import { DataTablePagination } from "../common/DataTablePagination";
 import TransactionFilterDropdown from "../common/TransactionTypeSelector";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuGroup, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { Button } from "../ui/button";
+import { getPaymentMethods } from "@/api/paymentMethod.api";
 
 const IncomeExpenseManagement = () => {
+  const [paymentFilter, setPaymentFilter] = useState("");
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -88,6 +94,7 @@ const IncomeExpenseManagement = () => {
     page,
     limit: itemsPerPage,
     ...(typeTransaction !== "all" && { type: typeTransaction }),
+    ...(paymentFilter && { paymentMethodId: paymentFilter }),
     ...(expenseCategoryId?.length > 0 && { categoryId: expenseCategoryId }),
     ...(incomeCategoryId?.length > 0 && { categoryId: incomeCategoryId }),
   };
@@ -110,6 +117,10 @@ const IncomeExpenseManagement = () => {
         enabled: Boolean(restaurant),
       },
       {
+        queryKey: ["get-payment-methods"],
+        queryFn: () => getPaymentMethods(),
+      },
+      {
         queryKey: ["transactions-by-method-admin", cardsQueryData],
         queryFn: () => getTransactionByMethod(cardsQueryData),
         enabled: Boolean(restaurant),
@@ -125,11 +136,13 @@ const IncomeExpenseManagement = () => {
   const [
     restaurantsQuery,
     getIncExpTransactionQuery,
+    getPaymentMethodsQuery,
     getTransactionByMethodQuery,
     getIncomeExpenseByRestoQuery,
   ] = queriesResults;
 
   const { data: getAllRestaurants } = restaurantsQuery;
+  const { data: paymentMethods } = getPaymentMethodsQuery;
 
   useEffect(() => {
     if (getAllRestaurants?.payload?.data) {
@@ -374,6 +387,62 @@ const IncomeExpenseManagement = () => {
                 setIncomeCategoryId={setIncomeCategoryId}
                 setExpenseCategoryId={setExpenseCategoryId}
               />
+            </div>
+            <div className="flex-1 w-[200px]">
+              <Label htmlFor="paymentFilter">Payment Method</Label>
+              <div className="relative w-48">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={`flex items-center justify-between w-full relative ${
+                        paymentFilter ? "pr-12" : "pr-8"
+                      }`}
+                    >
+                      <span className="truncate">
+                        {paymentFilter
+                          ? paymentMethods?.payload?.data?.find(
+                              (m) => m._id === paymentFilter
+                            )?.type
+                          : "Select Payment Method"}
+                      </span>
+
+                      {/* Chevron always visible */}
+                      <ChevronDown
+                        className={`h-4 w-4 absolute ${
+                          paymentFilter ? "right-11" : "right-3"
+                        } text-gray-600 pointer-events-none`}
+                      />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="start">
+                    <DropdownMenuGroup> 
+                      {paymentMethods?.payload?.data?.map((method) => (
+                        <DropdownMenuItem
+                          key={method._id}
+                          onClick={() => setPaymentFilter(method._id)}
+                        >
+                          {method.type}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Clear icon (absolute, clickable) */}
+                {paymentFilter && (
+                  <button
+                    // variant="default"
+                    onClick={(e) => {
+                      e.stopPropagation(); // prevents dropdown toggle
+                      setPaymentFilter("");
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </CardHeader>

@@ -19,6 +19,7 @@ import { getPaymentMethods } from "@/api/paymentMethod.api";
 import { getAllExpenseCategory } from "@/api/expenseCategory.api";
 import { getAllIncomeCategory } from "@/api/incomeCategories.api";
 import { getAllVendors } from "@/api/vendor.api";
+import { getThresholdAmont } from "@/api/settings.api";
 
 type IncomeExpenseFormMode = "create" | "edit";
 type IncomeExpenseType = "income" | "expense";
@@ -75,6 +76,7 @@ export function IncomeExpenseForm({
       ...defaultValues,
     },
     mode: "onSubmit",
+    shouldUnregister: false,
   });
 
   const queriesResults = useQueries({
@@ -98,12 +100,24 @@ export function IncomeExpenseForm({
         queryFn: () => getAllIncomeCategory({}),
         enabled: type === "income",
       },
+      {
+        queryKey: ["get-threshold-amount"],
+        queryFn: () => getThresholdAmont(),
+        enabled: type === "expense",
+      },
     ],
   });
 
-  const [paymentMethodsQuery, expenseCategoriesQuery, getVendorsQuery, incomeCategoriesQuery] =
-    queriesResults;
+  const [
+    paymentMethodsQuery,
+    expenseCategoriesQuery,
+    getVendorsQuery,
+    incomeCategoriesQuery,
+    thresholdQuery,
+  ] = queriesResults;
   const paymentMethods = paymentMethodsQuery?.data?.payload?.data || [];
+  const thresholdAmount =
+    thresholdQuery?.data?.payload?.expenseThresholdAmount || 0;
 
   useEffect(() => {
     if (expenseCategoriesQuery.data?.payload?.data) {
@@ -139,14 +153,28 @@ export function IncomeExpenseForm({
   }, [getVendorsQuery?.data]);
 
   useEffect(() => {
+    const amount = Number(watch("amount"));
     register("file", {
-      required: mode === "create" ? "Receipt/Bill is required" : (false as any),
+      required:
+        mode === "create" && amount > thresholdAmount && type === "expense"
+          ? "A receipt or bill is required because the amount you entered exceeds the threshold you have set"
+          : false,
     });
+  }, [mode, thresholdAmount, type, watch("amount"), register]);
+
+  useEffect(() => {
     register("method", { required: "Payment method is required" });
     register("date", { required: "Date is required" });
     if (type === "expense") {
       register("expenseCategoryId", {
         required: "Expense category is required",
+      });
+      // Conditionally require vendor when the selected expense category matches the given id
+      register("vendorId", {
+        validate: (val) =>
+          watch("expenseCategoryId") === "68bff6c834305c04a6926d1f"
+            ? Boolean(val) || "Vendor is required"
+            : true,
       });
     } else {
       register("incomeCategoryId", {
@@ -165,7 +193,10 @@ export function IncomeExpenseForm({
   const handleVendorSearch = async (query: string) => {
     const res = await getAllVendors({ search: query });
     setVendorOptions(
-      res.payload.data.map((c: any) => ({ id: c._id, name: c.name + " " + `(${c.email})` }))
+      res.payload.data.map((c: any) => ({
+        id: c._id,
+        name: c.name + " " + `(${c.email})`,
+      }))
     );
   };
 
@@ -178,14 +209,6 @@ export function IncomeExpenseForm({
 
   const internalSubmit = (data: any) => {
     const payload = { ...data, type };
-    if (mode === "create" && !payload.file) {
-      toast({
-        variant: "destructive",
-        title: "Validation Error",
-        description: "Receipt/Bill is required.",
-      });
-      return;
-    }
     onSubmit(payload);
   };
 
@@ -196,7 +219,14 @@ export function IncomeExpenseForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {type === "expense" ? (
               <div className="space-y-2">
-                <Label htmlFor="expenseCategoryId">Expense Category *</Label>
+                <div className="flex gap-3 items-baseline">
+                  <Label htmlFor="expenseCategoryId">Expense Category *</Label>
+                  {errors.expenseCategoryId && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors.expenseCategoryId.message as string}
+                    </p>
+                  )}
+                </div>
                 <SearchableDropDown
                   options={expenseCategoriesOptions}
                   onSearch={handleExpenseCategorySearch}
@@ -209,15 +239,17 @@ export function IncomeExpenseForm({
                     setVendorExpense(val);
                   }}
                 />
-                {errors.expenseCategoryId && (
-                  <p className="text-sm text-red-500">
-                    {errors.expenseCategoryId.message as string}
-                  </p>
-                )}
               </div>
             ) : (
               <div className="space-y-2">
-                <Label htmlFor="incomeCategoryId">Income Category *</Label>
+                <div className="flex gap-3 items-baseline">
+                  <Label htmlFor="incomeCategoryId">Income Category *</Label>
+                  {errors.incomeCategoryId && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors.incomeCategoryId.message as string}
+                    </p>
+                  )}
+                </div>
                 <SearchableDropDown
                   options={incomeCategoriesOptions}
                   onSearch={handleIncomeCategorySearch}
@@ -229,54 +261,60 @@ export function IncomeExpenseForm({
                     });
                   }}
                 />
-                {errors.incomeCategoryId && (
-                  <p className="text-sm text-red-500">
-                    {errors.incomeCategoryId.message as string}
-                  </p>
-                )}
               </div>
             )}
 
-            {
-              type === "expense" && watch("expenseCategoryId") === "68bff6c834305c04a6926d1f" &&
-              <div className="space-y-2">
-                <Label htmlFor="vendorId">Vendor *</Label>
-                <SearchableDropDown
-                  options={vendorOptions}
-                  onSearch={handleVendorSearch}
-                  value={watch("vendorId")}
-                  onChange={(val) => {
-                    setValue("vendorId", val, {
-                      shouldValidate: true,
-                      shouldTouch: true,
-                    });
-                  }}
-                />
-                {errors.vendorId && (
-                  <p className="text-sm text-red-500">
-                    {errors.vendorId.message as string}
+            {type === "expense" &&
+              watch("expenseCategoryId") === "68bff6c834305c04a6926d1f" && (
+                <div className="space-y-2">
+                  <div className="flex gap-3 items-baseline">
+                    <Label htmlFor="vendorId">Vendor *</Label>
+                    {errors.vendorId && (
+                      <p className="mt-1 text-xs text-red-500">
+                        {errors.vendorId.message as string}
+                      </p>
+                    )}
+                  </div>
+                  <SearchableDropDown
+                    options={vendorOptions}
+                    onSearch={handleVendorSearch}
+                    value={watch("vendorId")}
+                    onChange={(val) => {
+                      setValue("vendorId", val, {
+                        shouldValidate: true,
+                        shouldTouch: true,
+                      });
+                    }}
+                  />
+                </div>
+              )}
+
+            <div className="space-y-2">
+              <div className="flex gap-3 items-baseline">
+                <Label htmlFor="amount">Amount (₹) *</Label>
+                {errors.amount && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.amount.message as string}
                   </p>
                 )}
               </div>
-            }
-
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount (₹) *</Label>
               <Input
                 id="amount"
                 type="number"
                 placeholder="0.00"
                 {...register("amount", { required: "Amount is required" })}
               />
-              {errors.amount && (
-                <p className="text-sm text-red-500">
-                  {errors.amount.message as string}
-                </p>
-              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="method">Payment Method *</Label>
+              <div className="flex gap-3 items-baseline">
+                <Label htmlFor="method">Payment Method *</Label>
+                {errors.method && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {String(errors.method.message)}
+                  </p>
+                )}
+              </div>
               <Controller
                 name="method"
                 control={control}
@@ -296,33 +334,37 @@ export function IncomeExpenseForm({
                   </Select>
                 )}
               />
-              {errors.method && (
-                <p className="text-sm text-red-500">
-                  {String(errors.method.message)}
-                </p>
-              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="date">Date *</Label>
+              <div className="flex gap-3 items-baseline">
+                <Label htmlFor="date">Date *</Label>
+                {errors.date && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.date.message as string}
+                  </p>
+                )}
+              </div>
               <Input
                 id="date"
                 type="date"
                 max={new Date().toISOString().split("T")[0]}
                 {...register("date", { required: "Date is required" })}
               />
-              {errors.date && (
-                <p className="text-sm text-red-500">
-                  {errors.date.message as string}
-                </p>
-              )}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="file">
-              Upload Receipt/Bill {mode === "create" ? "*" : "(optional)"}
-            </Label>
+            <div className="flex gap-3 items-baseline">
+              <Label htmlFor="file">
+                Upload Receipt/Bill
+              </Label>
+              {errors.file && (
+                <p className="mt-1 text-xs text-red-500">
+                  {errors.file.message as string}
+                </p>
+              )}
+            </div>
             <Input
               id="file"
               type="file"
@@ -340,8 +382,8 @@ export function IncomeExpenseForm({
                 fileVal instanceof File
                   ? URL.createObjectURL(fileVal)
                   : typeof fileVal === "string" && fileVal
-                    ? fileVal
-                    : null;
+                  ? fileVal
+                  : null;
               return preview ? (
                 <div className="relative w-24 h-24">
                   <img
@@ -366,15 +408,17 @@ export function IncomeExpenseForm({
                 </label>
               );
             })()}
-            {errors.file && (
-              <p className="text-sm text-red-500">
-                {errors.file.message as string}
-              </p>
-            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Notes *</Label>
+            <div className="flex gap-3 items-baseline">
+              <Label htmlFor="description">Notes *</Label>
+              {errors.description && (
+                <p className="mt-1 text-xs text-red-500">
+                  {errors.description.message as string}
+                </p>
+              )}
+            </div>
             <Textarea
               id="description"
               rows={3}
@@ -383,11 +427,6 @@ export function IncomeExpenseForm({
                 required: "Description is required",
               })}
             />
-            {errors.description && (
-              <p className="text-sm text-red-500">
-                {errors.description.message as string}
-              </p>
-            )}
           </div>
 
           <div className="flex gap-3 pt-2">
@@ -400,8 +439,9 @@ export function IncomeExpenseForm({
                 ? mode === "create"
                   ? "Saving..."
                   : "Updating..."
-                : `${mode === "create" ? "Save" : "Update"} ${type === "income" ? "Income" : "Expense"
-                }`}
+                : `${mode === "create" ? "Save" : "Update"} ${
+                    type === "income" ? "Income" : "Expense"
+                  }`}
             </Button>
             {onCancel && (
               <Button
