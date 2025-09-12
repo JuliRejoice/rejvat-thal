@@ -1,10 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,6 +33,9 @@ import {
   TrendingDown,
   Receipt,
   Filter,
+  CreditCard,
+  ChevronDown,
+  X,
 } from "lucide-react";
 import { useMutation, useQueries } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,7 +48,6 @@ import {
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { IncomeExpenseForm } from "@/components/common/IncomeExpenseForm";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   BalanceOverviewSkeleton,
   PaymentMethodStatsSkeleton,
@@ -60,11 +57,20 @@ import {
   PaymentMethodEmpty,
   TransactionsEmpty,
 } from "./ManagerIncomeExpenseEmpty";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { DataTablePagination } from "../common/DataTablePagination";
 import TransactionFilterDropdown from "../common/TransactionTypeSelector";
+import { getPaymentMethods } from "@/api/paymentMethod.api";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 
 const ManagerIncomeExpense = () => {
+  const [paymentFilter, setPaymentFilter] = useState("");
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -121,6 +127,7 @@ const ManagerIncomeExpense = () => {
     page,
     limit: itemsPerPage,
     ...(typeTransaction !== "all" && { type: typeTransaction }),
+    ...(paymentFilter && { paymentMethodId: paymentFilter }),
     ...(expenseCategoryId?.length > 0 && { categoryId: expenseCategoryId }),
     ...(incomeCategoryId?.length > 0 && { categoryId: incomeCategoryId }),
   };
@@ -130,6 +137,10 @@ const ManagerIncomeExpense = () => {
       {
         queryKey: ["get-income-expense-transaction", transactionQueryData],
         queryFn: () => getIncomeExpense(transactionQueryData),
+      },
+      {
+        queryKey: ["get-payment-methods"],
+        queryFn: () => getPaymentMethods(),
       },
       {
         queryKey: ["get-transaction-by-payment-methods", cardsQueryData],
@@ -144,6 +155,7 @@ const ManagerIncomeExpense = () => {
 
   const [
     getIncExpTransactionQuery,
+    getPaymentMethodsQuery,
     getTransactionByMethodQuery,
     getIncomeExpenseByRestoQuery,
   ] = queriesResults;
@@ -152,6 +164,7 @@ const ManagerIncomeExpense = () => {
     isPending: isGetIncExpTranPending,
     refetch,
   } = getIncExpTransactionQuery;
+  const { data: paymentMethods } = getPaymentMethodsQuery;
   const {
     data: getTransactionByMethodData,
     isPending: isGetTranByMthdPending,
@@ -176,8 +189,9 @@ const ManagerIncomeExpense = () => {
       toast({
         variant: "default",
         title: `Add ${type !== "expense" ? "Income" : "Expense"} success`,
-        description: `Added ${type !== "expense" ? "Income" : "Expense"
-          } successfully`,
+        description: `Added ${
+          type !== "expense" ? "Income" : "Expense"
+        } successfully`,
       });
       setIsAddingExpense(false);
       setIsAddingIncome(false);
@@ -187,11 +201,17 @@ const ManagerIncomeExpense = () => {
       reset();
     },
     onError: (error) => {
+      const customDescription =
+        error?.message ===
+        "Insufficient closing balance to create this expense."
+          ? "Insufficient balance: The entered expense amount exceeds your current available balance."
+          : `Added ${
+              type !== "expense" ? "Income" : "Expense"
+            } failed. Try again later`;
       toast({
         variant: "destructive",
         title: `Add ${type !== "expense" ? "Income" : "Expense"} failed`,
-        description: `Added ${type !== "expense" ? "Income" : "Expense"
-          } failed. Try again later`,
+        description: customDescription
       });
       console.error("Error creating restaurant:", error);
     },
@@ -229,24 +249,7 @@ const ManagerIncomeExpense = () => {
     createIncExp(incExpData);
   };
 
-  const AddIncomeExpenseContent = ({
-    entryType,
-  }: {
-    entryType: "income" | "expense";
-  }) => (
-    <IncomeExpenseForm
-      type={entryType}
-      onSubmit={(data: any) => addSubmit(data, entryType)}
-      isPending={isPending}
-      showRestaurantSelector={false}
-      defaultValues={{ restaurantId: restaurantId, date: selectedDate }}
-      onCancel={() => {
-        setIsAddingIncome(false);
-        setIsAddingExpense(false);
-        reset();
-      }}
-    />
-  );
+  // Rendering the form directly avoids remounts that cleared values during loading
 
   return (
     <div className="space-y-6">
@@ -281,7 +284,18 @@ const ManagerIncomeExpense = () => {
                   Add Expense Entry
                 </DialogTitle>
               </DialogHeader>
-              <AddIncomeExpenseContent entryType="expense" />
+              <IncomeExpenseForm
+                type="expense"
+                onSubmit={(data: any) => addSubmit(data, "expense")}
+                isPending={isPending}
+                showRestaurantSelector={false}
+                defaultValues={{ restaurantId: restaurantId, date: selectedDate }}
+                onCancel={() => {
+                  setIsAddingIncome(false);
+                  setIsAddingExpense(false);
+                  reset();
+                }}
+              />
             </DialogContent>
           </Dialog>
 
@@ -298,7 +312,18 @@ const ManagerIncomeExpense = () => {
                   Add Income Entry
                 </DialogTitle>
               </DialogHeader>
-              <AddIncomeExpenseContent entryType="income" />
+              <IncomeExpenseForm
+                type="income"
+                onSubmit={(data: any) => addSubmit(data, "income")}
+                isPending={isPending}
+                showRestaurantSelector={false}
+                defaultValues={{ restaurantId: restaurantId, date: selectedDate }}
+                onCancel={() => {
+                  setIsAddingIncome(false);
+                  setIsAddingExpense(false);
+                  reset();
+                }}
+              />
             </DialogContent>
           </Dialog>
         </div>
@@ -470,6 +495,62 @@ const ManagerIncomeExpense = () => {
                 setExpenseCategoryId={setExpenseCategoryId}
               />
             </div>
+            <div className="flex-1 w-[200px]">
+              <Label htmlFor="paymentFilter">Payment Method</Label>
+              <div className="relative w-48">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={`flex items-center justify-between w-full relative ${
+                        paymentFilter ? "pr-12" : "pr-8"
+                      }`}
+                    >
+                      <span className="truncate">
+                        {paymentFilter
+                          ? paymentMethods?.payload?.data?.find(
+                              (m) => m._id === paymentFilter
+                            )?.type
+                          : "Select Payment Method"}
+                      </span>
+
+                      {/* Chevron always visible */}
+                      <ChevronDown
+                        className={`h-4 w-4 absolute ${
+                          paymentFilter ? "right-11" : "right-3"
+                        } text-gray-600 pointer-events-none`}
+                      />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="start">
+                    <DropdownMenuGroup>
+                      {paymentMethods?.payload?.data?.map((method) => (
+                        <DropdownMenuItem
+                          key={method._id}
+                          onClick={() => setPaymentFilter(method._id)}
+                        >
+                          {method.type}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Clear icon (absolute, clickable) */}
+                {paymentFilter && (
+                  <button
+                    // variant="default"
+                    onClick={(e) => {
+                      e.stopPropagation(); // prevents dropdown toggle
+                      setPaymentFilter("");
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -507,10 +588,11 @@ const ManagerIncomeExpense = () => {
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className={`${transaction.type === "income"
-                          ? "bg-green-100 border border-green-300 hover:bg-green-200"
-                          : "bg-red-100 border border-red-300 hover:bg-red-200"
-                          }`}
+                        className={`${
+                          transaction.type === "income"
+                            ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                            : "bg-red-100 border border-red-300 hover:bg-red-200"
+                        }`}
                       >
                         {transaction.type === "income" ? (
                           <TrendingUp className="mr-1 h-3 w-3" />
@@ -522,10 +604,18 @@ const ManagerIncomeExpense = () => {
                       </Badge>
                     </TableCell>
                     <TableCell
-                      className={`${!(transaction?.expenseCategoryId?.name || transaction?.incomeCategoryId?.name) ? "text-gray-400" : ""
-                        }`}
+                      className={`${
+                        !(
+                          transaction?.expenseCategoryId?.name ||
+                          transaction?.incomeCategoryId?.name
+                        )
+                          ? "text-gray-400"
+                          : ""
+                      }`}
                     >
-                      {transaction?.expenseCategoryId?.name || transaction?.incomeCategoryId?.name || "N/A"}
+                      {transaction?.expenseCategoryId?.name ||
+                        transaction?.incomeCategoryId?.name ||
+                        "N/A"}
                     </TableCell>
 
                     <TableCell>
