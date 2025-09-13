@@ -3,9 +3,12 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableRow, TableCell } from "@/components/ui/table";
 
-export const BalanceOverviewSkeleton = () => (
+interface BalanceOverviewSkeletonProps {
+  count?: number;
+}
+export const BalanceOverviewSkeleton: React.FC<BalanceOverviewSkeletonProps> = ({ count = 4 }) => (
   <>
-    {Array.from({ length: 4 }).map((_, idx) => (
+    {Array.from({ length: count }).map((_, idx) => (
       <Card className="shadow-card" key={idx}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <Skeleton className="h-4 w-28" />

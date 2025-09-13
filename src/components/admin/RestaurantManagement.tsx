@@ -52,6 +52,7 @@ import { DataTablePagination } from "../common/DataTablePagination";
 import { ConfirmationDialog } from "../common/ConfirmationDialog";
 import SkeletonRestaurantManag from './SkeletonRestaurantManag';
 import { NoData } from '../common/NoData';
+import { BalanceOverviewSkeleton } from '../manager/ManagerIncomeExpenseSkeletons';
 
 const RestaurantManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -491,7 +492,7 @@ const RestaurantManagement = () => {
 
       {/* Restaurant Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="shadow-card">
+        {isRestaurantPending ? <BalanceOverviewSkeleton /> : <> <Card className="shadow-card">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <Building2 className="h-8 w-8 text-primary" />
@@ -504,41 +505,41 @@ const RestaurantManagement = () => {
             </div>
           </CardContent>
         </Card>
-        <Card className="shadow-card">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="h-8 w-8 text-success" />
-              <div>
-                <p className="text-2xl font-bold">
-                  {restaurants.filter((r) => r.status === "active").length}
-                </p>
-                <p className="text-sm text-muted-foreground">Active</p>
+          <Card className="shadow-card">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="h-8 w-8 text-success" />
+                <div>
+                  <p className="text-2xl font-bold">
+                    {restaurants.filter((r) => r.status === "active").length}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Active</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Users className="h-8 w-8 text-primary" />
-              <div>
-                <p className="text-2xl font-bold">0</p>
-                <p className="text-sm text-muted-foreground">Total Customers</p>
+            </CardContent>
+          </Card>
+          <Card className="shadow-card">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <Users className="h-8 w-8 text-primary" />
+                <div>
+                  <p className="text-2xl font-bold">0</p>
+                  <p className="text-sm text-muted-foreground">Total Customers</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Users className="h-8 w-8 text-metrics-customers" />
-              <div>
-                <p className="text-2xl font-bold">0</p>
-                <p className="text-sm text-muted-foreground">Total Staff</p>
+            </CardContent>
+          </Card>
+          <Card className="shadow-card">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <Users className="h-8 w-8 text-metrics-customers" />
+                <div>
+                  <p className="text-2xl font-bold">0</p>
+                  <p className="text-sm text-muted-foreground">Total Staff</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card></>}
       </div>
 
       {/* Restaurant List */}

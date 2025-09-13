@@ -25,9 +25,9 @@ const SkeletonRestaurantManag = () => {
           </TableCell>
           <TableCell>
             <div className="flex space-x-2">
-              <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse" />
-              <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse" />
-              <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse" />
+              <div className="h-8 w-8 bg-gray-200 rounded animate-pulse" />
+              <div className="h-8 w-8 bg-gray-200 rounded animate-pulse" />
+              <div className="h-8 w-8 bg-gray-200 rounded animate-pulse" />
             </div>
           </TableCell>
         </TableRow>
