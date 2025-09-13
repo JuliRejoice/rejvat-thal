@@ -174,7 +174,7 @@ const ExpenseCategoryManagement = () => {
   const totalItems = expenseCatdata?.payload?.count || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  const handleDeleteCategory = (categoryId: number) => {};
+  const handleDeleteCategory = (categoryId: number) => { };
 
   const onSubmit = (data: any) => {
     if (currentCategory?._id) {
@@ -385,7 +385,7 @@ const ExpenseCategoryManagement = () => {
         <CardHeader>
           <CardTitle>Categories List</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className='p-0'>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>

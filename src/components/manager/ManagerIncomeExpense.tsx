@@ -189,9 +189,8 @@ const ManagerIncomeExpense = () => {
       toast({
         variant: "default",
         title: `Add ${type !== "expense" ? "Income" : "Expense"} success`,
-        description: `Added ${
-          type !== "expense" ? "Income" : "Expense"
-        } successfully`,
+        description: `Added ${type !== "expense" ? "Income" : "Expense"
+          } successfully`,
       });
       setIsAddingExpense(false);
       setIsAddingIncome(false);
@@ -203,11 +202,10 @@ const ManagerIncomeExpense = () => {
     onError: (error) => {
       const customDescription =
         error?.message ===
-        "Insufficient closing balance to create this expense."
+          "Insufficient closing balance to create this expense."
           ? "Insufficient balance: The entered expense amount exceeds your current available balance."
-          : `Added ${
-              type !== "expense" ? "Income" : "Expense"
-            } failed. Try again later`;
+          : `Added ${type !== "expense" ? "Income" : "Expense"
+          } failed. Try again later`;
       toast({
         variant: "destructive",
         title: `Add ${type !== "expense" ? "Income" : "Expense"} failed`,
@@ -356,7 +354,7 @@ const ManagerIncomeExpense = () => {
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">
+                    <div className="text-2xl font-bold text-yellow-500">
                       ₹{balanceData.openingBalance?.toLocaleString?.() ?? "0"}
                     </div>
                   </CardContent>
@@ -502,23 +500,21 @@ const ManagerIncomeExpense = () => {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className={`flex items-center justify-between w-full relative ${
-                        paymentFilter ? "pr-12" : "pr-8"
-                      }`}
+                      className={`flex items-center justify-between w-full relative ${paymentFilter ? "pr-12" : "pr-8"
+                        }`}
                     >
                       <span className="truncate">
                         {paymentFilter
                           ? paymentMethods?.payload?.data?.find(
-                              (m) => m._id === paymentFilter
-                            )?.type
+                            (m) => m._id === paymentFilter
+                          )?.type
                           : "Select Payment Method"}
                       </span>
 
                       {/* Chevron always visible */}
                       <ChevronDown
-                        className={`h-4 w-4 absolute ${
-                          paymentFilter ? "right-11" : "right-3"
-                        } text-gray-600 pointer-events-none`}
+                        className={`h-4 w-4 absolute ${paymentFilter ? "right-11" : "right-3"
+                          } text-gray-600 pointer-events-none`}
                       />
                     </Button>
                   </DropdownMenuTrigger>
@@ -553,7 +549,7 @@ const ManagerIncomeExpense = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className='p-0'>
           <Table>
             <TableHeader>
               <TableRow>
@@ -588,11 +584,10 @@ const ManagerIncomeExpense = () => {
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className={`${
-                          transaction.type === "income"
+                        className={`${transaction.type === "income"
                             ? "bg-green-100 border border-green-300 hover:bg-green-200"
                             : "bg-red-100 border border-red-300 hover:bg-red-200"
-                        }`}
+                          }`}
                       >
                         {transaction.type === "income" ? (
                           <TrendingUp className="mr-1 h-3 w-3" />
@@ -604,14 +599,13 @@ const ManagerIncomeExpense = () => {
                       </Badge>
                     </TableCell>
                     <TableCell
-                      className={`${
-                        !(
+                      className={`${!(
                           transaction?.expenseCategoryId?.name ||
                           transaction?.incomeCategoryId?.name
                         )
                           ? "text-gray-400"
                           : ""
-                      }`}
+                        }`}
                     >
                       {transaction?.expenseCategoryId?.name ||
                         transaction?.incomeCategoryId?.name ||

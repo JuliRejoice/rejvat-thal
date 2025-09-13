@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Save, Settings as SettingsIcon, Upload, Bell, Shield, Database } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Save, Settings as SettingsIcon, Upload, Bell, Shield, Database, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,53 +9,104 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { getThresholdAmont, updateSetting } from '@/api/settings.api';
 
 const Settings = () => {
   const { toast } = useToast();
-  const [settings, setSettings] = useState({
-    expenseImageThreshold: 1000,
-    autoBackup: true,
-    emailNotifications: true,
-    smsNotifications: false,
-    defaultPaymentMethod: 'cash',
+  const settingsSchema = z.object({
+    // autoBackup: true,
+    // emailNotifications: true,
+    // smsNotifications: false,
+    // defaultPaymentMethod: 'cash', 
+    // currency: 'INR',
+    // timezone: 'Asia/Kolkata',
+    // fiscalYearStart: 'april',
+    // taxRate: 18
+    _id: z.string().optional(),
+    businessName: z.string().min(2, "Business name is required"),
+    businessEmail: z.string().min(1, "Email is required").email("Invalid email"),
+    businessPhone: z.string().min(10, "Invalid phone number"),
+    businessAddress: z.string().min(5, "Address required"),
+    expenseThresholdAmount: z.number({ required_error: "Threshold is required", invalid_type_error: "Threshold is required", }).min(1, "Threshold must be greater than 0"),
+  });
+  type SettingsFormValues = z.infer<typeof settingsSchema>;
+  const defaultFormValues: SettingsFormValues = {
+    _id: '',
     businessName: 'Restaurant Management System',
     businessEmail: 'admin@restaurant.com',
-    businessPhone: '+91 9876543210',
+    businessPhone: '9876543210',
     businessAddress: '123 Business Street, Mumbai, Maharashtra',
-    currency: 'INR',
-    timezone: 'Asia/Kolkata',
-    fiscalYearStart: 'april',
-    taxRate: 18
+    expenseThresholdAmount: 0,
+  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isDirty },
+    reset,
+  } = useForm<SettingsFormValues>({
+    resolver: zodResolver(settingsSchema),
+    defaultValues: defaultFormValues
   });
 
-  const handleSettingChange = (key: string, value: any) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: value
-    }));
+  const FieldError = ({ message }: { message?: string }) => {
+    if (!message) return null;
+    return <p className="text-red-500 text-sm">{message}</p>;
   };
 
-  const handleSaveSettings = () => {
-    // Implementation for saving settings
-    toast({
-      title: "Settings saved",
-      description: "Your settings have been updated successfully.",
-    });
-  };
+  const { data: getSettingData, isPending: isLoading, refetch } = useQuery({
+    queryKey: ["get-setting-details"],
+    queryFn: getThresholdAmont,
+  });
 
-  const handleExportData = () => {
-    toast({
-      title: "Data export initiated",
-      description: "Your data export will be ready shortly.",
-    });
-  };
+  // const handleExportData = () => {
+  //   toast({
+  //     title: "Data export initiated",
+  //     description: "Your data export will be ready shortly.",
+  //   });
+  // };
 
-  const handleImportData = () => {
-    toast({
-      title: "Data import",
-      description: "Please select a file to import data.",
-    });
+  // const handleImportData = () => {
+  //   toast({
+  //     title: "Data import",
+  //     description: "Please select a file to import data.",
+  //   });
+  // };
+
+
+  const { mutate: handleUpdate } = useMutation({
+    mutationKey: ["update-expense-category"],
+    mutationFn: ({ id, data }: { id: string, data: any }) => updateSetting(id, data),
+    onSuccess: () => {
+      toast({
+        title: "Settings saved",
+        description: "Your settings have been updated successfully.",
+      });
+      refetch();
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: "Update failed",
+        description: "Failed to update the expense category.",
+        variant: "destructive",
+      });
+      console.error("Error updating expense category:", error);
+    },
+  });
+
+
+  const onSubmit = (data: SettingsFormValues) => {
+    handleUpdate({ id: data._id, data: { expenseThresholdAmount: data.expenseThresholdAmount }, });
   };
+  useEffect(() => {
+    if (getSettingData?.payload) {
+      reset({ ...defaultFormValues, ...getSettingData.payload, });
+    }
+  }, [getSettingData, reset]);
+
 
   return (
     <div className="space-y-6">
@@ -65,14 +116,15 @@ const Settings = () => {
           <h1 className="text-3xl font-bold text-foreground">Settings</h1>
           <p className="text-muted-foreground">Configure system settings and preferences</p>
         </div>
-        <Button onClick={handleSaveSettings} className="gap-2">
+        <Button disabled={!isDirty} onClick={handleSubmit((data) => { onSubmit(data); })} className="gap-2">
           <Save className="h-4 w-4" />
           Save All Settings
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Business Information */}
+      {isLoading ? <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div> : <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -83,36 +135,23 @@ const Settings = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="businessName">Business Name</Label>
-              <Input
-                id="businessName"
-                value={settings.businessName}
-                onChange={(e) => handleSettingChange('businessName', e.target.value)}
-              />
+              <Input id="businessName" {...register('businessName')} />
+              <FieldError message={errors.businessName?.message} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="businessEmail">Business Email</Label>
-              <Input
-                id="businessEmail"
-                type="email"
-                value={settings.businessEmail}
-                onChange={(e) => handleSettingChange('businessEmail', e.target.value)}
-              />
+              <Input id="businessEmail" type="email" {...register('businessEmail')} />
+              <FieldError message={errors.businessEmail?.message} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="businessPhone">Business Phone</Label>
-              <Input
-                id="businessPhone"
-                value={settings.businessPhone}
-                onChange={(e) => handleSettingChange('businessPhone', e.target.value)}
-              />
+              <Input id="businessPhone" {...register('businessPhone')} />
+              <FieldError message={errors.businessPhone?.message} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="businessAddress">Business Address</Label>
-              <Textarea
-                id="businessAddress"
-                value={settings.businessAddress}
-                onChange={(e) => handleSettingChange('businessAddress', e.target.value)}
-              />
+              <Textarea id="businessAddress" {...register('businessAddress')} />
+              <FieldError message={errors.businessAddress?.message} />
             </div>
           </CardContent>
         </Card>
@@ -128,12 +167,8 @@ const Settings = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="expenseThreshold">Minimum Expense Threshold for Image Upload (₹)</Label>
-              <Input
-                id="expenseThreshold"
-                type="number"
-                value={settings.expenseImageThreshold}
-                onChange={(e) => handleSettingChange('expenseImageThreshold', parseInt(e.target.value))}
-              />
+              <Input id="expenseThreshold" type="number" {...register('expenseThresholdAmount', { valueAsNumber: true })} />
+              <FieldError message={errors.expenseThresholdAmount?.message} />
               <p className="text-sm text-muted-foreground">
                 Expenses above this amount will require image upload
               </p>
@@ -280,9 +315,8 @@ const Settings = () => {
             </div>
           </CardContent>
         </Card> */}
-      </div>
+      </div>}
 
-      {/* Security Notice */}
       <Card className="border-amber-200 bg-amber-50">
         <CardContent className="p-6">
           <div className="flex items-start gap-3">
@@ -290,7 +324,7 @@ const Settings = () => {
             <div>
               <h3 className="font-medium text-amber-800">Security Notice</h3>
               <p className="text-sm text-amber-700 mt-1">
-                Changes to financial settings like expense thresholds will take effect immediately. 
+                Changes to financial settings like expense thresholds will take effect immediately.
                 Make sure to inform all users about these changes to maintain compliance.
               </p>
             </div>

@@ -340,7 +340,7 @@ const LeaveRequestHistory = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Leave Date</h3>
-                <Badge 
+                <Badge
                   variant={getStatusVariant(selectedRequest.status)}
                   className="flex items-center gap-1"
                 >
@@ -348,7 +348,6 @@ const LeaveRequestHistory = () => {
                   {selectedRequest.status}
                 </Badge>
               </div>
-              
               <div className="text-center p-4 bg-muted rounded-lg">
                 <Calendar className="h-8 w-8 mx-auto mb-2 text-primary" />
                 <p className="text-2xl font-bold">{selectedRequest.date}</p>

@@ -23,7 +23,7 @@ interface StaffMangerFormProps {
   mode?: "create" | "edit";
 }
 
-export function StaffManagerForm({
+export function StaffManagerForm ({
   defaultValues,
   onSubmit,
   isPending,
@@ -213,7 +213,7 @@ export function StaffManagerForm({
                 id="phone"
                 placeholder="Enter phone number"
                 {...register("phone", { required: "Phone is required" })}
-                maxLength={10}
+                maxLength={11}
               />
             </div>
 
@@ -341,8 +341,8 @@ export function StaffManagerForm({
                 fileVal instanceof File
                   ? URL.createObjectURL(fileVal)
                   : typeof fileVal === "string" && fileVal
-                  ? fileVal
-                  : null;
+                    ? fileVal
+                    : null;
               return preview ? (
                 <div className="relative w-24 h-24">
                   <img
