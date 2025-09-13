@@ -40,7 +40,8 @@ import {
   Phone,
   Plus,
   Search,
-  Trash2,
+  User,
+  Hotel,
   UserCheck,
   Users,
   UserX,
@@ -49,6 +50,8 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { DataTablePagination } from "../common/DataTablePagination";
 import { ConfirmationDialog } from "../common/ConfirmationDialog";
+import SkeletonRestaurantManag from './SkeletonRestaurantManag';
+import { NoData } from '../common/NoData';
 
 const RestaurantManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -94,7 +97,7 @@ const RestaurantManagement = () => {
     limit: itemsPerPage,
     ...(filterStatus !== "all" && { status: filterStatus === "active" }),
   };
-  const { data: getAllRestaurants, refetch, isPending } = useQuery({
+  const { data: getAllRestaurants, refetch, isPending: isRestaurantPending } = useQuery({
     queryKey: ["get-all-restaurant", queryData],
     queryFn: () => getRestaurants(queryData),
   });
@@ -275,7 +278,7 @@ const RestaurantManagement = () => {
         <Button
           type="button"
           variant="outline"
-          onClick={() => {setIsCreateModalOpen(false); reset();}}
+          onClick={() => { setIsCreateModalOpen(false); reset(); }}
           disabled={isCreatePending}
         >
           Cancel
@@ -556,7 +559,7 @@ const RestaurantManagement = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {restaurants.map((restaurant) => (
+              {isRestaurantPending ? <SkeletonRestaurantManag /> : restaurants.length ? restaurants.map((restaurant) => (
                 <TableRow key={restaurant._id}>
                   <TableCell>
                     <div className="flex items-center space-x-3">
@@ -656,8 +659,16 @@ const RestaurantManagement = () => {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
+              )) : <TableRow>
+                <TableCell className="pr-0 pl-0" colSpan={7}>
+                  <NoData
+                    icon={Hotel}
+                    title="Not found restaurant list"
+                    description="Add new restaurant to manage them here."
+                  />
+                </TableCell>
+              </TableRow>
+              }</TableBody>
           </Table>
           <DataTablePagination
             currentPage={page}
