@@ -16,7 +16,7 @@ import StaffManagement from '@/components/admin/StaffManagement';
 import MenuItems from '@/components/shared/MenuItems';
 import MealPlans from '@/components/shared/MealPlans';
 import DailyTiffinSummary from '@/components/shared/DailyTiffinSummary';
-import VendorManagement from '@/components/shared/VendorManagement';
+import VendorManagement from '@/components/shared/vendor/VendorManagement';
 import Settings from '@/components/admin/Settings';
 import Notifications from '@/components/shared/Notifications';
 import InventoryManagement from '@/components/manager/InventoryManagement';
