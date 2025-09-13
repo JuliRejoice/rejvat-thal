@@ -41,6 +41,7 @@ import {
   Plus,
   Search,
   User,
+  Hotel,
   UserCheck,
   Users,
   UserX,
@@ -661,7 +662,7 @@ const RestaurantManagement = () => {
               )) : <TableRow>
                 <TableCell className="pr-0 pl-0" colSpan={7}>
                   <NoData
-                    icon={User}
+                    icon={Hotel}
                     title="Not found restaurant list"
                     description="Add new restaurant to manage them here."
                   />
