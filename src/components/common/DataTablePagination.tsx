@@ -1,8 +1,8 @@
 import React from 'react';
-import { 
-  Pagination, 
-  PaginationContent, 
-  PaginationItem, 
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
@@ -42,7 +42,7 @@ export const DataTablePagination: React.FC<DataTablePaginationProps> = ({
   const renderPageNumbers = () => {
     const pages = [];
     const maxVisiblePages = 5;
-    
+
     if (totalPages <= maxVisiblePages) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(
@@ -83,7 +83,7 @@ export const DataTablePagination: React.FC<DataTablePaginationProps> = ({
       // Show current page and surrounding pages
       const start = Math.max(2, currentPage - 1);
       const end = Math.min(totalPages - 1, currentPage + 1);
-      
+
       for (let i = start; i <= end; i++) {
         pages.push(
           <PaginationItem key={i}>
@@ -127,7 +127,7 @@ export const DataTablePagination: React.FC<DataTablePaginationProps> = ({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-3 py-4 rounded-lg border bg-card">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-3 py-4 rounded-lg border bg-card m-3">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span>
           Showing {startIndex} to {endIndex} of {totalItems} entries
@@ -164,16 +164,14 @@ export const DataTablePagination: React.FC<DataTablePaginationProps> = ({
       <Pagination className="mx-0 w-auto">
         <PaginationContent>
           <PaginationItem>
-            <PaginationPrevious 
+            <PaginationPrevious
               onClick={onPreviousPage}
               className={`cursor-pointer ${!hasPreviousPage ? 'pointer-events-none opacity-50' : ''}`}
             />
           </PaginationItem>
-          
           <div className="hidden sm:flex gap-2">
             {renderPageNumbers()}
           </div>
-          
           {/* Mobile view - just show current page */}
           <div className="flex sm:hidden items-center gap-2">
             <span className="text-sm text-muted-foreground">
@@ -182,7 +180,7 @@ export const DataTablePagination: React.FC<DataTablePaginationProps> = ({
           </div>
 
           <PaginationItem>
-            <PaginationNext 
+            <PaginationNext
               onClick={onNextPage}
               className={`cursor-pointer ${!hasNextPage ? 'pointer-events-none opacity-50' : ''}`}
             />

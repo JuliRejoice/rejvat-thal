@@ -101,7 +101,7 @@ const VendorManagement = () => {
 
   const filteredVendors = vendors.filter(vendor => {
     const matchesSearch = vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vendor.contact.toLowerCase().includes(searchTerm.toLowerCase());
+      vendor.contact.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'all' || vendor.category === filterCategory;
     const matchesStatus = filterStatus === 'all' || vendor.status === filterStatus;
     return matchesSearch && matchesCategory && matchesStatus;
@@ -203,7 +203,7 @@ const VendorManagement = () => {
                   id="phone"
                   placeholder="Enter phone number"
                   defaultValue={editingVendor?.phone || ''}
-                  maxLength={10}
+                  maxLength={11}
                 />
               </div>
               <div className="space-y-2">
@@ -478,7 +478,7 @@ const VendorManagement = () => {
                 <TabsTrigger value="info">Information</TabsTrigger>
                 <TabsTrigger value="payments">Payment History</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="info" className="space-y-4">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16">
@@ -494,7 +494,7 @@ const VendorManagement = () => {
                     </Badge>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium">Contact Person</label>
@@ -513,12 +513,12 @@ const VendorManagement = () => {
                     <p className="text-sm text-muted-foreground">{selectedVendor.lastOrder}</p>
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="text-sm font-medium">Address</label>
                   <p className="text-sm text-muted-foreground">{selectedVendor.address}</p>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                   <div className="text-center">
                     <p className="text-2xl font-bold text-green-600">₹{selectedVendor.totalPaid.toLocaleString()}</p>
@@ -530,7 +530,7 @@ const VendorManagement = () => {
                   </div>
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="payments" className="space-y-4">
                 <div className="space-y-2">
                   {mockPaymentHistory.map((transaction) => (

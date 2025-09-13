@@ -1,127 +1,82 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Users,
-  Calendar,
-  Plus,
-  FileText,
-  Clock,
-  Package,
-  ShoppingBag
-} from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Users, Calendar, Plus, FileText, Clock, Package, ShoppingBag, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { getDashboardOverview, type ApiResponse, type DashboardResponse, type OverviewCardProps } from '@/api/dashboard.api';
+import { Dirham } from '../Svg';
 
 const ManagerDashboard = () => {
-  const todayStats = {
-    income: 8500,
-    expense: 3200,
-    balance: 5300,
-    customers: 45,
-    breakfastOrders: 32,
-    lunchOrders: 28,
-    dinnerOrders: 15
-  };
+  const { data, isLoading, } = useQuery<ApiResponse<DashboardResponse>>({
+    queryKey: ["get-dashboard-overview"],
+    queryFn: () => getDashboardOverview(`/transaction/getByRestaurantOverview?restaurantId=${'68b16a9eb7c6bbda40b2b4dd'}`),
+  });
 
-  const recentTransactions = [
-    { type: 'income', amount: 2500, description: 'Tiffin subscription payment', time: '2 hours ago' },
-    { type: 'expense', amount: 800, description: 'Vegetable purchase from vendor', time: '3 hours ago' },
-    { type: 'income', amount: 1200, description: 'Monthly meal plan payment', time: '4 hours ago' },
-    { type: 'expense', amount: 450, description: 'Gas cylinder refill', time: '5 hours ago' }
-  ];
+  const dashboardData = data?.payload;
+  const overViewDetails = [
+    { title: "Total Income", value: dashboardData?.overall?.income ?? 0, icon: <TrendingUp className="h-4 w-4 text-metrics-income" />, color: "text-metrics-income", bg: "bg-metrics-income/10" },
+    { title: "Total Expense", value: dashboardData?.overall?.expense ?? 0, icon: <TrendingDown className="h-4 w-4 text-metrics-expense" />, color: "text-metrics-expense", bg: "bg-metrics-expense/10" },
+    { title: "Net Balance", value: dashboardData?.overall?.totalBalance ?? 0, icon: <DollarSign className="h-4 w-4 text-metrics-balance" />, color: "text-metrics-balance", bg: "bg-metrics-balance/10" },
+  ]
 
-  const todayCustomers = [
-    { name: 'Rajesh Kumar', plan: 'Punjabi Thali', status: 'delivered', time: '12:30 PM' },
-    { name: 'Priya Singh', plan: 'Gujarati Thali', status: 'preparing', time: '01:00 PM' },
-    { name: 'Amit Patel', plan: 'Custom Meal', status: 'pending', time: '01:30 PM' },
-    { name: 'Sneha Sharma', plan: 'South Indian', status: 'delivered', time: '12:00 PM' }
-  ];
+  const OverviewCard = memo(({ title, value, icon, color, bg }: OverviewCardProps) => {
+    return (
+      <Card className="shadow-card">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          <div className={`p-2 ${bg} rounded-lg`}>{icon}</div>
+        </CardHeader>
+        <CardContent>
+          <div className={`flex items-center text-2xl font-bold ${color}`}>
+            <Dirham className="pt-px mr-1" /> {value.toLocaleString()}
+          </div>
+          <p className="text-xs text-muted-foreground"></p>
+        </CardContent>
+      </Card>
+    );
+  });
+  OverviewCard.displayName = "OverviewCard";
+  // const recentTransactions = [
+  //   { type: 'income', amount: 2500, description: 'Tiffin subscription payment', time: '2 hours ago' },
+  //   { type: 'expense', amount: 800, description: 'Vegetable purchase from vendor', time: '3 hours ago' },
+  //   { type: 'income', amount: 1200, description: 'Monthly meal plan payment', time: '4 hours ago' },
+  //   { type: 'expense', amount: 450, description: 'Gas cylinder refill', time: '5 hours ago' }
+  // ];
+
+  // const todayCustomers = [
+  //   { name: 'Rajesh Kumar', plan: 'Punjabi Thali', status: 'delivered', time: '12:30 PM' },
+  //   { name: 'Priya Singh', plan: 'Gujarati Thali', status: 'preparing', time: '01:00 PM' },
+  //   { name: 'Amit Patel', plan: 'Custom Meal', status: 'pending', time: '01:30 PM' },
+  //   { name: 'Sneha Sharma', plan: 'South Indian', status: 'delivered', time: '12:00 PM' }
+  // ];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Manager Dashboard</h1>
           <p className="text-muted-foreground">Today's restaurant operations overview</p>
         </div>
-        <div className="flex space-x-2">
-          <Button variant="outline">
-            <FileText className="mr-2 h-4 w-4" />
-            Daily Report
-          </Button>
-          <Button className="bg-gradient-primary">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Transaction
-          </Button>
-        </div>
       </div>
 
       {/* Today's Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Income</CardTitle>
-            <div className="p-2 bg-metrics-income/10 rounded-lg">
-              <TrendingUp className="h-4 w-4 text-metrics-income" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-metrics-income">₹{todayStats.income.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-metrics-income">+15.2%</span> from yesterday
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Expense</CardTitle>
-            <div className="p-2 bg-metrics-expense/10 rounded-lg">
-              <TrendingDown className="h-4 w-4 text-metrics-expense" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-metrics-expense">₹{todayStats.expense.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-metrics-expense">-5.1%</span> from yesterday
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
-            <div className="p-2 bg-metrics-balance/10 rounded-lg">
-              <DollarSign className="h-4 w-4 text-metrics-balance" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-metrics-balance">₹{todayStats.balance.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-metrics-balance">+28.3%</span> profit margin
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Customers Served</CardTitle>
-            <div className="p-2 bg-metrics-customers/10 rounded-lg">
-              <Users className="h-4 w-4 text-metrics-customers" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-metrics-customers">{todayStats.customers}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-metrics-customers">+12</span> from yesterday
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {isLoading ? <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div> : <>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {overViewDetails.map((item, idx) => (
+            <OverviewCard
+              key={idx}
+              title={item.title}
+              value={item.value}
+              icon={item.icon}
+              color={item.color}
+              bg={item.bg}
+            />
+          ))}
+        </div>
+      </>}
 
       {/* Meal Orders Summary */}
       {/* <Card className="shadow-card">

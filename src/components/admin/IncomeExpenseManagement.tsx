@@ -249,7 +249,7 @@ const IncomeExpenseManagement = () => {
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">
+                    <div className="text-2xl font-bold text-yellow-500">
                       ₹{balanceData.openingBalance?.toLocaleString?.() ?? "0"}
                     </div>
                   </CardContent>
@@ -395,28 +395,26 @@ const IncomeExpenseManagement = () => {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className={`flex items-center justify-between w-full relative ${
-                        paymentFilter ? "pr-12" : "pr-8"
-                      }`}
+                      className={`flex items-center justify-between w-full relative ${paymentFilter ? "pr-12" : "pr-8"
+                        }`}
                     >
                       <span className="truncate">
                         {paymentFilter
                           ? paymentMethods?.payload?.data?.find(
-                              (m) => m._id === paymentFilter
-                            )?.type
+                            (m) => m._id === paymentFilter
+                          )?.type
                           : "Select Payment Method"}
                       </span>
 
                       {/* Chevron always visible */}
                       <ChevronDown
-                        className={`h-4 w-4 absolute ${
-                          paymentFilter ? "right-11" : "right-3"
-                        } text-gray-600 pointer-events-none`}
+                        className={`h-4 w-4 absolute ${paymentFilter ? "right-11" : "right-3"
+                          } text-gray-600 pointer-events-none`}
                       />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="start">
-                    <DropdownMenuGroup> 
+                    <DropdownMenuGroup>
                       {paymentMethods?.payload?.data?.map((method) => (
                         <DropdownMenuItem
                           key={method._id}
@@ -446,7 +444,7 @@ const IncomeExpenseManagement = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className='p-0'>
           <Table>
             <TableHeader>
               <TableRow>

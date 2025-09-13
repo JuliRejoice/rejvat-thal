@@ -194,6 +194,7 @@ const RestaurantManagement = () => {
             id="name"
             placeholder="Enter restaurant name"
             {...register("name", { required: "Restaurant name is required" })}
+            maxLength={40}
           />
           {errors.name && (
             <p className="text-sm text-red-500">
@@ -213,7 +214,7 @@ const RestaurantManagement = () => {
             {...register("phone", {
               required: "Restaurant contact is required",
             })}
-            maxLength={10}
+            maxLength={11}
           />
           {errors.phone && (
             <p className="text-sm text-red-500">
@@ -275,7 +276,7 @@ const RestaurantManagement = () => {
         <Button
           type="button"
           variant="outline"
-          onClick={() => {setIsCreateModalOpen(false); reset();}}
+          onClick={() => { setIsCreateModalOpen(false); reset(); }}
           disabled={isCreatePending}
         >
           Cancel
@@ -542,7 +543,7 @@ const RestaurantManagement = () => {
         <CardHeader>
           <CardTitle>Restaurants List</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className='p-0'>
           <Table>
             <TableHeader>
               <TableRow>
