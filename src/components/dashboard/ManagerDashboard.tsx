@@ -2,10 +2,11 @@ import React, { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, TrendingUp, TrendingDown, Users, Calendar, Plus, FileText, Clock, Package, ShoppingBag, Loader2 } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Users, Calendar, Plus, FileText, Clock, Package, ShoppingBag } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { getDashboardOverview, type ApiResponse, type DashboardResponse, type OverviewCardProps } from '@/api/dashboard.api';
 import { Dirham } from '../Svg';
+import { BalanceOverviewSkeleton } from '../manager/ManagerIncomeExpenseSkeletons';
 
 const ManagerDashboard = () => {
   const { data, isLoading, } = useQuery<ApiResponse<DashboardResponse>>({
@@ -61,22 +62,18 @@ const ManagerDashboard = () => {
       </div>
 
       {/* Today's Key Metrics */}
-      {isLoading ? <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div> : <>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {overViewDetails.map((item, idx) => (
-            <OverviewCard
-              key={idx}
-              title={item.title}
-              value={item.value}
-              icon={item.icon}
-              color={item.color}
-              bg={item.bg}
-            />
-          ))}
-        </div>
-      </>}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {isLoading ? <BalanceOverviewSkeleton count={3} /> : overViewDetails.map((item, idx) => (
+          <OverviewCard
+            key={idx}
+            title={item.title}
+            value={item.value}
+            icon={item.icon}
+            color={item.color}
+            bg={item.bg}
+          />
+        ))}
+      </div>
 
       {/* Meal Orders Summary */}
       {/* <Card className="shadow-card">
