@@ -5,25 +5,24 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
-type VendorFormMode = "create" | "edit";
+type AttendanceFormMode = "create" | "edit";
 
-type VendorAddFormProps = {
+type AttendanceFormProps = {
     defaultValues?: any;
     onSubmit?: (data: any) => void;
     isPending?: boolean;
     onCancel?: () => void;
-    mode?: VendorFormMode;
+    mode?: AttendanceFormMode;
     showRestaurantSelector?: boolean;
 }
 
-export function VendorAddForm({
+export function AttendanceForm({
     defaultValues,
     onSubmit,
     isPending,
     onCancel,
     mode = "create",
-}: VendorAddFormProps) {
-
+}: AttendanceFormProps) {
     const {
         register,
         handleSubmit,
@@ -41,11 +40,9 @@ export function VendorAddForm({
         },
         mode: "onSubmit",
     });
-
     const internalSubmit = (data: any) => {
         onSubmit(data);
     };
-
     return (
         <form onSubmit={handleSubmit(internalSubmit)}>
             <Card className="shadow-none">

@@ -69,29 +69,6 @@ const StaffDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              {!todayInfo.isMarked ? (
-                <>
-                  <div className="p-3 bg-warning/10 rounded-lg">
-                    <AlertCircle className="h-6 w-6 text-warning" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">Attendance Not Marked</p>
-                    <p className="text-sm text-muted-foreground">Please mark your attendance to start your shift</p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="p-3 bg-success/10 rounded-lg">
-                    <CheckCircle className="h-6 w-6 text-success" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">Attendance Marked</p>
-                    <p className="text-sm text-muted-foreground">Checked in at {todayInfo.checkInTime}</p>
-                  </div>
-                </>
-              )}
-            </div>
             <div className="flex space-x-2">
               <Button 
                 className="bg-gradient-primary" 

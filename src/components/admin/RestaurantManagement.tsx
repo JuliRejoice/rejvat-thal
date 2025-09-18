@@ -45,13 +45,19 @@ import {
   UserCheck,
   Users,
   UserX,
+  Calendar,
+  XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { DataTablePagination } from "../common/DataTablePagination";
 import { ConfirmationDialog } from "../common/ConfirmationDialog";
-import SkeletonRestaurantManag from './SkeletonRestaurantManag';
-import { NoData } from '../common/NoData';
+import SkeletonRestaurantManag from "./SkeletonRestaurantManag";
+import { NoData } from "../common/NoData";
+import { getStaffAttendanceByRest } from "@/api/attendance.api";
+import { useAuth } from "@/contexts/AuthContext";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { AttendanceRecordsSkeleton } from "../staff/AttendanceSkeleton";
 import { BalanceOverviewSkeleton } from '../manager/ManagerIncomeExpenseSkeletons';
 
 const RestaurantManagement = () => {
@@ -63,6 +69,9 @@ const RestaurantManagement = () => {
   const [editingRestaurant, setEditingRestaurant] = useState<any | null>(null);
   const [open, setIsOpen] = useState<boolean>(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState<any>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
+  const [detailRestaurant, setDetailRestaurant] = useState<any | null>(null);
+  const { user } = useAuth();
 
   const { toast } = useToast();
 
@@ -98,7 +107,11 @@ const RestaurantManagement = () => {
     limit: itemsPerPage,
     ...(filterStatus !== "all" && { status: filterStatus === "active" }),
   };
-  const { data: getAllRestaurants, refetch, isPending: isRestaurantPending } = useQuery({
+  const {
+    data: getAllRestaurants,
+    refetch,
+    isPending: isRestaurantPending,
+  } = useQuery({
     queryKey: ["get-all-restaurant", queryData],
     queryFn: () => getRestaurants(queryData),
   });
@@ -280,7 +293,10 @@ const RestaurantManagement = () => {
         <Button
           type="button"
           variant="outline"
-          onClick={() => { setIsCreateModalOpen(false); reset(); }}
+          onClick={() => {
+            setIsCreateModalOpen(false);
+            reset();
+          }}
           disabled={isCreatePending}
         >
           Cancel
@@ -299,112 +315,200 @@ const RestaurantManagement = () => {
     </form>
   );
 
-  const RestaurantDetailModal = ({ restaurant }: { restaurant: any }) => (
-    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-      <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-          {restaurant.name} - Restaurant Details
-        </DialogTitle>
-        <DialogDescription>
-          Complete restaurant information and staff attendance overview
-        </DialogDescription>
-      </DialogHeader>
+  const RestaurantDetailModal = ({
+    restaurant,
+    open,
+  }: {
+    restaurant: any;
+    open: boolean;
+  }) => {
+    const [selectedDateStr, setSelectedDateStr] = useState<string>(
+      new Date().toISOString().slice(0, 10)
+    );
 
-      <div className="space-y-6">
-        {/* Restaurant Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Restaurant Information</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <p>
-                <span className="font-medium">Name:</span> {restaurant.name}
-              </p>
-              <p>
-                <span className="font-medium">Phone:</span> {restaurant.phone}
-              </p>
-              <p>
-                <span className="font-medium">Email:</span> {restaurant.email}
-              </p>
-              <p>
-                <span className="font-medium">Address:</span>{" "}
-                {restaurant.address}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+    const { data: getStaffAttendByRest, isPending } = useQuery({
+      queryKey: [
+        "get-staff-attendance-by-rest",
+        restaurant?._id,
+        selectedDateStr,
+      ],
+      queryFn: () =>
+        getStaffAttendanceByRest(
+          restaurant._id,
+          selectedDateStr,
+          selectedDateStr
+        ),
+      enabled: Boolean(open && restaurant && restaurant._id && selectedDateStr),
+    });
 
-        {/* Staff Attendance */}
-        {/* <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Staff Attendance - Today</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {[
-                {
-                  name: "Ramesh Kumar",
-                  role: "Chef",
-                  status: "present",
-                  checkIn: "9:00 AM",
-                },
-                {
-                  name: "Sunita Devi",
-                  role: "Assistant",
-                  status: "present",
-                  checkIn: "9:15 AM",
-                },
-                {
-                  name: "Vikram Singh",
-                  role: "Delivery",
-                  status: "late",
-                  checkIn: "9:45 AM",
-                },
-                {
-                  name: "Meera Sharma",
-                  role: "Helper",
-                  status: "absent",
-                  checkIn: "-",
-                },
-              ].map((staff, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 border rounded-lg"
-                >
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>{staff.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">{staff.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {staff.role}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <span className="text-sm">{staff.checkIn}</span>
-                    <Badge
-                      variant={
-                        staff.status === "present"
-                          ? "default"
-                          : staff.status === "late"
-                          ? "secondary"
-                          : "destructive"
-                      }
-                    >
-                      {staff.status}
-                    </Badge>
-                  </div>
+    return (
+      <DialogContent className="max-w-4xl max-h-[90vh]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {restaurant.name} - Restaurant Details
+          </DialogTitle>
+          <DialogDescription>
+            Complete restaurant information and staff attendance overview
+          </DialogDescription>
+        </DialogHeader>
+        {/* Tabs: Information | Attendance */}
+        <Tabs defaultValue="information" className="w-full">
+          <TabsList className="mb-3 sticky top-0 z-10 bg-background">
+            <TabsTrigger value="information">Information</TabsTrigger>
+            <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="information" className="min-h-[360px]">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  Restaurant Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <p>
+                    <span className="font-medium">Name:</span> {restaurant.name}
+                  </p>
+                  <p>
+                    <span className="font-medium">Phone:</span>{" "}
+                    {restaurant.phone}
+                  </p>
+                  <p>
+                    <span className="font-medium">Email:</span>{" "}
+                    {restaurant.email}
+                  </p>
+                  <p>
+                    <span className="font-medium">Address:</span>{" "}
+                    {restaurant.address}
+                  </p>
                 </div>
-              ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="attendance" className="min-h-[360px]">
+            <div className="flex items-center justify-between mb-3 rounded-md border bg-card px-3 py-2">
+              <div className="text-sm text-muted-foreground">
+                Date:{" "}
+                <span className="font-medium text-foreground">
+                  {selectedDateStr}
+                </span>
+              </div>
+              <Input
+                type="date"
+                value={selectedDateStr}
+                onChange={(e) => setSelectedDateStr(e.target.value)}
+                className="w-[200px]"
+              />
             </div>
-          </CardContent>
-        </Card> */}
-      </div>
-    </DialogContent>
-  );
+
+            <Card className="overflow-y-auto max-h-[350px]">
+              <CardHeader>
+                <CardTitle className="text-lg">Staff Attendance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {isPending ? (
+                    <AttendanceRecordsSkeleton />
+                  ) : getStaffAttendByRest?.payload?.data?.length ? (
+                    getStaffAttendByRest.payload?.data?.map((record: any) => (
+                      <div
+                        key={record?._id}
+                        className="grid grid-cols-3 p-3 border rounded-lg"
+                      >
+                        <div className="col-span-2 flex items-center space-x-3">
+                          <div
+                            className={`p-2 rounded-lg ${
+                              record.status === "present"
+                                ? "bg-success/10 text-success border-success"
+                                : record.status === "leave"
+                                ? "bg-warning/10 text-warning"
+                                : "bg-danger/10 text-danger"
+                            }`}
+                          >
+                            {record.status === "present" ? (
+                              <CheckCircle className="h-4 w-4" />
+                            ) : record.status === "leave" ? (
+                              <Calendar className="h-4 w-4" />
+                            ) : (
+                              <XCircle className="h-4 w-4" />
+                            )}
+                          </div>
+                          <div>
+                            {record?.uid?.name && (
+                              <p className="text-sm text-muted-foreground">
+                                <b className="text-gray-800">Name</b>:{" "}
+                                {record?.uid?.name +
+                                  " (" +
+                                  record?.uid?.email +
+                                  ")"}
+                              </p>
+                            )}
+                            <p className="font-medium">
+                              {new Date(record.checkInAt).toLocaleDateString(
+                                "en-IN",
+                                {
+                                  day: "numeric",
+                                  month: "short",
+                                  weekday: "short",
+                                }
+                              )}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              <b className="text-gray-800">Check-In Time</b>:{" "}
+                              {record.status === "present" &&
+                                record.checkInAt &&
+                                new Date(record.checkInAt).toLocaleTimeString(
+                                  "en-US",
+                                  {
+                                    hour: "numeric",
+                                    minute: "numeric",
+                                    hour12: true,
+                                  }
+                                )}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-7 justify-end">
+                          <Badge
+                            variant="outline"
+                            className={`${
+                              record?.status === "present"
+                                ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                                : record.status === "leave"
+                                ? "bg-yellow-100 border border-yellow-300 hover:bg-yellow-200"
+                                : "bg-red-100 border border-red-300 hover:bg-red-200"
+                            }`}
+                          >
+                            {record?.status?.charAt(0)?.toUpperCase() +
+                              record?.status?.slice(1)}
+                          </Badge>
+                          {record.selfieUrl && (
+                            <img
+                              src={record.selfieUrl}
+                              alt="Attendance Snapshot"
+                              className="w-12 h-12 rounded-md object-cover"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <NoData
+                      icon={UserCheck}
+                      title="No Attendance"
+                      description="No Attendance available for this Restaurant"
+                    />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -547,7 +651,7 @@ const RestaurantManagement = () => {
         <CardHeader>
           <CardTitle>Restaurants List</CardTitle>
         </CardHeader>
-        <CardContent className='p-0'>
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -561,21 +665,27 @@ const RestaurantManagement = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isRestaurantPending ? <SkeletonRestaurantManag /> : restaurants.length ? restaurants.map((restaurant) => (
-                <TableRow key={restaurant._id}>
-                  <TableCell>
-                    <div className="flex items-center space-x-3">
-                      <div>
-                        <p className="font-medium">{restaurant.name}</p>
-                        <p className="text-sm text-muted-foreground flex items-center overflow-hidden">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          {restaurant.address ? restaurant.address.length > 70 ? `${restaurant.address.substring(0, 70)} ...` : restaurant.address
-                            : "-"}
-                        </p>
+              {isRestaurantPending ? (
+                <SkeletonRestaurantManag />
+              ) : restaurants.length ? (
+                restaurants.map((restaurant) => (
+                  <TableRow key={restaurant._id}>
+                    <TableCell>
+                      <div className="flex items-center space-x-3">
+                        <div>
+                          <p className="font-medium">{restaurant.name}</p>
+                          <p className="text-sm text-muted-foreground flex items-center overflow-hidden">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {restaurant.address
+                              ? restaurant.address.length > 70
+                                ? `${restaurant.address.substring(0, 70)} ...`
+                                : restaurant.address
+                              : "-"}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  {/* <TableCell>
+                    </TableCell>
+                    {/* <TableCell>
                     <div>
                       <p className="font-medium">{restaurant.manager}</p>
                       <p className="text-sm text-muted-foreground">
@@ -583,19 +693,19 @@ const RestaurantManagement = () => {
                       </p>
                     </div>
                   </TableCell> */}
-                  <TableCell>
-                    <div className="space-y-1">
-                      <p className="text-sm flex items-center">
-                        <Phone className="h-3 w-3 mr-1" />
-                        {restaurant.phone}
-                      </p>
-                      <p className="text-sm flex items-center">
-                        <Mail className="h-3 w-3 mr-1" />
-                        {restaurant.email}
-                      </p>
-                    </div>
-                  </TableCell>
-                  {/* <TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <p className="text-sm flex items-center">
+                          <Phone className="h-3 w-3 mr-1" />
+                          {restaurant.phone}
+                        </p>
+                        <p className="text-sm flex items-center">
+                          <Mail className="h-3 w-3 mr-1" />
+                          {restaurant.email}
+                        </p>
+                      </div>
+                    </TableCell>
+                    {/* <TableCell>
                     <div className="text-center">
                       <p className="font-medium">{restaurant.customers}</p>
                       <p className="text-xs text-muted-foreground">
@@ -603,7 +713,7 @@ const RestaurantManagement = () => {
                       </p>
                     </div>
                   </TableCell> */}
-                  {/* <TableCell>
+                    {/* <TableCell>
                     <div>
                       <p className="font-medium">
                         ₹{restaurant.monthlyRevenue.toLocaleString()}
@@ -613,64 +723,75 @@ const RestaurantManagement = () => {
                       </p>
                     </div>
                   </TableCell> */}
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Badge
-                        variant="outline"
-                        className={`${restaurant.isActive
-                          ? "bg-green-100 border border-green-300 hover:bg-green-200"
-                          : "bg-red-100 border border-red-300 hover:bg-red-200"
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Badge
+                          variant="outline"
+                          className={`${
+                            restaurant.isActive
+                              ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                              : "bg-red-100 border border-red-300 hover:bg-red-200"
                           }`}
-                      >
-                        {restaurant.isActive ? "Active" : "Deactive"}
-                        {restaurant.status}
-                      </Badge>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <RestaurantDetailModal restaurant={restaurant} />
-                      </Dialog>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditingRestaurant(restaurant)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className={`${restaurant.isActive
-                          ? "bg-green-100 border border-green-300 hover:bg-green-200"
-                          : "bg-red-100 border border-red-300 hover:bg-red-200"
+                        >
+                          {restaurant.isActive ? "Active" : "Deactive"}
+                          {restaurant.status}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setDetailRestaurant(restaurant);
+                            setIsDetailOpen(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingRestaurant(restaurant)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className={`${
+                            restaurant.isActive
+                              ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                              : "bg-red-100 border border-red-300 hover:bg-red-200"
                           }`}
-                        size="sm"
-                        onClick={() => {
-                          setIsOpen(!open);
-                          setSelectedRestaurant(restaurant);
-                        }}
-                      >
-                        {restaurant.isActive ? <UserCheck className="text-green-500" /> : <UserX className="text-red-500" />}
-                      </Button>
-                    </div>
+                          size="sm"
+                          onClick={() => {
+                            setIsOpen(!open);
+                            setSelectedRestaurant(restaurant);
+                          }}
+                        >
+                          {restaurant.isActive ? (
+                            <UserCheck className="text-green-500" />
+                          ) : (
+                            <UserX className="text-red-500" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell className="pr-0 pl-0" colSpan={7}>
+                    <NoData
+                      icon={Hotel}
+                      title="Not found restaurant list"
+                      description="Add new restaurant to manage them here."
+                    />
                   </TableCell>
                 </TableRow>
-              )) : <TableRow>
-                <TableCell className="pr-0 pl-0" colSpan={7}>
-                  <NoData
-                    icon={Hotel}
-                    title="Not found restaurant list"
-                    description="Add new restaurant to manage them here."
-                  />
-                </TableCell>
-              </TableRow>
-              }</TableBody>
+              )}
+            </TableBody>
           </Table>
           <DataTablePagination
             currentPage={page}
@@ -695,10 +816,12 @@ const RestaurantManagement = () => {
             setIsOpen(open);
           }
         }}
-        title={`${selectedRestaurant?.isActive ? "Deactivate" : "Activate"
-          } Restaurant`}
-        description={`Are you sure you want to ${selectedRestaurant?.isActive ? "deactivate" : "activate"
-          } "${selectedRestaurant?.name}"?`}
+        title={`${
+          selectedRestaurant?.isActive ? "Deactivate" : "Activate"
+        } Restaurant`}
+        description={`Are you sure you want to ${
+          selectedRestaurant?.isActive ? "deactivate" : "activate"
+        } "${selectedRestaurant?.name}"?`}
         confirmText="Confirm"
         confirmVariant={
           selectedRestaurant?.isActive ? "destructive" : "success"
@@ -713,6 +836,20 @@ const RestaurantManagement = () => {
           }
         }}
       />
+      <Dialog
+        open={isDetailOpen}
+        onOpenChange={(open) => {
+          setIsDetailOpen(open);
+          if (!open) setDetailRestaurant(null);
+        }}
+      >
+        {detailRestaurant && (
+          <RestaurantDetailModal
+            restaurant={detailRestaurant}
+            open={isDetailOpen}
+          />
+        )}
+      </Dialog>
     </div>
   );
 };

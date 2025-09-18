@@ -1,0 +1,172 @@
+import axiosInstance from "./axiosInstace.config";
+
+export const createAttendance = async (attendanceData) => {
+  try {
+    const attendData = new FormData();
+
+    attendData.append("notes", attendanceData.notes);
+    attendData.append("restaurantId", attendanceData.restaurantId);
+    attendData.append("date", attendanceData.date);
+    attendData.append("checkInAt", attendanceData.checkInAt);
+    attendData.append("status", attendanceData.status);
+    if (attendanceData.file) {
+      attendData.append("file", attendanceData.file);
+    }
+    const response = await axiosInstance.post(
+      `/attendance/addNewAttendance`,
+      attendData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    console.log("create attendance API Response:", response.data);
+
+    return response.data;
+  } catch (error) {
+    console.error("create attendance API error:", error);
+
+    if (error.response) {
+      const errorMessage = error.response.data.message;
+      throw new Error(errorMessage);
+    } else if (error.request) {
+      throw new Error("Network error. Please check your connection.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
+
+export const getStaffAttendance = async ({
+  page,
+  limit,
+  search,
+  isActive,
+  startDate,
+  endDate
+}: {
+  page?: any;
+  limit?: any;
+  search?: any;
+  isActive?: any;
+  startDate?: any;
+  endDate?: any;
+}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    if (startDate !== undefined) queryParams.append("startDate", String(startDate));
+    if (endDate !== undefined) queryParams.append("endDate", String(endDate));
+    // if (page !== undefined) queryParams.append("page", String(page));
+    // if (limit !== undefined) queryParams.append("limit", String(limit));
+    // if (search) queryParams.append("search", String(search));
+    // if (isActive !== undefined)
+    //   queryParams.append("isActive", String(isActive));
+
+    const url = `/attendance/getAllAttendance${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
+    const response = await axiosInstance.get(url);
+
+    console.log("get all vendor API Response:", response.data);
+
+    return response.data;
+  } catch (error) {
+    console.error("get all vendor API error:", error);
+
+    if (error.response) {
+      const errorMessage = error.response.data.message;
+      throw new Error(errorMessage);
+    } else if (error.request) {
+      throw new Error("Network error. Please check your connection.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
+
+export const getStaffAttendanceByRest = async (
+  id: string,
+  startDate?: string | number | Date,
+  endDate?: string | number | Date
+) => {
+  try {
+    const queryParams = new URLSearchParams();
+    queryParams.append("restaurantId", String(id));
+    if (startDate !== undefined) queryParams.append("startDate", String(startDate));
+    if (endDate !== undefined) queryParams.append("endDate", String(endDate));
+
+    const url = `/attendance/getRestaurantByAttendance?${queryParams.toString()}`;
+    const response = await axiosInstance.get(url);
+
+    console.log("get all staff attendance by restaurant API Response:", response.data);
+
+    return response.data;
+  } catch (error) {
+    console.error("get all staff attendance by restaurant API error:", error);
+
+    if (error.response) {
+      const errorMessage = error.response.data.message;
+      throw new Error(errorMessage);
+    } else if (error.request) {
+      throw new Error("Network error. Please check your connection.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
+
+export const getAttendanceAndLeaveByStaff = async (
+  id: string,
+) => {
+  try {
+
+    const url = `/user/getStaffAttendanceAndLeave?uid=${id}`;
+    const response = await axiosInstance.get(url);
+
+    console.log("get all staff attendance by restaurant API Response:", response.data);
+
+    return response.data;
+  } catch (error) {
+    console.error("get all staff attendance by restaurant API error:", error);
+
+    if (error.response) {
+      const errorMessage = error.response.data.message;
+      throw new Error(errorMessage);
+    } else if (error.request) {
+      throw new Error("Network error. Please check your connection.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
+export const getMonthlyStaffAttendance = async (
+  id: string,
+  startDate?: string | number | Date,
+  endDate?: string | number | Date
+) => {
+  try {
+
+    const queryParams = new URLSearchParams();
+    queryParams.append("restaurantId", String(id));
+    if (startDate !== undefined) queryParams.append("startDate", String(startDate));
+    if (endDate !== undefined) queryParams.append("endDate", String(endDate));
+
+    const url = `/attendance/getMonthlyAttendance?${queryParams.toString()}`;
+    const response = await axiosInstance.get(url);
+
+    console.log("get all staff attendance by restaurant API Response:", response.data);
+
+    return response.data;
+  } catch (error) {
+    console.error("get all staff attendance by restaurant API error:", error);
+
+    if (error.response) {
+      const errorMessage = error.response.data.message;
+      throw new Error(errorMessage);
+    } else if (error.request) {
+      throw new Error("Network error. Please check your connection.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
