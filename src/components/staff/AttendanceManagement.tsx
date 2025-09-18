@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
+import React, { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -12,14 +12,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Camera,
   Calendar,
@@ -30,108 +30,293 @@ import {
   User,
   MapPin,
   Smartphone,
-  AlertCircle
-} from 'lucide-react';
+  AlertCircle,
+  UserCheck,
+} from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { createAttendance, getStaffAttendance, getMonthlyStaffAttendance } from "@/api/attendance.api";
+import { Input } from "../ui/input";
+import { useForm } from "react-hook-form";
+import { useAuth } from "@/contexts/AuthContext";
+import { format, parseISO } from "date-fns";
+import {
+  AttendanceRecordsSkeleton,
+  MonthlyAttendanceSkeleton,
+} from "./AttendanceSkeleton";
+import { NoData } from "../common/NoData";
+import { useToast } from "@/hooks/use-toast";
+
+const NotesDisplay = ({ notes }: { notes: string }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const maxLength = 30;
+  const shouldTruncate = notes.length > maxLength;
+
+  const displayedText =
+    isExpanded || !shouldTruncate ? notes : `${notes.slice(0, maxLength)}...`;
+
+  return (
+    <p className="text-sm text-muted-foreground">
+      <b className="text-gray-800">Additional Notes</b>: {displayedText}
+      {shouldTruncate && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="ml-2 text-blue-500 underline text-xs"
+        >
+          {isExpanded ? "Show less" : "Read more"}
+        </button>
+      )}
+    </p>
+  );
+};
 
 const AttendanceManagement = () => {
   const [isMarkingAttendance, setIsMarkingAttendance] = useState(false);
   const [isApplyingLeave, setIsApplyingLeave] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [selectedYear, setSelectedYear] = useState(
+    new Date().getFullYear().toString()
+  );
+  const [selectedMonth, setSelectedMonth] = useState(
+    (new Date().getMonth() + 1).toString().padStart(2, "0")
+  );
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-  const todayInfo = {
-    date: new Date().toLocaleDateString('en-IN', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    }),
-    shift: 'Morning Shift (9:00 AM - 6:00 PM)',
-    isMarked: false,
-    checkInTime: null,
-    location: 'Spice Garden Restaurant'
+  // Generate year options (current year and 5 previous years)
+  const getYearOptions = () => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let i = 0; i < 6; i++) {
+      years.push((currentYear - i).toString());
+    }
+    return years;
   };
 
-  // Mock attendance data for calendar view
-  const attendanceData = {
-    '2024-11': {
-      totalDays: 30,
-      presentDays: 22,
-      absentDays: 3,
-      leaveDays: 2,
-      pendingDays: 3,
-      attendanceRecords: [
-        { date: '2024-11-01', status: 'present', checkIn: '9:15 AM', checkOut: '6:05 PM' },
-        { date: '2024-11-02', status: 'present', checkIn: '9:00 AM', checkOut: '6:00 PM' },
-        { date: '2024-11-03', status: 'leave', reason: 'Medical appointment' },
-        { date: '2024-11-04', status: 'present', checkIn: '9:20 AM', checkOut: '6:10 PM' },
-        { date: '2024-11-05', status: 'absent', reason: 'No show' },
-        // ... more records
-      ]
-    }
+  // Generate month options with names
+  const getMonthOptions = () => {
+    return [
+      { value: "01", label: "January" },
+      { value: "02", label: "February" },
+      { value: "03", label: "March" },
+      { value: "04", label: "April" },
+      { value: "05", label: "May" },
+      { value: "06", label: "June" },
+      { value: "07", label: "July" },
+      { value: "08", label: "August" },
+      { value: "09", label: "September" },
+      { value: "10", label: "October" },
+      { value: "11", label: "November" },
+      { value: "12", label: "December" },
+    ];
+  };
+
+  // Combine selected year and month for attendance data lookup
+  const selectedYearMonth = `${selectedYear}-${selectedMonth}`;
+
+  // Compute the start and end date for the selected month (formatted as yyyy-MM-dd)
+  const { startDateOfMonth, endDateOfMonth } = React.useMemo(() => {
+    const yearNum = Number(selectedYear);
+    const monthNum = Number(selectedMonth); // 1-12
+    const firstDay = new Date(yearNum, monthNum - 1, 1);
+    const lastDay = new Date(yearNum, monthNum, 0);
+    return {
+      startDateOfMonth: format(firstDay, "yyyy-MM-dd"),
+      endDateOfMonth: format(lastDay, "yyyy-MM-dd"),
+    };
+  }, [selectedYear, selectedMonth]);
+
+  const {
+    handleSubmit,
+    setValue,
+    watch,
+    register,
+    reset,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      file: null as File | null,
+      notes: "",
+    },
+  });
+
+  useEffect(() => {
+    register("file", { required: "Attendance Picture is required" });
+  }, [register]);
+
+  const { data: getAttenStafWise, isPending, refetch: refetchRecords } = useQuery({
+    queryKey: [
+      "get-attendance-by-staff",
+      { startDate: startDateOfMonth, endDate: endDateOfMonth },
+    ],
+    queryFn: () =>
+      getStaffAttendance({
+        startDate: startDateOfMonth,
+        endDate: endDateOfMonth,
+      }),
+  });
+  const attendanceData = getAttenStafWise?.payload?.data;
+  const hasMarkedToday = React.useMemo(() => {
+    if (!attendanceData || attendanceData.length === 0) return false;
+    const todayStr = new Date().toDateString();
+    return attendanceData.some((rec: any) => {
+      const d = rec?.checkInAt ? new Date(rec.checkInAt) : null;
+      return d && d.toDateString() === todayStr && rec.status === "present";
+    });
+  }, [attendanceData]);
+
+  const { data: todaySummary, refetch: refetchTodaySummary, isPending: isTodaySummaryPending } = useQuery({
+    queryKey: [
+      "get-monthly-staff-attendance",
+      user?.restaurantId,
+      startDateOfMonth,
+      endDateOfMonth,
+    ],
+    queryFn: () =>
+      getMonthlyStaffAttendance(
+        user?.restaurantId,
+        startDateOfMonth,
+        endDateOfMonth
+      ),
+    enabled: Boolean(user?.restaurantId && startDateOfMonth && endDateOfMonth),
+  });
+
+  const { mutate: createAtten, isPending: isCreatePending } = useMutation({
+    mutationKey: ["create-attendance"],
+    mutationFn: createAttendance,
+    onSuccess: () => {
+      toast({
+        variant: "default",
+        title: "Attendance marked",
+        description: "Your attendance has been recorded successfully.",
+      });
+      setIsMarkingAttendance(false);
+      reset();
+      // Refresh summary and records
+      refetchTodaySummary();
+      refetchRecords();
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to mark attendance",
+        description: error?.message || "Please try again.",
+      });
+    },
+  });
+
+  const addAttendance = (data: any) => {
+    const attendanceData = {
+      ...data,
+      restaurantId: user?.restaurantId,
+      date: format(new Date(), "yyyy-MM-dd"),
+      checkInAt: format(new Date(), "yyyy-MM-dd"),
+      status: "present",
+    };
+    createAtten(attendanceData);
   };
 
   const AttendanceMarkModal = () => (
-    <DialogContent className="max-w-md">
+    <DialogContent
+      className="max-w-2xl"
+      onOpenAutoFocus={(e) => e.preventDefault()}
+    >
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
-          <Camera className="h-5 w-5" />
           Mark Your Attendance
         </DialogTitle>
         <DialogDescription>
           Take a selfie to mark your attendance for today
         </DialogDescription>
       </DialogHeader>
-      
-      <div className="space-y-4">
-        {/* Camera Preview Area */}
-        <div className="aspect-square bg-muted/20 border-2 border-dashed border-muted-foreground/25 rounded-lg flex items-center justify-center">
-          <div className="text-center">
-            <Camera className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">Camera will open here</p>
-            <Button variant="outline" size="sm" className="mt-2">
-              <Camera className="mr-2 h-4 w-4" />
-              Open Camera
-            </Button>
-          </div>
-        </div>
-        
-        {/* Attendance Info */}
-        <div className="space-y-2 p-4 bg-muted/30 rounded-lg">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">Current Time: {new Date().toLocaleTimeString()}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">Location: {todayInfo.location}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">Shift: {todayInfo.shift}</span>
-          </div>
-        </div>
-        
-        {/* Guidelines */}
-        <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
-          <p className="text-sm text-primary font-medium mb-2">Guidelines:</p>
-          <ul className="text-xs text-muted-foreground space-y-1">
-            <li>• Ensure good lighting for clear photo</li>
-            <li>• Face should be clearly visible</li>
-            <li>• Remove any face coverings</li>
-            <li>• Be at your workplace location</li>
-          </ul>
-        </div>
-      </div>
-      
-      <DialogFooter>
-        <Button variant="outline" onClick={() => setIsMarkingAttendance(false)}>
-          Cancel
-        </Button>
-        <Button onClick={() => setIsMarkingAttendance(false)} className="bg-gradient-primary">
-          <CheckCircle className="mr-2 h-4 w-4" />
-          Submit Attendance
-        </Button>
-      </DialogFooter>
+      <form onSubmit={handleSubmit(addAttendance)}>
+        <Card>
+          <CardContent className="space-y-6 p-6">
+            {/* File Upload */}
+            <div className="space-y-2">
+              <div className="flex gap-3 items-baseline">
+                <Label htmlFor="file">Upload your picture *</Label>
+                {errors.file && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.file.message as string}
+                  </p>
+                )}
+              </div>
+              <Input
+                id="file"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) =>
+                  setValue("file", e.target.files?.[0] || null, {
+                    shouldValidate: true,
+                  })
+                }
+              />
+              {(function () {
+                const fileVal = watch("file") as File | string | null;
+                const preview =
+                  fileVal instanceof File
+                    ? URL.createObjectURL(fileVal)
+                    : typeof fileVal === "string" && fileVal
+                    ? fileVal
+                    : null;
+                return preview ? (
+                  <div className="relative w-24 h-24">
+                    <img
+                      src={preview}
+                      alt="Preview"
+                      className="w-24 h-24 object-cover rounded-lg border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setValue("file", null)}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow hover:bg-red-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    htmlFor="file"
+                    className="flex flex-col items-center justify-center h-24 border-2 border-dashed rounded-lg cursor-pointer text-muted-foreground hover:border-primary hover:text-primary transition w-full"
+                  >
+                    <span className="text-xs">Upload Profile photo</span>
+                  </label>
+                );
+              })()}
+            </div>
+            <div className="space-y-2">
+              <div className="flex gap-3 items-baseline">
+                <Label htmlFor="address">Notes</Label>
+              </div>
+              <Textarea
+                id="notes"
+                placeholder="Enter notes"
+                autoFocus={false}
+                tabIndex={-1}
+                {...register("notes")}
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button type="submit" disabled={isCreatePending}>
+                {isCreatePending && (
+                  <span className="mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full inline-block animate-spin" />
+                )}
+                Mark Attendance
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsMarkingAttendance(false);
+                  reset();
+                }}
+                disabled={isCreatePending}
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </form>
     </DialogContent>
   );
 
@@ -146,7 +331,7 @@ const AttendanceManagement = () => {
           Submit your leave request with required details
         </DialogDescription>
       </DialogHeader>
-      
+
       <div className="space-y-4">
         <div>
           <Label htmlFor="leave-date">Leave Date</Label>
@@ -154,10 +339,10 @@ const AttendanceManagement = () => {
             id="leave-date"
             type="date"
             className="w-full p-2 border rounded-md"
-            min={new Date().toISOString().split('T')[0]}
+            min={new Date().toISOString().split("T")[0]}
           />
         </div>
-        
+
         <div>
           <Label htmlFor="leave-type">Leave Type</Label>
           <Select>
@@ -173,7 +358,7 @@ const AttendanceManagement = () => {
             </SelectContent>
           </Select>
         </div>
-        
+
         <div>
           <Label htmlFor="leave-reason">Reason for Leave</Label>
           <Textarea
@@ -182,20 +367,22 @@ const AttendanceManagement = () => {
             rows={3}
           />
         </div>
-        
+
         {/* Selfie Upload */}
         <div>
           <Label>Upload Selfie (Optional)</Label>
           <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center">
             <Camera className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground mb-2">Take a selfie or upload photo</p>
+            <p className="text-sm text-muted-foreground mb-2">
+              Take a selfie or upload photo
+            </p>
             <Button variant="outline" size="sm">
               <Camera className="mr-2 h-4 w-4" />
               Take Photo
             </Button>
           </div>
         </div>
-        
+
         {/* Emergency Contact */}
         <div className="p-3 bg-warning/5 border border-warning/20 rounded-lg">
           <div className="flex items-center gap-2 mb-2">
@@ -207,7 +394,7 @@ const AttendanceManagement = () => {
           </p>
         </div>
       </div>
-      
+
       <DialogFooter>
         <Button variant="outline" onClick={() => setIsApplyingLeave(false)}>
           Cancel
@@ -220,19 +407,27 @@ const AttendanceManagement = () => {
     </DialogContent>
   );
 
-  const currentMonthData = attendanceData[selectedMonth] || attendanceData['2024-11'];
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Attendance Management</h1>
-          <p className="text-muted-foreground">Mark your attendance and manage leave requests</p>
+          <h1 className="text-3xl font-bold text-foreground">
+            Attendance Management
+          </h1>
+          <p className="text-muted-foreground">
+            Mark your attendance and manage leave requests
+          </p>
         </div>
         <div className="text-right">
           <p className="text-sm text-muted-foreground">Today</p>
-          <p className="font-medium">{todayInfo.date}</p>
+          <p className="font-medium">
+            {new Date()?.toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })}
+          </p>
         </div>
       </div>
 
@@ -243,47 +438,27 @@ const AttendanceManagement = () => {
             <Clock className="h-5 w-5 text-primary" />
             Today's Attendance
           </CardTitle>
-          <p className="text-sm text-muted-foreground">{todayInfo.shift}</p>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              {!todayInfo.isMarked ? (
-                <>
-                  <div className="p-3 bg-warning/10 rounded-lg">
-                    <AlertCircle className="h-6 w-6 text-warning" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">Attendance Not Marked</p>
-                    <p className="text-sm text-muted-foreground">Please mark your attendance to start your shift</p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="p-3 bg-success/10 rounded-lg">
-                    <CheckCircle className="h-6 w-6 text-success" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">Attendance Marked</p>
-                    <p className="text-sm text-muted-foreground">Checked in at {todayInfo.checkInTime}</p>
-                  </div>
-                </>
-              )}
-            </div>
             <div className="flex space-x-2">
-              <Dialog open={isMarkingAttendance} onOpenChange={setIsMarkingAttendance}>
+              <Dialog
+                open={isMarkingAttendance}
+                onOpenChange={(open) => {
+                  if (!open && isCreatePending) {
+                    return; // Prevent closing when create is pending
+                  }
+                  setIsMarkingAttendance(open);
+                }}
+              >
                 <DialogTrigger asChild>
-                  <Button 
-                    className="bg-gradient-primary" 
-                    disabled={todayInfo.isMarked}
-                  >
-                    <Camera className="mr-2 h-4 w-4" />
-                    {todayInfo.isMarked ? 'Marked' : 'Mark Attendance'}
+                  <Button className="bg-gradient-primary" disabled={hasMarkedToday}>
+                    Mark Attendance
                   </Button>
                 </DialogTrigger>
                 <AttendanceMarkModal />
               </Dialog>
-              
+
               <Dialog open={isApplyingLeave} onOpenChange={setIsApplyingLeave}>
                 <DialogTrigger asChild>
                   <Button variant="outline">
@@ -294,110 +469,76 @@ const AttendanceManagement = () => {
                 <LeaveApplicationModal />
               </Dialog>
             </div>
+            {/* Removed right-side quick metrics per request */}
           </div>
         </CardContent>
       </Card>
 
       {/* Monthly Attendance Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 shadow-card">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+        <Card className="shadow-card">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
                 Monthly Attendance Summary
               </CardTitle>
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2024-11">November 2024</SelectItem>
-                  <SelectItem value="2024-10">October 2024</SelectItem>
-                  <SelectItem value="2024-09">September 2024</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getYearOptions().map((year) => (
+                      <SelectItem key={year} value={year}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getMonthOptions().map((month) => (
+                      <SelectItem key={month.value} value={month.value}>
+                        {month.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="text-center p-4 bg-success/5 border border-success/20 rounded-lg">
-                <CheckCircle className="h-8 w-8 text-success mx-auto mb-2" />
-                <p className="text-2xl font-bold text-success">{currentMonthData.presentDays}</p>
-                <p className="text-sm text-muted-foreground">Present</p>
+            {isTodaySummaryPending ? (
+              <MonthlyAttendanceSkeleton />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+                <div className="text-center p-4 bg-success/5 border border-success/20 rounded-lg">
+                  <CheckCircle className="h-8 w-8 text-success mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-success">
+                    {todaySummary?.payload?.attendance?.present ?? 0}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Present</p>
+                </div>
+                <div className="text-center p-4 bg-warning/5 border border-warning/20 rounded-lg">
+                  <Calendar className="h-8 w-8 text-warning mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-warning">
+                    {todaySummary?.payload?.attendance?.leave ?? 0}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Leave</p>
+                </div>
+                <div className="text-center p-4 bg-danger/5 border border-danger/20 rounded-lg">
+                  <XCircle className="h-8 w-8 text-danger mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-danger">
+                    {todaySummary?.payload?.attendance?.absent ?? 0}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Absent</p>
+                </div>
               </div>
-              <div className="text-center p-4 bg-danger/5 border border-danger/20 rounded-lg">
-                <XCircle className="h-8 w-8 text-danger mx-auto mb-2" />
-                <p className="text-2xl font-bold text-danger">{currentMonthData.absentDays}</p>
-                <p className="text-sm text-muted-foreground">Absent</p>
-              </div>
-              <div className="text-center p-4 bg-warning/5 border border-warning/20 rounded-lg">
-                <Calendar className="h-8 w-8 text-warning mx-auto mb-2" />
-                <p className="text-2xl font-bold text-warning">{currentMonthData.leaveDays}</p>
-                <p className="text-sm text-muted-foreground">Leave</p>
-              </div>
-              <div className="text-center p-4 bg-muted/30 border border-border rounded-lg">
-                <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-2xl font-bold text-muted-foreground">{currentMonthData.pendingDays}</p>
-                <p className="text-sm text-muted-foreground">Pending</p>
-              </div>
-            </div>
-
-            {/* Attendance Rate */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Attendance Rate</span>
-                <span className="font-medium">
-                  {((currentMonthData.presentDays / currentMonthData.totalDays) * 100).toFixed(1)}%
-                </span>
-              </div>
-              <div className="w-full bg-muted rounded-full h-2">
-                <div 
-                  className="bg-gradient-success h-2 rounded-full transition-all duration-300"
-                  style={{ 
-                    width: `${(currentMonthData.presentDays / currentMonthData.totalDays) * 100}%` 
-                  }}
-                ></div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="text-lg">Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Dialog open={isMarkingAttendance} onOpenChange={setIsMarkingAttendance}>
-              <DialogTrigger asChild>
-                <Button className="w-full justify-start bg-gradient-primary" size="lg">
-                  <Camera className="mr-3 h-4 w-4" />
-                  Mark Today's Attendance
-                </Button>
-              </DialogTrigger>
-              <AttendanceMarkModal />
-            </Dialog>
-            
-            <Dialog open={isApplyingLeave} onOpenChange={setIsApplyingLeave}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="w-full justify-start" size="lg">
-                  <FileText className="mr-3 h-4 w-4" />
-                  Apply for Leave
-                </Button>
-              </DialogTrigger>
-              <LeaveApplicationModal />
-            </Dialog>
-            
-            <Button variant="outline" className="w-full justify-start" size="lg">
-              <Calendar className="mr-3 h-4 w-4" />
-              View Full Calendar
-            </Button>
-            
-            <Button variant="outline" className="w-full justify-start" size="lg">
-              <Smartphone className="mr-3 h-4 w-4" />
-              Contact Manager
-            </Button>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -409,48 +550,90 @@ const AttendanceManagement = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {currentMonthData.attendanceRecords.slice(0, 5).map((record, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg ${
-                    record.status === 'present' ? 'bg-success/10 text-success' :
-                    record.status === 'leave' ? 'bg-warning/10 text-warning' :
-                    'bg-danger/10 text-danger'
-                  }`}>
-                    {record.status === 'present' ? (
-                      <CheckCircle className="h-4 w-4" />
-                    ) : record.status === 'leave' ? (
-                      <Calendar className="h-4 w-4" />
-                    ) : (
-                      <XCircle className="h-4 w-4" />
+            {isPending ? (
+              <AttendanceRecordsSkeleton />
+            ) : attendanceData?.length <= 0 ? (
+              <NoData
+                icon={UserCheck}
+                title="No Attendance Available"
+                description="There is no attendance, mark your attendance"
+              />
+            ) : (
+              attendanceData?.map((record) => (
+                <div
+                  key={record?._id}
+                  className="grid grid-cols-3 p-3 border rounded-lg"
+                >
+                  <div className="col-span-2 flex items-center space-x-3">
+                    <div
+                      className={`p-2 rounded-lg ${
+                        record.status === "present"
+                          ? "bg-success/10 text-success border-success"
+                          : record.status === "leave"
+                          ? "bg-warning/10 text-warning"
+                          : "bg-danger/10 text-danger"
+                      }`}
+                    >
+                      {record.status === "present" ? (
+                        <CheckCircle className="h-4 w-4" />
+                      ) : record.status === "leave" ? (
+                        <Calendar className="h-4 w-4" />
+                      ) : (
+                        <XCircle className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium">
+                        {new Date(record.checkInAt).toLocaleDateString(
+                          "en-IN",
+                          {
+                            day: "numeric",
+                            month: "short",
+                            weekday: "short",
+                          }
+                        )}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        <b className="text-gray-800">Check-In Time</b>:{" "}
+                        {record.status === "present" &&
+                          record.checkInAt &&
+                          new Date(record.checkInAt).toLocaleTimeString(
+                            "en-US",
+                            {
+                              hour: "numeric",
+                              minute: "numeric",
+                              hour12: true,
+                            }
+                          )}
+                      </p>
+                      {record.notes && <NotesDisplay notes={record.notes} />}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-7 justify-end">
+                    <Badge
+                      variant="outline"
+                      className={`${
+                        record?.status === "present"
+                          ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                          : record.status === "leave"
+                          ? "bg-yellow-100 border border-yellow-300 hover:bg-yellow-200"
+                          : "bg-red-100 border border-red-300 hover:bg-red-200"
+                      }`}
+                    >
+                      {record?.status?.charAt(0)?.toUpperCase() +
+                        record?.status?.slice(1)}
+                    </Badge>
+                    {record.selfieUrl && (
+                      <img
+                        src={record.selfieUrl}
+                        alt="Attendance Snapshot"
+                        className="w-12 h-12 rounded-md object-cover"
+                      />
                     )}
                   </div>
-                  <div>
-                    <p className="font-medium">
-                      {new Date(record.date).toLocaleDateString('en-IN', { 
-                        day: 'numeric', 
-                        month: 'short', 
-                        weekday: 'short' 
-                      })}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {record.status === 'present' && record.checkIn && (
-                        `${record.checkIn} - ${record.checkOut}`
-                      )}
-                      {record.status !== 'present' && record.reason}
-                    </p>
-                  </div>
                 </div>
-                <Badge 
-                  variant={
-                    record.status === 'present' ? 'default' :
-                    record.status === 'leave' ? 'secondary' : 'destructive'
-                  }
-                >
-                  {record.status}
-                </Badge>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

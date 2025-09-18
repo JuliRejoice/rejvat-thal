@@ -76,8 +76,8 @@ const getNavigationItems = (role: string) => {
 
   if (role === 'staff') {
     return [
-      ...baseItems,
-      { title: 'Mark Attendance', url: '/attendance', icon: Clock },
+      // ...baseItems,
+      { title: 'Mark Attendance', url: '/dashboard', icon: Clock },
       { title: 'Leave Requests', url: '/leave-requests', icon: FileText }
     ];
   }

@@ -65,7 +65,7 @@ const Index = () => {
           element={
             user?.role === 'admin' ? <AdminDashboard /> :
             user?.role === 'manager' ? <ManagerDashboard /> :
-            <StaffDashboard />
+            <AttendanceManagement />
           } 
         />
 
@@ -105,7 +105,7 @@ const Index = () => {
         {/* Staff Routes */}
         {user?.role === 'staff' && (
           <>
-            <Route path="/attendance" element={<AttendanceManagement />} />
+            {/* <Route path="/attendance" element={<AttendanceManagement />} /> */}
             <Route path="/leave-requests" element={<LeaveRequestHistory />} />
           </>
         )}

@@ -13,6 +13,8 @@ import {
   UserX,
   Edit,
   User,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,13 +58,11 @@ import {
 import { ConfirmationDialog } from "../common/ConfirmationDialog";
 import { StaffTableSkeleton, StatsCardsSkeleton } from "./SkeletonStaffManag";
 import { NoData } from "../common/NoData";
+import { getAttendanceAndLeaveByStaff } from "@/api/attendance.api";
+import { AttendanceRecordsSkeleton } from "../staff/AttendanceSkeleton";
 
-const mockAttendance = [
-  /* ... */
-];
-const mockLeaveRequests = [
-  /* ... */
-];
+const mockAttendance = [];
+const mockLeaveRequests = [];
 
 const StaffManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,6 +76,24 @@ const StaffManagement = () => {
   const [page, setPage] = useState(1);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [selectedUpdateStaff, setSelectedUpdateStaff] = useState<any>(null);
+  // Fetch selected staff's attendance and leave when View modal is open
+  const {
+    data: staffAttLeave,
+    isPending: isStaffAttLeavePending,
+  } = useQuery({
+    queryKey: [
+      "get-staff-attendance-leave",
+      selectedStaff?._id,
+      Boolean(isViewModalOpen),
+    ],
+    queryFn: () => getAttendanceAndLeaveByStaff(selectedStaff._id),
+    enabled: Boolean(isViewModalOpen && selectedStaff && selectedStaff._id),
+  });
+
+  const staffDetail = staffAttLeave?.payload?.data?.[0];
+  const staffAttendance = staffDetail?.attendance || [];
+  const staffLeaves = staffDetail?.leave || [];
+
 
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -501,145 +519,228 @@ const StaffManagement = () => {
 
       {/* View Staff Modal */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl rounded-2xl">
           <DialogHeader>
             <DialogTitle>Staff Details</DialogTitle>
           </DialogHeader>
           {selectedStaff && (
             <Tabs defaultValue="info" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-3 sticky top-0 z-10 bg-background">
                 <TabsTrigger value="info">Information</TabsTrigger>
                 <TabsTrigger value="attendance">Attendance</TabsTrigger>
                 <TabsTrigger value="leaves">Leave Requests</TabsTrigger>
               </TabsList>
 
               <TabsContent value="info" className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16">
-                    <AvatarFallback className="text-lg">
-                      {selectedStaff.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="text-lg font-semibold">
-                      {selectedStaff.name}
-                    </h3>
-                    <p className="text-muted-foreground">
-                      {selectedStaff.position}
-                    </p>
-                    <Badge
-                      variant="outline"
-                      className={`${
-                        selectedStaff.isActive
-                          ? "bg-green-100 border border-green-300 hover:bg-green-200"
-                          : "bg-red-100 border border-red-300 hover:bg-red-200"
-                      }`}
-                    >
-                      {selectedStaff.isActive ? "Active" : "Deactive"}
-                    </Badge>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Email</label>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedStaff.email}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Phone</label>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedStaff.phone}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Restaurant</label>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedStaff.restaurantId?.name}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Join Date</label>
-                    <p
-                      className={`text-sm ${
-                        selectedStaff?.joiningDate
-                          ? "text-muted-foreground"
-                          : "text-gray-400"
-                      }`}
-                    >
-                      {selectedStaff?.joiningDate
-                        ? new Date(
+                <Card className="shadow-card">
+                  <CardHeader className="flex flex-row items-center gap-4">
+                    <Avatar className="h-16 w-16">
+                      <AvatarFallback className="text-lg">
+                        {selectedStaff.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-lg font-semibold leading-tight">
+                          {selectedStaff.name}
+                        </h3>
+                        <Badge
+                          variant="outline"
+                          className={`${
+                            selectedStaff.isActive
+                              ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                              : "bg-red-100 border border-red-300 hover:bg-red-200"
+                          }`}
+                        >
+                          {selectedStaff.isActive ? "Active" : "Deactive"}
+                        </Badge>
+                      </div>
+                      <p className="text-muted-foreground text-sm">
+                        {selectedStaff.position}
+                      </p>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Email</p>
+                        <p className="text-sm text-foreground break-all">{selectedStaff.email}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Phone</p>
+                        <p className="text-sm text-foreground">{selectedStaff.phone}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Restaurant</p>
+                        <p className="text-sm text-foreground">{selectedStaff.restaurantId?.name}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Join Date</p>
+                        <p
+                          className={`text-sm ${
                             selectedStaff?.joiningDate
-                          ).toLocaleDateString("en-GB")
-                        : "-"}
-                    </p>
-                  </div>
-                </div>
+                              ? "text-foreground"
+                              : "text-gray-400"
+                          }`}
+                        >
+                          {selectedStaff?.joiningDate
+                            ? new Date(selectedStaff?.joiningDate).toLocaleDateString("en-GB")
+                            : "-"}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               <TabsContent value="attendance" className="space-y-4">
-                <div className="grid grid-cols-1 gap-2">
-                  {mockAttendance.map((record, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center p-3 border rounded-lg"
-                    >
-                      <div>
-                        <p className="font-medium">{record.date}</p>
-                        <Badge
-                          variant={
-                            record.status === "present"
-                              ? "default"
-                              : "destructive"
-                          }
-                        >
-                          {record.status}
-                        </Badge>
-                      </div>
-                      <div className="text-right">
-                        {record.checkIn && (
-                          <div className="text-sm">
-                            <p>In: {record.checkIn}</p>
-                            <p>Out: {record.checkOut}</p>
+                <Card className="overflow-y-auto max-h-[350px]">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Attendance</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isStaffAttLeavePending ? (
+                      <AttendanceRecordsSkeleton />
+                    ) : staffAttendance.length ? (
+                      <div className="space-y-3">
+                        {staffAttendance.map((record: any) => (
+                          <div
+                            key={record._id}
+                            className="grid grid-cols-3 p-3 border rounded-lg"
+                          >
+                            <div className="col-span-2 flex items-center space-x-3">
+                              <div
+                                className={`p-2 rounded-lg ${
+                                  record.status === "present"
+                                    ? "bg-success/10 text-success border-success"
+                                    : record.status === "leave"
+                                    ? "bg-warning/10 text-warning"
+                                    : "bg-danger/10 text-danger"
+                                }`}
+                              >
+                                {record.status === "present" ? (
+                                  <CheckCircle className="h-4 w-4" />
+                                ) : record.status === "leave" ? (
+                                  <Calendar className="h-4 w-4" />
+                                ) : (
+                                  <XCircle className="h-4 w-4" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-medium">
+                                  {new Date(
+                                    record.date || record.checkInAt
+                                  ).toLocaleDateString("en-IN", {
+                                    day: "numeric",
+                                    month: "short",
+                                    weekday: "short",
+                                  })}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  <b className="text-gray-800">Check-In Time</b>: {" "}
+                                  {record.status === "present" && record.checkInAt &&
+                                    new Date(record.checkInAt).toLocaleTimeString(
+                                      "en-US",
+                                      {
+                                        hour: "numeric",
+                                        minute: "numeric",
+                                        hour12: true,
+                                      }
+                                    )}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-7 justify-end">
+                              <Badge
+                                variant="outline"
+                                className={`${
+                                  record?.status === "present"
+                                    ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                                    : record.status === "leave"
+                                    ? "bg-yellow-100 border border-yellow-300 hover:bg-yellow-200"
+                                    : "bg-red-100 border border-red-300 hover:bg-red-200"
+                                }`}
+                              >
+                                {record?.status?.charAt(0)?.toUpperCase() +
+                                  record?.status?.slice(1)}
+                              </Badge>
+                              {record.selfieUrl && (
+                                <img
+                                  src={record.selfieUrl}
+                                  alt="Attendance Snapshot"
+                                  className="w-12 h-12 rounded-md object-cover"
+                                />
+                              )}
+                            </div>
                           </div>
-                        )}
+                        ))}
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ) : (
+                      <NoData
+                        icon={User}
+                        title="No Attendance"
+                        description="No attendance records available for this staff"
+                      />
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               <TabsContent value="leaves" className="space-y-4">
-                <div className="grid grid-cols-1 gap-2">
-                  {mockLeaveRequests.map((request) => (
-                    <div key={request.id} className="p-3 border rounded-lg">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-medium">{request.date}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {request.reason}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Applied: {request.appliedOn}
-                          </p>
-                        </div>
-                        <Badge
-                          variant={
-                            request.status === "approved"
-                              ? "default"
-                              : "secondary"
-                          }
-                        >
-                          {request.status}
-                        </Badge>
+                <Card className="overflow-y-auto max-h-[350px]">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Leave Requests</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isStaffAttLeavePending ? (
+                      <AttendanceRecordsSkeleton />
+                    ) : staffLeaves.length ? (
+                      <div className="space-y-3">
+                        {staffLeaves.map((request: any) => (
+                          <div key={request._id} className="p-3 border rounded-lg">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="font-medium">
+                                  {new Date(request.fromDate).toLocaleDateString(
+                                    "en-IN",
+                                    { day: "numeric", month: "short", weekday: "short" }
+                                  )}
+                                  {" "}-{" "}
+                                  {new Date(request.toDate).toLocaleDateString(
+                                    "en-IN",
+                                    { day: "numeric", month: "short", weekday: "short" }
+                                  )}
+                                </p>
+                                <p className="text-sm text-muted-foreground">{request.reason}</p>
+                              </div>
+                              <Badge
+                                variant="outline"
+                                className={`${
+                                  request.status === "approved"
+                                    ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                                    : request.status === "pending"
+                                    ? "bg-yellow-100 border border-yellow-300 hover:bg-yellow-200"
+                                    : "bg-red-100 border border-red-300 hover:bg-red-200"
+                                }`}
+                              >
+                                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ) : (
+                      <NoData
+                        icon={Calendar}
+                        title="No Leave Requests"
+                        description="No leave requests available for this staff"
+                      />
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           )}

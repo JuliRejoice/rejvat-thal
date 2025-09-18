@@ -441,7 +441,7 @@ const VendorManagement = () => {
                           <div className="flex items-center gap-1 text-green-600">
                             <IndianRupee className="h-3 w-3" />
                             <span className="font-medium">
-                              {vendor.totalAmount - vendor.wallet}
+                              {vendor.totalAmount}
                             </span>
                           </div>
                         </TableCell>
@@ -595,7 +595,7 @@ const VendorManagement = () => {
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                   <div className="text-center">
                     <p className="text-2xl font-bold text-green-600">
-                      ₹{selectedVendor?.totalAmount - selectedVendor?.wallet}
+                      ₹{selectedVendor?.totalAmount}
                     </p>
                     <p className="text-sm text-muted-foreground">Total Paid</p>
                   </div>
