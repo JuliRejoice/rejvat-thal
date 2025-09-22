@@ -86,9 +86,7 @@ export const signIn = async (userData) => {
 
 export const forgetPassword = async (email) => {
     try {
-        const requestData = {
-            email: email,
-        };
+        const requestData = email;
 
         const response = await axiosInstance.post('/user/forgot', requestData, {
             headers: {

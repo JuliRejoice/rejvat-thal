@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Plus, FileText, Download, Edit2, Coffee, Utensils, Moon } from 'lucide-react';
+import { Calendar, Plus, FileText, Download, Edit2, Coffee, Utensils, Moon, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,9 +10,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { createMonthlyMenu, getMonthlyMenu, updateMonthlyMenu } from '@/api/monthlyMenu.api';
+import { DailyMenu, MenuMap } from '@/types/menu.types';
 
 // Mock data for menu plans
-const mockMenuData = {
+const mockMenuData: MenuMap = {
   '2024-01-15': {
     breakfast: 'Poha, Tea, Bread Butter',
     lunch: 'Dal Rice, Roti, Mixed Vegetable, Papad',
@@ -55,12 +59,16 @@ const generateCalendarDays = (year: number, month: number) => {
 const MonthlyMenuPlan = () => {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [isMenuModalOpen, setIsMenuModalOpen] = useState(false);
-  const [menuData, setMenuData] = useState(mockMenuData);
-  const [editingMenu, setEditingMenu] = useState({
+  const [menuData, setMenuData] = useState<MenuMap>(mockMenuData);
+  const [editingMenu, setEditingMenu] = useState<DailyMenu>({
     breakfast: '',
     lunch: '',
     dinner: ''
   });
+  const [saving, setSaving] = useState(false);
+  const [loadingMonth, setLoadingMonth] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   const today = new Date();
   const [viewingMonth, setViewingMonth] = useState(today.getMonth());
@@ -92,13 +100,89 @@ const MonthlyMenuPlan = () => {
     setIsMenuModalOpen(true);
   };
 
-  const handleSaveMenu = () => {
-    setMenuData(prev => ({
-      ...prev,
-      [selectedDate]: editingMenu
-    }));
-    setIsMenuModalOpen(false);
+  const handleSaveMenu = async () => {
+    if (!selectedDate) return;
+    const restaurantId = (user as any)?.restaurantId?._id || (user as any)?.restaurantId?.id;
+    if (!restaurantId) {
+      toast({ title: 'Missing restaurant', description: 'No restaurant linked to your account.', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      setSaving(true);
+      if (menuData[selectedDate]) {
+        const existing = menuData[selectedDate] as any;
+        const existingId = existing?._id;
+        await updateMonthlyMenu({
+          breakfastPlans: editingMenu.breakfast,
+          lunchPlans: editingMenu.lunch,
+          dinnerPlans: editingMenu.dinner,
+          restaurantId,
+          date: selectedDate,
+        }, String(existingId || ''));
+      } else {
+        await createMonthlyMenu({
+          breakfastPlans: editingMenu.breakfast,
+          lunchPlans: editingMenu.lunch,
+          dinnerPlans: editingMenu.dinner,
+          restaurantId,
+          date: selectedDate,
+        });
+      }
+
+      // Update local state for immediate UI feedback
+      setMenuData(prev => ({
+        ...prev,
+        [selectedDate]: { ...(prev[selectedDate] || {} as any), ...editingMenu },
+      }));
+
+      toast({ title: 'Menu saved', description: `Menu for ${selectedDate} has been saved.` });
+      setIsMenuModalOpen(false);
+    } catch (err: any) {
+      toast({ title: 'Failed to save', description: err.message || 'Something went wrong', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
   };
+
+  // Fetch monthly menus for the viewed month
+  React.useEffect(() => {
+    const fetchMonth = async () => {
+      const rid = (user as any)?.restaurantId?._id || (user as any)?.restaurantId?.id;
+      if (!rid) return;
+      const startDate = `${viewingYear}-${String(viewingMonth + 1).padStart(2, '0')}-01`;
+      const lastDay = new Date(viewingYear, viewingMonth + 1, 0).getDate();
+      const endDate = `${viewingYear}-${String(viewingMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      try {
+        setLoadingMonth(true);
+        const res = await getMonthlyMenu(rid, startDate, endDate);
+        // Normalize response into { [date]: {breakfast, lunch, dinner} }
+        const map: Record<string, { _id?: string; breakfast: string; lunch: string; dinner: string }> = {};
+        const items = (res?.payload?.data)
+          ?? (Array.isArray(res?.data) ? res.data : res?.data?.items)
+          ?? res;
+        if (Array.isArray(items)) {
+          for (const it of items) {
+            const rawDate: string | undefined = it.date || it.menuDate || it?.createdAt;
+            const dateKey = rawDate ? new Date(rawDate).toISOString().slice(0, 10) : undefined;
+            if (!dateKey) continue;
+            map[dateKey] = {
+              _id: it._id,
+              breakfast: it.breakfastPlans || it.breakfast || '',
+              lunch: it.lunchPlans || it.lunch || '',
+              dinner: it.dinnerPlans || it.dinner || '',
+            };
+          }
+        }
+        setMenuData(map);
+      } catch (e: any) {
+        toast({ title: 'Failed to load monthly menus', description: e.message || 'Something went wrong', variant: 'destructive' });
+      } finally {
+        setLoadingMonth(false);
+      }
+    };
+    fetchMonth();
+  }, [viewingMonth, viewingYear, user]);
 
   const handleExportPDF = () => {
     const doc = new jsPDF();
@@ -184,6 +268,8 @@ const MonthlyMenuPlan = () => {
     return viewingDate > currentDate ? "next" : "prev";
   };
 
+  const hasExistingForSelected = selectedDate ? !!menuData[selectedDate] : false;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -211,72 +297,23 @@ const MonthlyMenuPlan = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Planned Days</p>
-                <p className="text-2xl font-bold text-foreground">{getTotalPlannedDays()}</p>
-              </div>
-              <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Calendar className="h-4 w-4 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Breakfast Plans</p>
-                <p className="text-2xl font-bold text-amber-600">{getTotalPlannedDays()}</p>
-              </div>
-              <div className="h-8 w-8 bg-amber-100 rounded-lg flex items-center justify-center">
-                <Coffee className="h-4 w-4 text-amber-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Lunch Plans</p>
-                <p className="text-2xl font-bold text-green-600">{getTotalPlannedDays()}</p>
-              </div>
-              <div className="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <Utensils className="h-4 w-4 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Dinner Plans</p>
-                <p className="text-2xl font-bold text-purple-600">{getTotalPlannedDays()}</p>
-              </div>
-              <div className="h-8 w-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Moon className="h-4 w-4 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Calendar View */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
             {currentMonth} {currentYear} Menu Calendar
+            {loadingMonth && <span className="ml-2 text-xs text-muted-foreground">Loading...</span>}
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-7 gap-2">
+        <CardContent className="relative">
+          {loadingMonth && (
+            <div className="absolute inset-0 bg-background/70 backdrop-blur-[1px] flex flex-col items-center justify-center z-10">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mb-2" />
+              <span className="text-xs text-muted-foreground">Loading month...</span>
+            </div>
+          )}
+          <div className={`grid grid-cols-7 gap-2 ${loadingMonth ? 'pointer-events-none opacity-50' : ''}`}>
             {/* Week day headers */}
             {weekDays.map(day => (
               <div key={day} className="p-2 text-center font-medium text-muted-foreground border-b">
@@ -379,10 +416,11 @@ const MonthlyMenuPlan = () => {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleSaveMenu} className="flex-1">
-                Save Menu Plan
+              <Button onClick={handleSaveMenu} className="flex-1 gap-2" disabled={saving}>
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                {saving ? (hasExistingForSelected ? 'Updating...' : 'Saving...') : (hasExistingForSelected ? 'Update Menu Plan' : 'Save Menu Plan')}
               </Button>
-              <Button variant="outline" onClick={() => setIsMenuModalOpen(false)}>
+              <Button variant="outline" onClick={() => setIsMenuModalOpen(false)} disabled={saving}>
                 Cancel
               </Button>
             </div>

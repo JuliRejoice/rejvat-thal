@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Filter, Eye, Clock, User, Camera, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,74 +11,95 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePagination } from '@/hooks/use-pagination';
 import { DataTablePagination } from '@/components/common/DataTablePagination';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { getAllLeaveRequest } from '@/api/attendance.api';
 
-// Mock data for leave requests
-const mockLeaveRequests = [
-  {
-    id: '1',
-    date: '2024-01-20',
-    reason: 'Medical appointment for routine checkup',
-    status: 'approved',
-    appliedOn: '2024-01-18',
-    selfieUrl: null, // In real app, this would be a URL to uploaded selfie
-    approvedBy: 'Restaurant Manager',
-    approvedOn: '2024-01-19',
-    comments: 'Approved for medical appointment'
-  },
-  {
-    id: '2',
-    date: '2024-01-25',
-    reason: 'Family wedding ceremony',
-    status: 'pending',
-    appliedOn: '2024-01-22',
-    selfieUrl: null,
-    approvedBy: null,
-    approvedOn: null,
-    comments: null
-  },
-  {
-    id: '3',
-    date: '2024-01-15',
-    reason: 'Personal work - Bank visit',
-    status: 'rejected',
-    appliedOn: '2024-01-14',
-    selfieUrl: null,
-    approvedBy: 'Restaurant Manager',
-    approvedOn: '2024-01-14',
-    comments: 'Already too many staff on leave that day'
-  },
-  {
-    id: '4',
-    date: '2024-01-10',
-    reason: 'Fever and cold symptoms',
-    status: 'approved',
-    appliedOn: '2024-01-09',
-    selfieUrl: null,
-    approvedBy: 'Restaurant Manager',
-    approvedOn: '2024-01-09',
-    comments: 'Health is priority, take care'
-  },
-  {
-    id: '5',
-    date: '2024-01-05',
-    reason: 'Village visit for property work',
-    status: 'approved',
-    appliedOn: '2024-01-03',
-    selfieUrl: null,
-    approvedBy: 'Restaurant Manager',
-    approvedOn: '2024-01-04',
-    comments: 'Approved for important property work'
-  }
-];
+type LeaveRequest = {
+  id: string;
+  date: string; // formatted for display; could be range: fromDate - toDate
+  reason: string;
+  status: 'approved' | 'rejected' | 'pending' | string;
+  appliedOn: string;
+  selfieUrl: string | null;
+  approvedBy: string | null;
+  approvedOn: string | null;
+  comments: string | null;
+};
 
 const LeaveRequestHistory = () => {
-  const [leaveRequests] = useState(mockLeaveRequests);
-  const [selectedRequest, setSelectedRequest] = useState<typeof mockLeaveRequests[0] | null>(null);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    const fetchLeaveRequests = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await getAllLeaveRequest();
+        // Expecting res to contain an array. Try several common shapes.
+        const list = Array.isArray(res)
+          ? res
+          : Array.isArray(res?.data)
+            ? res.data
+            : Array.isArray(res?.result)
+              ? res.result
+              : Array.isArray(res?.leaveRequests)
+                ? res.leaveRequests
+                : Array.isArray(res?.payload?.data)
+                  ? res.payload.data
+                  : [];
+
+        const mapped: LeaveRequest[] = list.map((item: any) => {
+          const id = String(item._id ?? item.id);
+          const fromDate = item.fromDate ?? item.date ?? item.startDate ?? item.createdAt;
+          const toDate = item.toDate ?? item.endDate ?? item.date ?? item.updatedAt ?? item.createdAt;
+          const appliedOn = item.appliedOn ?? item.createdAt ?? item.requestedOn ?? item.created_at;
+          const status = String(item.status ?? 'pending').toLowerCase();
+
+          const format = (d: any) => {
+            try {
+              if (!d) return '-';
+              const dt = new Date(d);
+              if (isNaN(dt.getTime())) return String(d);
+              return dt.toISOString().slice(0, 10);
+            } catch {
+              return String(d);
+            }
+          };
+
+          const displayDate = fromDate && toDate && fromDate !== toDate
+            ? `${format(fromDate)} - ${format(toDate)}`
+            : format(fromDate ?? toDate);
+
+          return {
+            id,
+            date: displayDate,
+            reason: item.reason ?? '-',
+            status: status as LeaveRequest['status'],
+            appliedOn: format(appliedOn),
+            selfieUrl: item.selfieUrl ?? item.fileUrl ?? null,
+            approvedBy: item.approvedBy ?? item.approverName ?? null,
+            approvedOn: item.approvedOn ? format(item.approvedOn) : null,
+            comments: item.comments ?? item.remark ?? null,
+          };
+        });
+
+        setLeaveRequests(mapped);
+      } catch (e: any) {
+        setError(e.message ?? 'Failed to load leave requests');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaveRequests();
+  }, []);
 
   const filteredRequests = leaveRequests.filter(request => {
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
@@ -104,7 +125,7 @@ const LeaveRequestHistory = () => {
     itemsPerPage
   });
 
-  const handleViewRequest = (request: typeof mockLeaveRequests[0]) => {
+  const handleViewRequest = (request: LeaveRequest) => {
     setSelectedRequest(request);
     setIsViewModalOpen(true);
   };
@@ -155,6 +176,14 @@ const LeaveRequestHistory = () => {
           <p className="text-muted-foreground">Track your leave applications and their status</p>
         </div>
       </div>
+
+      {error && (
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-red-600">{error}</p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -248,7 +277,12 @@ const LeaveRequestHistory = () => {
           <CardTitle>Leave Requests ({filteredRequests.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {filteredRequests.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8">
+              <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-spin" />
+              <p className="text-muted-foreground">Loading leave requests...</p>
+            </div>
+          ) : filteredRequests.length === 0 ? (
             <div className="text-center py-8">
               <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">No leave requests found</p>

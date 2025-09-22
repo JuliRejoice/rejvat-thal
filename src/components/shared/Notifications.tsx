@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bell, Check, X, Calendar, Clock, User, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,70 +6,97 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { updateLeaveRequest } from '@/api/attendance.api';
+import { useAuth } from '@/contexts/AuthContext';
+import { getNotificationList, markAsRead, markAllAsRead } from '@/api/notification.api';
+import { toast } from 'sonner';
 
-// Mock data
-const mockNotifications = [
-  {
-    id: '1',
-    type: 'leave_request',
-    title: 'Leave Request from Alice Johnson',
-    message: 'Alice Johnson has requested leave for medical appointment on 2024-01-20',
-    timestamp: '2024-01-15 10:30',
-    status: 'unread',
-    priority: 'medium',
-    staffName: 'Alice Johnson',
-    leaveDate: '2024-01-20',
-    reason: 'Medical appointment'
-  },
-  {
-    id: '2',
-    type: 'leave_request',
-    title: 'Leave Request from Bob Smith',
-    message: 'Bob Smith has requested leave for family function on 2024-01-22',
-    timestamp: '2024-01-15 09:15',
-    status: 'unread',
-    priority: 'low',
-    staffName: 'Bob Smith',
-    leaveDate: '2024-01-22',
-    reason: 'Family function'
-  },
-  {
-    id: '3',
-    type: 'expense_alert',
-    title: 'High Expense Alert',
-    message: 'Expense amount exceeds threshold - ₹5,000 on vegetables purchase',
-    timestamp: '2024-01-14 16:45',
-    status: 'read',
-    priority: 'high',
-    amount: 5000,
-    category: 'Vegetables'
-  },
-  {
-    id: '4',
-    type: 'payment_due',
-    title: 'Vendor Payment Due',
-    message: 'Payment of ₹15,000 is due to Fresh Vegetables Co.',
-    timestamp: '2024-01-14 14:20',
-    status: 'unread',
-    priority: 'high',
-    vendorName: 'Fresh Vegetables Co.',
-    amount: 15000
-  },
-  {
-    id: '5',
-    type: 'system',
-    title: 'System Backup Completed',
-    message: 'Daily backup completed successfully at 2:00 AM',
-    timestamp: '2024-01-15 02:00',
-    status: 'read',
-    priority: 'low'
-  }
-];
+type NotificationItem = {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  status: 'read' | 'unread' | string;
+  priority: 'low' | 'medium' | 'high' | string;
+  staffName?: string;
+  leaveDate?: string;
+  reason?: string;
+  views?: string[];
+  createdAt?: string;
+  restaurantId?: string;
+  approved?: boolean;
+};
 
 const Notifications = () => {
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [filter, setFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+
+  const mapItem = useCallback((item: any): NotificationItem => {
+    const id = String(item._id ?? item.id);
+    const createdAt = item.createdAt ?? item.timestamp ?? new Date().toISOString();
+    const userId = user?._id;
+
+    // Extract sender and restaurant names from the new payload structure
+    const senderName = item.sender?.name || item.staffName || 'Unknown';
+    const restaurantName = item.leaveId?.restaurantId?.name || 'Unknown Restaurant';
+
+    // Check if notification is read based on view array
+    const isRead = Array.isArray(item.view) && userId ? item.view.includes(userId) : false;
+
+    const format = (d: any) => {
+      try {
+        const dt = new Date(d);
+        if (isNaN(dt.getTime())) return String(d ?? '');
+        return `${dt.toLocaleDateString()} ${dt.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+      } catch {
+        return String(d ?? '');
+      }
+    };
+
+    return {
+      id,
+      type: item.type ?? 'leave_request',
+      title: item.sender?.name || senderName,
+      message: item.message ?? `${senderName} has applied for leave`,
+      timestamp: format(createdAt),
+      status: isRead ? 'read' : 'unread',
+      priority: (item.priority ?? 'medium') as NotificationItem['priority'],
+      staffName: senderName,
+      leaveDate: item.leaveId?.fromDate ? format(item.leaveId.fromDate) : '',
+      reason: item.leaveId?.reason || '',
+      views: item.view || [],
+      createdAt: format(createdAt),
+      restaurantId: item.leaveId?.restaurantId || null,
+      approved : item.leaveId.status
+    };
+  }, [user]);
+
+  const fetchList = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await getNotificationList();
+
+      // Transform each notification item using mapItem
+      const transformedNotifications = res.payload.map((item: any) => mapItem(item));
+      setNotifications(transformedNotifications);
+    } catch (e: any) {
+      setError(e.message ?? 'Failed to load notifications');
+    } finally {
+      setLoading(false);
+    }
+  }, [mapItem]);
+
+
+  useEffect(() => {
+    fetchList();
+  }, [fetchList]);
 
   const filteredNotifications = notifications.filter(notification => {
     const matchesStatus = filter === 'all' || notification.status === filter;
@@ -77,9 +104,10 @@ const Notifications = () => {
     return matchesStatus && matchesPriority;
   });
 
-  const unreadCount = notifications.filter(n => n.status === 'unread').length;
+  const computedUnread = useMemo(() => notifications.filter(n => n.status === 'unread').length, [notifications]);
+  const unreadCount = computedUnread;
 
-  const handleMarkAsRead = (notificationId: string) => {
+  const handleMarkAsRead =async (notificationId: string) => {
     setNotifications(prev =>
       prev.map(notification =>
         notification.id === notificationId
@@ -87,27 +115,90 @@ const Notifications = () => {
           : notification
       )
     );
+    const res=await markAsRead(notificationId);
+    if(res.success) {
+      fetchList();
+      toast.success('Marked as read');
+    }
   };
 
-  const handleMarkAllAsRead = () => {
+  const handleMarkAllAsRead = async () => {
     setNotifications(prev =>
       prev.map(notification => ({ ...notification, status: 'read' }))
     );
+    const res=await markAllAsRead();
+    if(res.success) {
+      fetchList();
+      toast.success('All Messages are Marked as Read');
+    }
   };
 
-  const handleApproveLeave = (notificationId: string) => {
-    console.log('Approve leave request:', notificationId);
-    handleMarkAsRead(notificationId);
+  const handleApproveLeave = async (notificationId: string) => {
+    const notification = notifications.find(n => n.id === notificationId);
+    if (!notification) return;
+    try {
+      setProcessingId(notificationId);
+      setError(null);
+      const rid = (user as any)?.restaurantId?._id;
+      if (!rid) throw new Error('Missing restaurant id');
+
+      const leaveId = (notification as any).leaveId || (notification as any).leaveRequestId || notification.id;
+      const leaveDate = notification.leaveDate || new Date().toISOString().slice(0, 10);
+
+      await updateLeaveRequest({
+        id: String(leaveId),
+        restaurantId: String(rid),
+        fromDate: String(leaveDate),
+        toDate: String(leaveDate),
+        reason: String(notification.reason ?? ''),
+        status: 'approved',
+      });
+
+      handleMarkAsRead(notificationId);
+      // Optionally refresh full list from server to sync
+      // await fetchList();
+    } catch (e: any) {
+      setError(e.message || 'Failed to approve leave request');
+    } finally {
+      setProcessingId(null);
+    }
   };
 
-  const handleRejectLeave = (notificationId: string) => {
-    console.log('Reject leave request:', notificationId);
-    handleMarkAsRead(notificationId);
+  const handleRejectLeave = async (notificationId: string) => {
+    const notification = notifications.find(n => n.id === notificationId);
+    if (!notification) return;
+    try {
+      setProcessingId(notificationId);
+      setError(null);
+      const rid = (user as any)?.restaurantId?._id || (user as any)?.restaurantId?.id;
+      if (!rid) throw new Error('Missing restaurant id');
+
+      const leaveId = (notification as any).leaveId || (notification as any).leaveRequestId || notification.id;
+      const leaveDate = notification.leaveDate || new Date().toISOString().slice(0, 10);
+
+      await updateLeaveRequest({
+        id: String(leaveId),
+        restaurantId: String(rid),
+        fromDate: String(leaveDate),
+        toDate: String(leaveDate),
+        reason: String(notification.reason ?? ''),
+        status: 'rejected',
+      });
+
+      handleMarkAsRead(notificationId);
+      // Optionally refresh full list from server to sync
+      // await fetchList();
+    } catch (e: any) {
+      setError(e.message || 'Failed to reject leave request');
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'leave_request':
+      case 'leave request':
         return <Calendar className="h-4 w-4" />;
       case 'expense_alert':
         return <AlertCircle className="h-4 w-4" />;
@@ -130,70 +221,59 @@ const Notifications = () => {
   };
 
   const renderNotificationContent = (notification: any) => {
-    switch (notification.type) {
-      case 'leave_request':
-        return (
-          <div className="space-y-3">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback>
-                    {notification.staffName.split(' ').map((n: string) => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="font-medium">{notification.title}</h3>
-                  <p className="text-sm text-muted-foreground">{notification.message}</p>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-                    <span>Date: {notification.leaveDate}</span>
-                    <span>Reason: {notification.reason}</span>
-                  </div>
-                </div>
-              </div>
-              <Badge variant={getPriorityColor(notification.priority)}>
-                {notification.priority}
-              </Badge>
+    const typeLower = String(notification.type ?? '').toLowerCase();
+    const isRead = notification.status === 'read' &&
+                  Array.isArray(notification.views) &&
+                  notification.views.length > 0 &&
+                  user &&
+                  notification.views.includes(user._id);
+
+    return (
+      <div className={`space-y-3 ${!isRead ? 'bg-muted/20 p-3 rounded-lg' : ''}`}>
+        <div>
+          <div className="flex items-start gap-3">
+            <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+              isRead ? 'bg-muted' : 'bg-primary text-primary-foreground'
+            }`}>
+              {getNotificationIcon(notification.type)}
             </div>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={() => handleApproveLeave(notification.id)}
-                className="gap-2"
-              >
-                <Check className="h-3 w-3" />
-                Approve
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleRejectLeave(notification.id)}
-                className="gap-2"
-              >
-                <X className="h-3 w-3" />
-                Reject
-              </Button>
-            </div>
-          </div>
-        );
-      
-      default:
-        return (
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-muted rounded-lg flex items-center justify-center">
-                {getNotificationIcon(notification.type)}
-              </div>
-              <div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
                 <h3 className="font-medium">{notification.title}</h3>
-                <p className="text-sm text-muted-foreground">{notification.message}</p>
+                <Badge className="text-sm mt-1">{notification.restaurantId?.name}</Badge>
               </div>
+              <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
+             
             </div>
-            <Badge variant={getPriorityColor(notification.priority)}>
-              {notification.priority}
-            </Badge>
           </div>
-        );
-    }
+         
+        </div>
+        
+        {notification.approved === 'pending' && (
+          <div className="flex gap-2 mt-2">
+            <Button
+              size="sm"
+              onClick={() => handleApproveLeave(notification.id)}
+              disabled={processingId === notification.id}
+              className="gap-2"
+            >
+              <Check className="h-3 w-3" />
+              Approve
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleRejectLeave(notification.id)}
+              disabled={processingId === notification.id}
+              className="gap-2"
+            >
+              <X className="h-3 w-3" />
+              Reject
+            </Button>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -211,6 +291,14 @@ const Notifications = () => {
           Mark All as Read
         </Button>
       </div>
+
+      {error && (
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-red-600">{error}</p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -304,7 +392,12 @@ const Notifications = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {filteredNotifications.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-8">
+                <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-spin" />
+                <p className="text-muted-foreground">Loading notifications...</p>
+              </div>
+            ) : filteredNotifications.length === 0 ? (
               <div className="text-center py-8">
                 <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No notifications found</p>
@@ -321,7 +414,7 @@ const Notifications = () => {
                       <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-3">
                         <div className="flex items-center gap-2">
                           <Clock className="h-3 w-3" />
-                          {notification.timestamp}
+                          <span>Date: {new Date(notification.createdAt).toLocaleDateString()}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           {notification.status === 'unread' && (
