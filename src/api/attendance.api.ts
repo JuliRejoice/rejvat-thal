@@ -170,3 +170,113 @@ export const getMonthlyStaffAttendance = async (
     }
   }
 };
+
+
+export const leaveRequest = async (payload: {
+  restaurantId: string;
+  fromDate: string; // yyyy-MM-dd
+  toDate: string;   // yyyy-MM-dd
+  reason: string;
+  status?: string; // default pending
+  file?: File | null;
+}) => {
+  try {
+    const form = new FormData();
+    form.append("restaurantId", payload.restaurantId);
+    form.append("fromDate", payload.fromDate);
+    form.append("toDate", payload.toDate);
+    form.append("reason", payload.reason);
+    form.append("status", payload.status ?? "pending");
+    if (payload.file) {
+      form.append("file", payload.file);
+    }
+
+    const response = await axiosInstance.post(
+      `/leave/addLeaveRequest`,
+      form,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    console.log("leave request API Response:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("leave request API error:", error);
+    if (error.response) {
+      const errorMessage = error.response.data.message;
+      throw new Error(errorMessage);
+    } else if (error.request) {
+      throw new Error("Network error. Please check your connection.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+}
+
+export const updateLeaveRequest = async (payload: {
+  id: string;
+  restaurantId: string;
+  fromDate: string; // yyyy-MM-dd
+  toDate: string;   // yyyy-MM-dd
+  reason: string;
+  status: string; // pending | approved | rejected
+  file?: File | null;
+}) => {
+  try {
+    const form = new FormData();
+    form.append("restaurantId", payload.restaurantId);
+    form.append("fromDate", payload.fromDate);
+    form.append("toDate", payload.toDate);
+    form.append("reason", payload.reason);
+    form.append("status", payload.status);
+    if (payload.file) {
+      form.append("file", payload.file);
+    }
+
+    const response = await axiosInstance.put(
+      `/leave/updateLeaveRequest?id=${payload.id}`,
+      form,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    console.log("update leave request API Response:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("update leave request API error:", error);
+    if (error.response) {
+      const errorMessage = error.response.data.message;
+      throw new Error(errorMessage);
+    } else if (error.request) {
+      throw new Error("Network error. Please check your connection.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
+
+// Fetch all leave requests
+export const getAllLeaveRequest = async () => {
+  try {
+    const response = await axiosInstance.get(`/leave/getAllLeaveRequest`);
+    console.log("get all leave request API Response:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("get all leave request API error:", error);
+    if (error.response) {
+      const errorMessage = error.response.data.message;
+      throw new Error(errorMessage);
+    } else if (error.request) {
+      throw new Error("Network error. Please check your connection.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+}
+

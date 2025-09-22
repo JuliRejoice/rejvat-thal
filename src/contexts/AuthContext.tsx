@@ -4,11 +4,14 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 export type UserRole = "admin" | "manager" | "staff";
 
 export interface User {
-  id: string;
+  _id: string;
   email: string;
   name: string;
   role: UserRole;
-  restaurantId?: string;
+  restaurantId?: {
+    name: string;
+    _id: string;
+  };
   restaurantName?: string;
 }
 

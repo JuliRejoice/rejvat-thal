@@ -39,7 +39,7 @@ const PlaceholderPage = ({ title }: { title: string }) => (
 
 const Index = () => {
   const { isAuthenticated, user } = useAuth();
-  console.log("🚀 ~ Index ~ user:", user, isAuthenticated)
+  // console.log("🚀 ~ Index ~ user:", user, isAuthenticated)
 
   if (!isAuthenticated) {
     return (
