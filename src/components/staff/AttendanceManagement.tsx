@@ -75,6 +75,9 @@ const NotesDisplay = ({ notes }: { notes: string }) => {
 const AttendanceManagement = () => {
   const [isMarkingAttendance, setIsMarkingAttendance] = useState(false);
   const [isApplyingLeave, setIsApplyingLeave] = useState(false);
+  const [localImagePreview, setLocalImagePreview] = useState<string | null>(null);
+  const [leaveImagePreview, setLeaveImagePreview] = useState<string | null>(null);
+
   const [selectedYear, setSelectedYear] = useState(
     new Date().getFullYear().toString()
   );
@@ -218,19 +221,23 @@ const AttendanceManagement = () => {
     createAtten(attendanceData);
   };
 
-  const AttendanceMarkModal = () => {
-    const [localImagePreview, setLocalImagePreview] = useState<string | null>(null);
+  const AttendanceMarkModal = ({ localImagePreview, setLocalImagePreview }: { localImagePreview: string | null; setLocalImagePreview: (preview: string | null) => void }) => {
     const [isCameraActive, setIsCameraActive] = useState(false);
     const webcamRef = useRef<Webcam>(null);
+
 
     const capturePhoto = () => {
       if (!webcamRef.current) return;
 
       const imageSrc = webcamRef.current.getScreenshot();
-      if (!imageSrc) return;
-      console.log({ imageSrc })
+      if (!imageSrc) {
+        console.log("⚠️ Screenshot returned null. Is camera active?");
+        return;
+      }
+ 
       // Show preview immediately
       setLocalImagePreview(imageSrc);
+      // setIsCameraActive(false);
 
       // Convert base64 to File without fetch
       const base64ToFile = (base64: string, filename: string) => {
@@ -287,7 +294,7 @@ const AttendanceManagement = () => {
 
 
                 <div className="upload-box space-y-3 flex flex-col justify-center items-center border border-dashed border-2 rounded-xl p-3">
-                  {!localImagePreview ? (
+                  {!localImagePreview && (
                     isCameraActive ? (
                       <Webcam
                         ref={webcamRef}
@@ -304,7 +311,9 @@ const AttendanceManagement = () => {
                       </Button>
                       </div>
                     )
-                  ) : (
+                  ) }
+                  
+                  {localImagePreview && (
                     <img
                       src={localImagePreview}
                       alt="Captured selfie"
@@ -365,10 +374,9 @@ const AttendanceManagement = () => {
     );
   };
 
-  const LeaveApplicationModal = () => {
+  const LeaveApplicationModal = ({ leaveImagePreview, setLeaveImagePreview }: { leaveImagePreview: string | null; setLeaveImagePreview: (preview: string | null) => void }) => {
     const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
     const [startDate, endDate] = dateRange;
-    const [leaveImagePreview, setLeaveImagePreview] = useState<string | null>(null);
     const [leaveImageMode, setLeaveImageMode] = useState<'upload' | 'selfie'>('selfie' as 'upload' | 'selfie');
     const [isLeaveCameraOn, setIsLeaveCameraOn] = useState(false);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -859,7 +867,7 @@ return (
                   Mark Attendance
                 </Button>
               </DialogTrigger>
-              <AttendanceMarkModal />
+              <AttendanceMarkModal localImagePreview={localImagePreview} setLocalImagePreview={setLocalImagePreview} />
             </Dialog>
 
             <Dialog open={isApplyingLeave} onOpenChange={setIsApplyingLeave}>
@@ -869,7 +877,7 @@ return (
                   Apply Leave
                 </Button>
               </DialogTrigger>
-              <LeaveApplicationModal />
+              <LeaveApplicationModal leaveImagePreview={leaveImagePreview} setLeaveImagePreview={setLeaveImagePreview} />
             </Dialog>
           </div>
           {/* Removed right-side quick metrics per request */}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   Plus,
   Search,
@@ -60,6 +60,8 @@ import { StaffTableSkeleton, StatsCardsSkeleton } from "./SkeletonStaffManag";
 import { NoData } from "../common/NoData";
 import { getAttendanceAndLeaveByStaff, updateLeaveRequest } from "@/api/attendance.api";
 import { AttendanceRecordsSkeleton } from "../staff/AttendanceSkeleton";
+import { getRestaurants } from "@/api/restaurant.api";
+import { SearchableDropDown } from "@/components/common/SearchableDropDown";
 
 const mockAttendance = [];
 const mockLeaveRequests = [];
@@ -67,6 +69,7 @@ const mockLeaveRequests = [];
 const StaffManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterRestaurant, setFilterRestaurant] = useState("all");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<any>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -76,9 +79,20 @@ const StaffManagement = () => {
   const [page, setPage] = useState(1);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [selectedUpdateStaff, setSelectedUpdateStaff] = useState<any>(null);
+  const [searchRestaurant, setSearchRestaurant] = useState("");
   // Fetch selected staff's attendance and leave when View modal is open
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  console.log("selectedStaff", selectedStaff);
+  const debouncedOnSearch = useCallback((query: string) => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+  
+    debounceTimeoutRef.current = setTimeout(() => {
+      setSearchRestaurant(query);
+    }, 300); 
+  }, []);
+
   const {
     data: staffAttLeave,
     isPending: isStaffAttLeavePending,
@@ -209,8 +223,21 @@ const StaffManagement = () => {
   });
 
   const staff = getStaff?.payload?.data || [];
-  const totalItems = getStaff?.payload?.count || 0;
+  const filteredStaff = staff.filter((member) => {
+    const matchesStatus = filterStatus === "all" ||
+      (filterStatus === "active" && member.isActive) ||
+      (filterStatus === "deactive" && !member.isActive);
+    const matchesRestaurant = filterRestaurant === "all" ||
+      member.restaurantId?._id === filterRestaurant;
+    return matchesStatus && matchesRestaurant;
+  });
+  const totalItems = filteredStaff.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  const { data: restaurants } = useQuery({
+    queryKey: ["get-all-restaurants",searchRestaurant],
+    queryFn: () => getRestaurants({}),
+  });
 
   const handleViewStaff = (staffMember: any) => {
     setSelectedStaff(staffMember);
@@ -221,6 +248,8 @@ const StaffManagement = () => {
     setSelectedUpdateStaff(member);
     setIsConfirmOpen(true);
   };
+
+
 
   return (
     <div className="space-y-6">
@@ -364,8 +393,25 @@ const StaffManagement = () => {
 
       {/* Staff Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Staff Members ({staff.length})</CardTitle>
+        <CardHeader className="flex flex-row justify-between items-center">
+          <CardTitle>Staff Members ({filteredStaff.length})</CardTitle>
+          <SearchableDropDown
+            options={[
+              { id: "all", name: "All Restaurants" },
+              ...(restaurants?.payload?.data?.map((restaurant) => ({
+                id: restaurant._id,
+                name: restaurant.name,
+              })) || []),
+            ]}
+            value={filterRestaurant}
+            onSearch={(query) => {
+              debouncedOnSearch(query);
+            }}
+            onClose={() => {
+              setSearchRestaurant("");
+            }}
+            onChange={(value) => setFilterRestaurant(value)}
+          />
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -385,7 +431,7 @@ const StaffManagement = () => {
               <TableBody>
                 {isGetStaffPending ? (
                   <StaffTableSkeleton />
-                ) : staff.length <= 0 ? (
+                ) : filteredStaff.length <= 0 ? (
                   <TableRow>
                     <TableCell colSpan={7}>
                       <NoData
@@ -396,7 +442,7 @@ const StaffManagement = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  staff.map((member) => (
+                  filteredStaff.map((member) => (
                     <TableRow key={member._id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -779,6 +825,7 @@ const StaffManagement = () => {
                               </div>
                               <Select
                                 value={request.status}
+                                disabled={request.status === "approved" || request.status === "rejected"}
                                 onValueChange={(value) => {
                                   updateLeaveStatus({
                                     id: request._id,

@@ -29,6 +29,7 @@ type SearchableDropDownProps = {
   onChange?: (value: string) => void;
   required?: boolean;
   error?: string;
+  onClose?: () => void;
 };
 
 export function SearchableDropDown({
@@ -37,15 +38,55 @@ export function SearchableDropDown({
   value,
   onChange,
   required,
-  error
+  error,
+  onClose
 }: SearchableDropDownProps) {
   const [open, setOpen] = React.useState(false);
   const [internalValue, setInternalValue] = React.useState("");
+  const [optionSelected, setOptionSelected] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
   const selectedValue = value ?? internalValue;
+
+  // Filter options based on search query
+  const filteredOptions = React.useMemo(() => {
+    if (!searchQuery.trim()) {
+      return options;
+    }
+    return options.filter((opt) =>
+      opt.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [options, searchQuery]);
+
+  React.useEffect(() => {
+    if (open) {
+      setSearchQuery("");
+    }
+  }, [open]);
+
+  console.log(searchQuery,'-------------------');
 
   return (
     <div>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={(newOpen) => {
+        setOpen(newOpen);
+        if (!newOpen && !optionSelected) {
+          if (onClose) {
+            onClose();
+          }
+        }
+
+        if (newOpen) { // When opening
+          setSearchQuery(""); // Clear search
+        }
+
+        if (!newOpen) { // When popover closes
+          setOptionSelected(false);
+          setSearchQuery(""); // Always clear search
+          if (!optionSelected && onClose) {
+            onClose(); // Call callback if needed
+          }
+        }
+      }}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
@@ -72,12 +113,13 @@ export function SearchableDropDown({
                 if (onSearch) {
                   onSearch(val);
                 }
+                setSearchQuery(val);
               }}
             />
             <CommandList>
               <CommandEmpty>No results found.</CommandEmpty>
               <CommandGroup>
-                {options?.map((opt) => (
+                {filteredOptions?.map((opt) => (
                   <CommandItem
                     key={opt.id}
                     value={opt.id}
@@ -93,6 +135,8 @@ export function SearchableDropDown({
                         );
                       }
                       setOpen(false);
+                      setSearchQuery("");
+                      setOptionSelected(true);
                     }}
                     onSelect={(currentValue) => {
                       if (onChange) {
@@ -105,6 +149,8 @@ export function SearchableDropDown({
                         );
                       }
                       setOpen(false);
+                      setSearchQuery("");
+                      setOptionSelected(true);
                     }}
                   >
                     {opt.name}
