@@ -21,8 +21,15 @@ export const OTPVerificationForm = () => {
   const location = useLocation();
   const { toast } = useToast();
   
-  // Get email from navigation state (passed from login/signup)
-  const email = location.state?.email || '';
+  // Get email from navigation state (passed from login/signup) and normalize it to a string
+  const rawEmail = (location as any)?.state?.email;
+  const email: string = typeof rawEmail === "string"
+    ? rawEmail
+    : (rawEmail && typeof rawEmail === "object" && typeof (rawEmail as any).email === "string"
+        ? (rawEmail as any).email
+        : "");
+
+  console.log("🚀 ~ OTPVerificationForm ~ email:", email)
 
   // Timer countdown effect
   useEffect(() => {

@@ -7,11 +7,16 @@ import { useQuery } from '@tanstack/react-query';
 import { getDashboardOverview, type ApiResponse, type DashboardResponse, type OverviewCardProps } from '@/api/dashboard.api';
 import { Dirham } from '../Svg';
 import { BalanceOverviewSkeleton } from '../manager/ManagerIncomeExpenseSkeletons';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ManagerDashboard = () => {
-  const { data, isLoading, } = useQuery<ApiResponse<DashboardResponse>>({
-    queryKey: ["get-dashboard-overview"],
-    queryFn: () => getDashboardOverview(`/transaction/getByRestaurantOverview?restaurantId=${'68b16a9eb7c6bbda40b2b4dd'}`),
+  const { user } = useAuth();
+  const restaurantId = user?.restaurantId._id;
+
+  const { data, isLoading } = useQuery<ApiResponse<DashboardResponse>>({
+    queryKey: ["get-dashboard-overview", restaurantId],
+    queryFn: () => getDashboardOverview(`/transaction/getByRestaurantOverview?restaurantId=${restaurantId}`),
+    enabled: Boolean(restaurantId),
   });
 
   const dashboardData = data?.payload;

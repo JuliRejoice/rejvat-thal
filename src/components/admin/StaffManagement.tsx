@@ -58,7 +58,7 @@ import {
 import { ConfirmationDialog } from "../common/ConfirmationDialog";
 import { StaffTableSkeleton, StatsCardsSkeleton } from "./SkeletonStaffManag";
 import { NoData } from "../common/NoData";
-import { getAttendanceAndLeaveByStaff } from "@/api/attendance.api";
+import { getAttendanceAndLeaveByStaff, updateLeaveRequest } from "@/api/attendance.api";
 import { AttendanceRecordsSkeleton } from "../staff/AttendanceSkeleton";
 
 const mockAttendance = [];
@@ -77,9 +77,12 @@ const StaffManagement = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [selectedUpdateStaff, setSelectedUpdateStaff] = useState<any>(null);
   // Fetch selected staff's attendance and leave when View modal is open
+
+  console.log("selectedStaff", selectedStaff);
   const {
     data: staffAttLeave,
     isPending: isStaffAttLeavePending,
+    refetch: refetchStaffAttLeave,
   } = useQuery({
     queryKey: [
       "get-staff-attendance-leave",
@@ -93,7 +96,6 @@ const StaffManagement = () => {
   const staffDetail = staffAttLeave?.payload?.data?.[0];
   const staffAttendance = staffDetail?.attendance || [];
   const staffLeaves = staffDetail?.leave || [];
-
 
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -181,6 +183,28 @@ const StaffManagement = () => {
         description: "Unable to update staff. Please try again.",
       });
       console.error("Error updating staff:", error);
+    },
+  });
+
+  const { mutate: updateLeaveStatus, isPending: isLeaveStatusUpdating } = useMutation({
+    mutationKey: ["update-leave-request"],
+    mutationFn: (payload: any) => updateLeaveRequest(payload),
+    onSuccess: () => {
+      toast({
+        variant: "default",
+        title: "Leave status updated",
+        description: "Updated leave request status successfully.",
+      });
+      // Refresh the attendance/leave list
+      refetchStaffAttLeave();
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to update leave status",
+        description: error?.message || "Please try again.",
+      });
+      console.error("Error updating leave status:", error);
     },
   });
 
@@ -354,6 +378,7 @@ const StaffManagement = () => {
                   {!isMobile && <TableHead>Attendance</TableHead>}
                   {!isMobile && <TableHead>Join Date</TableHead>}
                   <TableHead>Status</TableHead>
+                  <TableHead>Salary</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -456,6 +481,13 @@ const StaffManagement = () => {
                         >
                           {member.isActive ? "Active" : "Deactive"}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm font-medium">
+                            {member.salary ? member.salary : "-"}
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1 sm:gap-2">
@@ -564,7 +596,7 @@ const StaffManagement = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                       <div className="space-y-1">
                         <p className="text-xs text-muted-foreground uppercase tracking-wide">Email</p>
                         <p className="text-sm text-foreground break-all">{selectedStaff.email}</p>
@@ -590,6 +622,35 @@ const StaffManagement = () => {
                             ? new Date(selectedStaff?.joiningDate).toLocaleDateString("en-GB")
                             : "-"}
                         </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Salary</p>
+                        <p className="text-sm text-foreground">{selectedStaff?.salary}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Profile Image</p>
+                        <div className="relative w-24 h-24 border rounded-lg overflow-hidden bg-muted/10 flex items-center justify-center">
+                          {/* Preview label */}
+                          <span className="absolute top-1 left-1 text-[10px] text-muted-foreground">Preview</span>
+                          {selectedStaff?.profileImage ? (
+                            <img
+                              src={selectedStaff.profileImage}
+                              alt="Preview"
+                              className="w-full h-full object-cover"
+                              crossOrigin="anonymous"
+                              referrerPolicy="no-referrer"
+                              loading="lazy"
+                              decoding="async"
+                              onError={(e) => {
+                                // Keep the broken image icon visible; no need to hide
+                                // But ensure container stays sized and styled
+                                (e.target as HTMLImageElement).className = "w-full h-full object-contain";
+                              }}
+                            />
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground">No image</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -716,18 +777,30 @@ const StaffManagement = () => {
                                 </p>
                                 <p className="text-sm text-muted-foreground">{request.reason}</p>
                               </div>
-                              <Badge
-                                variant="outline"
-                                className={`${
-                                  request.status === "approved"
-                                    ? "bg-green-100 border border-green-300 hover:bg-green-200"
-                                    : request.status === "pending"
-                                    ? "bg-yellow-100 border border-yellow-300 hover:bg-yellow-200"
-                                    : "bg-red-100 border border-red-300 hover:bg-red-200"
-                                }`}
+                              <Select
+                                value={request.status}
+                                onValueChange={(value) => {
+                                  updateLeaveStatus({
+                                    id: request._id,
+                                    restaurantId:
+                                      request?.restaurantId?._id || request?.restaurantId || selectedStaff?.restaurantId?._id || "",
+                                    fromDate: new Date(request.fromDate).toISOString().split("T")[0],
+                                    toDate: new Date(request.toDate).toISOString().split("T")[0],
+                                    reason: request.reason || "",
+                                    status: value,
+                                    file: undefined,
+                                  });
+                                }}
                               >
-                                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                              </Badge>
+                                <SelectTrigger className="w-36">
+                                  <SelectValue placeholder="Select status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="pending">Pending</SelectItem>
+                                  <SelectItem value="approved">Approved</SelectItem>
+                                  <SelectItem value="rejected">Rejected</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
                           </div>
                         ))}

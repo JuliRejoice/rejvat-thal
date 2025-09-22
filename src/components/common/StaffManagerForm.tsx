@@ -272,7 +272,7 @@ export function StaffManagerForm ({
                   id="restaurantId"
                   value={
                     restaurantsOptions.find(
-                      (r) => r.id === watch("restaurantId")
+                      (r: any) => r.id === watch("restaurantId")
                     )?.name || ""
                   }
                   readOnly
