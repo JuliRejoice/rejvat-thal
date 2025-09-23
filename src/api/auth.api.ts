@@ -13,6 +13,7 @@ export const signUp = async (formData) => {
         data.append('restaurantId', formData.restaurantId);
         data.append('position', formData.position || 'staff');
         data.append('isUserType', formData.isUserType || 'staff');
+        data.append('salary', formData.salary);
         
         // Add file if exists
         if (formData.file) {

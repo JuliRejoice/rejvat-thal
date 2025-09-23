@@ -570,6 +570,7 @@ const ManagerManagement = () => {
                 phone: selectedEditManager.phone || "",
                 address: selectedEditManager.address || "",
                 restaurantId: selectedEditManager.restaurantId?._id || "",
+                salary: selectedEditManager?.salary,
                 position: "manager",
                 isUserType: "manager",
                 joiningDate: selectedEditManager.joiningDate

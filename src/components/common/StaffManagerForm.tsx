@@ -44,6 +44,7 @@ export function StaffManagerForm ({
     queryFn: () => getRestaurants({}),
   });
 
+
   useEffect(() => {
     if (getAllRestaurants?.payload?.data) {
       setRestaurantsOptions(
@@ -54,6 +55,7 @@ export function StaffManagerForm ({
       );
     }
   }, [getAllRestaurants]);
+
 
   const handleSearch = async (query: string) => {
     const res = await getRestaurants({ search: query });
@@ -79,6 +81,7 @@ export function StaffManagerForm ({
       phone: "",
       address: "",
       restaurantId: "",
+      salary: "",
       joiningDate: "",
       position: type,
       isUserType: type,
@@ -97,7 +100,7 @@ export function StaffManagerForm ({
 
   useEffect(() => {
     if (isManager && user?.restaurantId && !defaultValues?.restaurantId) {
-      setValue("restaurantId", user.restaurantId, {
+      setValue("restaurantId", user.restaurantId._id, {
         shouldValidate: true,
         shouldTouch: true,
       });
@@ -267,31 +270,24 @@ export function StaffManagerForm ({
                   </p>
                 )}
               </div>
-              {isManager || mode === "edit" ? (
-                <Input
-                  id="restaurantId"
-                  value={
-                    restaurantsOptions.find(
-                      (r: any) => r.id === watch("restaurantId")
-                    )?.name || ""
-                  }
-                  readOnly
-                  className="bg-gray-50"
-                  placeholder="Loading restaurant..."
-                />
-              ) : (
+              {
                 <SearchableDropDown
-                  options={restaurantsOptions}
-                  onSearch={handleSearch}
+                  options={[
+                    { id: "all", name: "All Restaurants" },
+                    ...(restaurantsOptions.map((restaurant) => ({
+                      id: restaurant.id,
+                      name: restaurant.name,
+                    })) || []),
+                  ]}
                   value={watch("restaurantId")}
-                  onChange={(val) => {
-                    setValue("restaurantId", val, {
+                  onChange={(value) => {
+                    setValue("restaurantId", value, {
                       shouldValidate: true,
                       shouldTouch: true,
                     });
                   }}
                 />
-              )}
+              }
             </div>
           </div>
 
