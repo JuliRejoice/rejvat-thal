@@ -65,6 +65,7 @@ export const getIncomeExpense = async ({
     page: any,
     limit: any
 }) => {
+    console.log(restaurantId, typeof restaurantId)
     try {
         const params: any = {};
 

@@ -180,9 +180,13 @@ const IncomeExpenseManagement = () => {
     isPending: isGetTranByMthdPending,
   } = getTransactionByMethodQuery;
 
+
+  console.log(getTransactionByMethodData)
+
   const balanceData = getIncomeExpenseByRestData?.payload;
   const paymentMethodStats = getTransactionByMethodData?.payload?.method;
   const transactions = getIncExpTransactionData?.payload?.data;
+  console.log("🚀 ~ IncomeExpenseManagement ~ transactions:", transactions)
 
   const totalItems = getIncExpTransactionData?.payload?.count || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);

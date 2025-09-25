@@ -34,7 +34,6 @@ export function VendorAddForm({
             email: "",
             contactPerson: "",
             phone: "",
-            wallet: "",
             description: "",
             address: "",
             ...defaultValues,
@@ -123,7 +122,7 @@ export function VendorAddForm({
                                 maxLength={55}
                             />
                         </div>
-                        <div className="space-y-2">
+                        {/* <div className="space-y-2">
                             <div className="flex gap-3 items-baseline">
                                 <Label htmlFor="wallet">Due Amount</Label>
                                 {errors.wallet && (
@@ -144,7 +143,7 @@ export function VendorAddForm({
                                 placeholder="Enter due amount"
                                 inputMode="decimal"
                             />
-                        </div>
+                        </div> */}
                     </div>
                     <div className="space-y-2">
                         <div className="flex gap-3 items-baseline">

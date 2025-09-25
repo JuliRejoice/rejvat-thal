@@ -111,13 +111,13 @@ const ManagerIncomeExpense = () => {
   });
 
   const queryData = {
-    restaurantId: restaurantId,
+    restaurantId: restaurantId._id,
     startDate: selectedDate,
     endDate: selectedEndDate,
   };
 
   const cardsQueryData = {
-    restaurantId: restaurantId,
+    restaurantId: restaurantId._id,
     startDate: selectedBalanceOverviewDate,
     endDate: selectedBalanceOverviewDate,
   };
@@ -219,7 +219,7 @@ const ManagerIncomeExpense = () => {
     register("file", { required: "Bill or receipt is required" });
     register("method", { required: "Payment method is required" });
     if (restaurantId) {
-      setValue("restaurantId", restaurantId);
+      setValue("restaurantId", restaurantId._id);
     }
   }, [register, restaurantId]);
 
@@ -287,7 +287,7 @@ const ManagerIncomeExpense = () => {
                 onSubmit={(data: any) => addSubmit(data, "expense")}
                 isPending={isPending}
                 showRestaurantSelector={false}
-                defaultValues={{ restaurantId: restaurantId, date: selectedDate }}
+                defaultValues={{ restaurantId: restaurantId._id, date: selectedDate }}
                 onCancel={() => {
                   setIsAddingIncome(false);
                   setIsAddingExpense(false);
@@ -315,7 +315,7 @@ const ManagerIncomeExpense = () => {
                 onSubmit={(data: any) => addSubmit(data, "income")}
                 isPending={isPending}
                 showRestaurantSelector={false}
-                defaultValues={{ restaurantId: restaurantId, date: selectedDate }}
+                defaultValues={{ restaurantId: restaurantId._id, date: selectedDate }}
                 onCancel={() => {
                   setIsAddingIncome(false);
                   setIsAddingExpense(false);

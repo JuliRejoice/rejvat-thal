@@ -60,6 +60,7 @@ const Notifications = () => {
     };
 
     return {
+      ...item,
       id,
       type: item.type ?? 'leave_request',
       title: item.sender?.name || senderName,
@@ -134,22 +135,26 @@ const Notifications = () => {
   };
 
   const handleApproveLeave = async (notificationId: string) => {
+
     const notification = notifications.find(n => n.id === notificationId);
     if (!notification) return;
     try {
       setProcessingId(notificationId);
       setError(null);
-      const rid = (user as any)?.restaurantId?._id;
+      console.log(notification,'notification');
+      const rid = notification.leaveId?.restaurantId?._id;
       if (!rid) throw new Error('Missing restaurant id');
+      console.log(notificationId,'-----------------------------------');
 
-      const leaveId = (notification as any).leaveId || (notification as any).leaveRequestId || notification.id;
-      const leaveDate = notification.leaveDate || new Date().toISOString().slice(0, 10);
+      const leaveId = notification.leaveId?._id;
+      const startDate = notification.leaveId?.fromDate;
+      const endDate = notification.leaveId?.toDate;
 
       await updateLeaveRequest({
         id: String(leaveId),
         restaurantId: String(rid),
-        fromDate: String(leaveDate),
-        toDate: String(leaveDate),
+        fromDate: String(startDate),
+        toDate: String(endDate),
         reason: String(notification.reason ?? ''),
         status: 'approved',
       });
@@ -173,14 +178,15 @@ const Notifications = () => {
       const rid = (user as any)?.restaurantId?._id || (user as any)?.restaurantId?.id;
       if (!rid) throw new Error('Missing restaurant id');
 
-      const leaveId = (notification as any).leaveId || (notification as any).leaveRequestId || notification.id;
-      const leaveDate = notification.leaveDate || new Date().toISOString().slice(0, 10);
+      const leaveId = notification.leaveId?._id;
+      const startDate = notification.leaveId?.fromDate;
+      const endDate = notification.leaveId?.toDate;
 
       await updateLeaveRequest({
         id: String(leaveId),
         restaurantId: String(rid),
-        fromDate: String(leaveDate),
-        toDate: String(leaveDate),
+        fromDate: String(startDate),
+        toDate: String(endDate),
         reason: String(notification.reason ?? ''),
         status: 'rejected',
       });

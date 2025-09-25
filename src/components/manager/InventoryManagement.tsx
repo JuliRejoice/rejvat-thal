@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, Search, Filter, Upload, IndianRupee, Package, Truck, Receipt, Calendar } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Plus, Search, Filter, Upload, IndianRupee, Package, Truck, Receipt, Calendar, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,14 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { usePagination } from '@/hooks/use-pagination';
 import { DataTablePagination } from '@/components/common/DataTablePagination';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { getAllVendors } from '@/api/vendor.api';
+import { useQuery } from '@tanstack/react-query';
+import { Controller, useForm } from 'react-hook-form';
+import AddOrderDialog from './AddOrderDialog';
+import { getInventoryList } from '@/api/inventory.api';
+import { useAuth } from '@/contexts/AuthContext';
+import AddPaymentDialog from './AddPaymentDialog';
+import { getVendorPayment } from '@/api/paymentMethod.api';
 
 // Mock data
 const mockVendors = [
@@ -67,11 +75,50 @@ const mockPayments = [
 ];
 
 const InventoryManagement = () => {
-  const [orders] = useState(mockOrders);
-  const [payments] = useState(mockPayments);
+
   const [isAddOrderModalOpen, setIsAddOrderModalOpen] = useState(false);
   const [isAddPaymentModalOpen, setIsAddPaymentModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const {user} = useAuth();
+
+  const { data: vendorsData, isLoading: vendorsLoading, error: vendorsError } = useQuery({
+    queryKey: ['vendors'],
+    queryFn: () => getAllVendors({
+      page: 1,
+      limit: 100,
+      search: '',
+      isActive: true
+    })
+  });
+
+  const {data : orderData , isLoading : ordersLoading , error : ordersError} = useQuery({
+    queryKey : ['orders'],
+    queryFn : () => getInventoryList({
+      page : 1,
+      limit : 100,
+      search : '',
+      isActive : true,
+      restaurantId : user?.restaurantId._id,
+      // vendorId : 
+    })
+  })
+
+  const {data : paymentData , isLoading : paymentsLoading , error : paymentsError} = useQuery({
+    queryKey : ['payments'],
+    queryFn : () => getVendorPayment({
+      page : 1,
+      limit : 100,
+      search : '',
+      isActive : true,
+      restaurantId : user?.restaurantId._id,
+      expenseCategoryId : "68bff6c834305c04a6926d1f"
+    })
+  })
+  const vendors=vendorsData?.payload?.data;
+  const orders=orderData?.payload?.data;
+  const payments=paymentData?.payload?.items;
+
+  const { control, register } = useForm();
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -81,15 +128,15 @@ const InventoryManagement = () => {
   };
 
   const getTotalOrders = () => {
-    return orders.reduce((sum, order) => sum + order.amount, 0);
+    // return orders.reduce((sum, order) => sum + order.amount, 0);
   };
 
   const getTotalPayments = () => {
-    return payments.reduce((sum, payment) => sum + payment.amount, 0);
+    // return payments.reduce((sum, payment) => sum + payment.amount, 0);
   };
 
   const getPendingAmount = () => {
-    return getTotalOrders() - getTotalPayments();
+    // return getTotalOrders() - getTotalPayments();
   };
 
   return (
@@ -101,7 +148,9 @@ const InventoryManagement = () => {
           <p className="text-muted-foreground">Manage vendor orders and payments</p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={isAddOrderModalOpen} onOpenChange={setIsAddOrderModalOpen}>
+        <Button onClick={() => setIsAddOrderModalOpen(true)}>Add Order</Button>
+        <Button onClick={() => setIsAddPaymentModalOpen(true)}>Add Payment</Button>
+          {/* <Dialog open={isAddOrderModalOpen} onOpenChange={setIsAddOrderModalOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Package className="h-4 w-4" />
@@ -115,18 +164,24 @@ const InventoryManagement = () => {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="vendor">Select Vendor</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose vendor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockVendors.map(vendor => (
-                        <SelectItem key={vendor.id} value={vendor.id}>
-                          {vendor.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    control={control}
+                    name="vendor"
+                    render={({ field }) => (
+                      <Select {...field}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose vendor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {vendors?.map((vendor) => (
+                            <SelectItem key={vendor.id} value={vendor.id}>
+                              {vendor.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="orderItems">Order Items</Label>
@@ -135,16 +190,16 @@ const InventoryManagement = () => {
                 <div className="space-y-2">
                   <Label htmlFor="amount">Amount (₹)</Label>
                   <Input id="amount" type="number" placeholder="Enter total amount" />
-                </div>
+                </div>  
                 <div className="space-y-2">
                   <Label htmlFor="orderDate">Order Date</Label>
                   <Input id="orderDate" type="date" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="orderImage">Upload Receipt/Image</Label>
-                  <Input 
-                    id="orderImage" 
-                    type="file" 
+                  <Input
+                    id="orderImage"
+                    type="file"
                     accept="image/*"
                     onChange={handleImageUpload}
                   />
@@ -161,9 +216,11 @@ const InventoryManagement = () => {
                 </div>
               </div>
             </DialogContent>
-          </Dialog>
-          
-          <Dialog open={isAddPaymentModalOpen} onOpenChange={setIsAddPaymentModalOpen}>
+          </Dialog> */}
+
+          <AddOrderDialog vendors={vendors} isOpen={isAddOrderModalOpen} setIsOpen={setIsAddOrderModalOpen} />
+          <AddPaymentDialog vendors={vendors} isOpen={isAddPaymentModalOpen} setIsOpen={setIsAddPaymentModalOpen} />
+          {/* <Dialog open={isAddPaymentModalOpen} onOpenChange={setIsAddPaymentModalOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="gap-2">
                 <IndianRupee className="h-4 w-4" />
@@ -177,12 +234,14 @@ const InventoryManagement = () => {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="paymentVendor">Select Vendor</Label>
-                  <Select>
+                  <Select
+                  
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Choose vendor" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockVendors.map(vendor => (
+                      {vendors?.map(vendor => (
                         <SelectItem key={vendor.id} value={vendor.id}>
                           {vendor.name}
                         </SelectItem>
@@ -215,9 +274,9 @@ const InventoryManagement = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="paymentImage">Upload Receipt/Image</Label>
-                  <Input 
-                    id="paymentImage" 
-                    type="file" 
+                  <Input
+                    id="paymentImage"
+                    type="file"
                     accept="image/*"
                     onChange={handleImageUpload}
                   />
@@ -234,7 +293,7 @@ const InventoryManagement = () => {
                 </div>
               </div>
             </DialogContent>
-          </Dialog>
+          </Dialog> */}
         </div>
       </div>
 
@@ -245,7 +304,7 @@ const InventoryManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Orders</p>
-                <p className="text-2xl font-bold text-foreground">₹{getTotalOrders().toLocaleString()}</p>
+                {/* <p className="text-2xl font-bold text-foreground">₹{getTotalOrders().toLocaleString()}</p> */}
               </div>
               <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center">
                 <Package className="h-4 w-4 text-primary" />
@@ -258,7 +317,7 @@ const InventoryManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Payments</p>
-                <p className="text-2xl font-bold text-green-600">₹{getTotalPayments().toLocaleString()}</p>
+                {/* <p className="text-2xl font-bold text-green-600">₹{getTotalPayments().toLocaleString()}</p> */}
               </div>
               <div className="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center">
                 <IndianRupee className="h-4 w-4 text-green-600" />
@@ -271,7 +330,7 @@ const InventoryManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Pending Amount</p>
-                <p className="text-2xl font-bold text-destructive">₹{getPendingAmount().toLocaleString()}</p>
+                {/* <p className="text-2xl font-bold text-destructive">₹{getPendingAmount().toLocaleString()}</p> */}
               </div>
               <div className="h-8 w-8 bg-destructive/10 rounded-lg flex items-center justify-center">
                 <Receipt className="h-4 w-4 text-destructive" />
@@ -284,7 +343,7 @@ const InventoryManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Vendors</p>
-                <p className="text-2xl font-bold text-foreground">{mockVendors.length}</p>
+                {/* <p className="text-2xl font-bold text-foreground">{vendors.length}</p> */}
               </div>
               <div className="h-8 w-8 bg-amber-100 rounded-lg flex items-center justify-center">
                 <Truck className="h-4 w-4 text-amber-600" />
@@ -299,11 +358,11 @@ const InventoryManagement = () => {
         <Tabs defaultValue="orders" className="w-full">
           <CardHeader>
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="orders">Vendor Orders ({orders.length})</TabsTrigger>
-              <TabsTrigger value="payments">Payments ({payments.length})</TabsTrigger>
+              <TabsTrigger value="orders">Vendor Orders ({orders?.length}) </TabsTrigger>
+              <TabsTrigger value="payments">Payments ({payments?.length})</TabsTrigger>
             </TabsList>
           </CardHeader>
-          
+
           <TabsContent value="orders">
             <CardContent>
               <div className="space-y-4">
@@ -334,19 +393,19 @@ const InventoryManagement = () => {
                       <TableHead>Items</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
+                      {/* <TableHead>Status</TableHead> */}
                       <TableHead>Notes</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orders.map((order) => (
+                    {orders?.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
-                              <AvatarFallback>{order.vendorName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                              <AvatarFallback>{order.vendor.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                             </Avatar>
-                            <span className="font-medium">{order.vendorName}</span>
+                            <span className="font-medium">{order.vendor.name}</span>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -361,14 +420,14 @@ const InventoryManagement = () => {
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            {order.date}
+                            {new Date(order.orderDate).toLocaleDateString()}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        {/* <TableCell>
                           <Badge variant={order.status === 'received' ? 'default' : 'secondary'}>
                             {order.status}
                           </Badge>
-                        </TableCell>
+                        </TableCell> */}
                         <TableCell>
                           <div className="max-w-xs truncate text-muted-foreground">
                             {order.notes}
@@ -381,7 +440,7 @@ const InventoryManagement = () => {
               </div>
             </CardContent>
           </TabsContent>
-          
+
           <TabsContent value="payments">
             <CardContent>
               <div className="space-y-4">
@@ -418,14 +477,14 @@ const InventoryManagement = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {payments.map((payment) => (
-                      <TableRow key={payment.id}>
+                    {payments?.map((payment) => (
+                      <TableRow key={payment._id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
-                              <AvatarFallback>{payment.vendorName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                            <AvatarFallback>{payment?.vendor?.name?.split(' ').map(n => n[0]).join('') || <User className="h-4 w-4"/>}</AvatarFallback>
                             </Avatar>
-                            <span className="font-medium">{payment.vendorName}</span>
+                            <span className="font-medium">{payment?.vendor?.name}</span>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -437,15 +496,15 @@ const InventoryManagement = () => {
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            {payment.date}
+                            {new Date(payment.date).toLocaleDateString()}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{payment.method}</Badge>
+                          <Badge variant="outline">{payment.method.type}</Badge>
                         </TableCell>
                         <TableCell>
                           <div className="max-w-xs truncate text-muted-foreground">
-                            {payment.notes}
+                            {payment.description}
                           </div>
                         </TableCell>
                       </TableRow>

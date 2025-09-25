@@ -171,7 +171,7 @@ const StaffManagement = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create staff. Try again.",
+        description: error?.message || `Failed to create staff. Try again.`,
       });
       console.error("Error creating staff:", error);
     },
@@ -642,7 +642,7 @@ const StaffManagement = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-6">
                       <div className="space-y-1">
                         <p className="text-xs text-muted-foreground uppercase tracking-wide">Email</p>
                         <p className="text-sm text-foreground break-all">{selectedStaff.email}</p>
@@ -673,10 +673,10 @@ const StaffManagement = () => {
                         <p className="text-xs text-muted-foreground uppercase tracking-wide">Salary</p>
                         <p className="text-sm text-foreground">{selectedStaff?.salary}</p>
                       </div>
-                      <div className="space-y-1">
+                      {/* <div className="space-y-1">
                         <p className="text-xs text-muted-foreground uppercase tracking-wide">Profile Image</p>
                         <div className="relative w-24 h-24 border rounded-lg overflow-hidden bg-muted/10 flex items-center justify-center">
-                          {/* Preview label */}
+                         
                           <span className="absolute top-1 left-1 text-[10px] text-muted-foreground">Preview</span>
                           {selectedStaff?.profileImage ? (
                             <img
@@ -688,8 +688,7 @@ const StaffManagement = () => {
                               loading="lazy"
                               decoding="async"
                               onError={(e) => {
-                                // Keep the broken image icon visible; no need to hide
-                                // But ensure container stays sized and styled
+                       
                                 (e.target as HTMLImageElement).className = "w-full h-full object-contain";
                               }}
                             />
@@ -697,7 +696,7 @@ const StaffManagement = () => {
                             <span className="text-[11px] text-muted-foreground">No image</span>
                           )}
                         </div>
-                      </div>
+                      </div> */}
                     </div>
                   </CardContent>
                 </Card>

@@ -122,14 +122,16 @@ export function IncomeExpenseForm({
   useEffect(() => {
     if (expenseCategoriesQuery.data?.payload?.data) {
       setExpenseCategoriesOptions(
-        expenseCategoriesQuery.data.payload.data.map((c: any) => ({
-          id: c._id,
-          name: c.name,
-        }))
+        expenseCategoriesQuery.data.payload.data
+          .filter((c: any) => c.name !== "Vendor expense")
+          .map((c: any) => ({
+            id: c._id,
+            name: c.name,
+          }))
       );
     }
   }, [expenseCategoriesQuery.data]);
-
+  
   useEffect(() => {
     if (incomeCategoriesQuery.data?.payload?.data) {
       setIncomeCategoriesOptions(

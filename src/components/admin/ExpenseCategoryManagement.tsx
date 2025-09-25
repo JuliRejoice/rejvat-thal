@@ -55,6 +55,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { ConfirmationDialog } from "../common/ConfirmationDialog";
 import { format } from "date-fns"
+import ExpenseCategoryTableSkeleton from "./ExpenseCategoryTableSkeleton";
 
 type ExpenseCat = {
   _id: string;
@@ -403,12 +404,15 @@ const ExpenseCategoryManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {categories.map((category) => (
-                  <TableRow key={category._id}>
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                          <Tags className="h-4 w-4 text-primary" />
+                {isPending ? (
+                  <ExpenseCategoryTableSkeleton/>
+                ) : (
+                  categories.map((category) => (
+                    <TableRow key={category._id}>
+                      <TableCell>
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <Tags className="h-4 w-4 text-primary" />
                         </div>
                         <div>
                           <p className="font-medium">{category.name}</p>
@@ -521,7 +525,7 @@ const ExpenseCategoryManagement = () => {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>
