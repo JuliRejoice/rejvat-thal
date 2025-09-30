@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { MenuItem, MenuStatistics } from '@/api/menu.api';
 import { menuApi, type GetMenuItemsParams } from '@/api/menu.api';
+import { getRestaurants } from '@/api/restaurant.api';
 import { Plus, Search, Filter, Edit2, ToggleLeft, ToggleRight, IndianRupee, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ const MenuItems = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [filterCategory, setFilterCategory] = useState('all');
   const [categories, setCategories] = useState<Array<{ _id: string, name: string }>>([]);
+  const [restaurants, setRestaurants] = useState<Array<{ _id: string, name: string }>>([]);
   const [filterStatus, setFilterStatus] = useState('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Partial<MenuItem> | null>(null);
@@ -31,11 +33,13 @@ const MenuItems = () => {
   const [formData, setFormData] = useState<{
     name: string;
     categoryId: string;
+    restaurantId: string;
     price: string;
     description: string;
   }>({
     name: '',
     categoryId: '',
+    restaurantId: '',
     price: '',
     description: ''
   });
@@ -130,6 +134,23 @@ const MenuItems = () => {
     setCurrentPage(1);
   }, [filterCategory, filterStatus, searchTerm, itemsPerPage]);
 
+  // Fetch restaurants when component mounts
+  useEffect(() => {
+    const fetchRestaurants = async () => {
+      try {
+        const response = await getRestaurants({});
+        console.log(response, 'response.data');  
+        if (response.success) {
+          setRestaurants(response.payload.data.map((r: any) => ({ _id: r._id, name: r.name })));
+        }
+      } catch (error) {
+        console.error('Error fetching restaurants:', error);
+      }
+    };
+
+    fetchRestaurants();
+  }, []);
+
   // Main effect that handles data fetching
   useEffect(() => {
     const fetchData = async () => {
@@ -223,6 +244,7 @@ const MenuItems = () => {
     setFormData({
       name: item.name,
       categoryId: item.categoryId?._id || '',
+      restaurantId: item.restaurantId?._id || '',
       price: item.price?.toString() || '',
       description: item.description || ''
     });
@@ -234,6 +256,7 @@ const MenuItems = () => {
     setFormData({
       name: '',
       categoryId: '',
+      restaurantId: '',
       price: '',
       description: ''
     });
@@ -271,6 +294,7 @@ const MenuItems = () => {
       const payload = {
         name: formData.name.trim(),
         categoryId: formData.categoryId,
+        restaurantId: formData.restaurantId,
         price: parseFloat(formData.price),
         description: formData.description.trim() || undefined
       };
@@ -347,23 +371,46 @@ const MenuItems = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="categoryId">Category *</Label>
-                <Select 
-                  value={formData.categoryId}
-                  onValueChange={(value) => handleSelectChange(value, 'categoryId')}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map(category => (
-                      <SelectItem key={category._id} value={category._id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="categoryId">Category *</Label>
+                    <Select 
+                      value={formData.categoryId}
+                      onValueChange={(value) => handleSelectChange(value, 'categoryId')}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map(category => (
+                          <SelectItem key={category._id} value={category._id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="restaurantId">Restaurant *</Label>
+                    <Select 
+                      value={formData.restaurantId}
+                      onValueChange={(value) => handleSelectChange(value, 'restaurantId')}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select restaurant" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {restaurants.map(restaurant => (
+                          <SelectItem key={restaurant._id} value={restaurant._id}>
+                            {restaurant.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="price">Price (₹) *</Label>
@@ -371,6 +418,7 @@ const MenuItems = () => {
                   id="price"
                   type="number"
                   placeholder="Enter price"
+
                   value={formData.price}
                   onChange={handleInputChange}
                   required

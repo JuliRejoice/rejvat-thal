@@ -1,6 +1,7 @@
 import axiosInstance from "./axiosInstace.config";
 
 export interface MenuItem {
+  restaurantId: any;
   status: string;
   id: string;
   _id: string;
@@ -38,6 +39,7 @@ export interface GetMenuItemsParams {
   search?: string;
   categoryId?: string;
   isActive?: string;
+  restaurantId?: string;
 }
 
 export const menuApi = {
