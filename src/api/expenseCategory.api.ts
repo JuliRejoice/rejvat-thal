@@ -44,11 +44,12 @@ export const updateExpenseCategory = async (expenseCategoryData, id) => {
     }
 }
 
-export const getAllExpenseCategory = async ({ search, page, limit, status }: {
+export const getAllExpenseCategory = async ({ search, page, limit, status, restaurantId }: {
     search?: string
     page?: number
     limit?: number
     status?: boolean
+    restaurantId?: string
   } = {}) => {
     try {
         const queryParams = new URLSearchParams();
@@ -56,6 +57,7 @@ export const getAllExpenseCategory = async ({ search, page, limit, status }: {
         if(page !== undefined) queryParams.append("page", String(page));
         if(limit !== undefined) queryParams.append("limit", String(limit));
         if(status !== undefined) queryParams.append("isActive", String(status));
+        if(restaurantId) queryParams.append("restaurantId", restaurantId);
 
         const url = `expenseCategory/getAllExpenseCate${queryParams.toString ? `?${queryParams.toString()}` : ""}`
 

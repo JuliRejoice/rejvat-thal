@@ -65,7 +65,7 @@ export const getIncomeExpense = async ({
     page: any,
     limit: any
 }) => {
-    console.log(restaurantId, typeof restaurantId)
+    console.log(restaurantId, typeof restaurantId,categoryId)
     try {
         const params: any = {};
 
@@ -76,7 +76,13 @@ export const getIncomeExpense = async ({
         if (page !== undefined) params.page = page;
         if (limit !== undefined) params.limit = limit;
         if (paymentMethodId) params.paymentMethodId = paymentMethodId;
-        if (categoryId && Array.isArray(categoryId)) params.categoryId = categoryId;
+        if (categoryId && Array.isArray(categoryId)) {
+            categoryId.forEach((id, index) => {
+              params[`categoryId[${index}]`] = id;
+            });
+          } else if (categoryId) {
+            params["categoryId[0]"] = categoryId;
+          }
 
         const response = await axiosInstance.get('/transaction/getAllTransaction', { params });
 

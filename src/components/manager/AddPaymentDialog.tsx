@@ -31,11 +31,13 @@ interface FormValues {
 export default function AddPaymentDialog({
   vendors,
   isOpen,
-  setIsOpen
+  setIsOpen,
+  onSubmit
 }: {
   vendors: { _id: string; name: string }[]
   isOpen: boolean
   setIsOpen: (open: boolean) => void
+  onSubmit: (data: FormValues) => void
 }) {
   const { toast } = useToast()
 
@@ -75,36 +77,7 @@ export default function AddPaymentDialog({
     },
   })
 
-  const onSubmit = async (data: FormValues) => {
-    const formData = new FormData()
-    formData.append("vendorId", data.vendorId)
-    formData.append("amount", String(data.amount))
-    formData.append("date", data.date)
-    formData.append("method", data.method)
-    if (data.image) {
-      formData.append("image", data.image as File)
-    }
-    formData.append("description", data.description)
-    formData.append("expenseCategoryId","68bff6c834305c04a6926d1f")
-
-    try {
-      const response = await vendorPayment(formData)
-      toast({
-        variant: "default",
-        title: "Success",
-        description: response.message || "Payment added successfully",
-      })
-      reset()
-      setIsOpen(false)
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to add payment",
-      })
-    }
-  }
-
+ 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="max-w-md">

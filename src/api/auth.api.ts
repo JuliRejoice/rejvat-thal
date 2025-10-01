@@ -14,7 +14,19 @@ export const signUp = async (formData) => {
         data.append('position', formData.position || 'staff');
         data.append('isUserType', formData.isUserType || 'staff');
         data.append('salary', formData.salary);
-        
+        data.append('description', formData.description);
+        data.append('timingShift', formData.timingShift);
+        data.append('lunchTime', formData.lunchTime);
+        if (formData.passport) {
+            data.append('passport', formData.passport);
+        }
+        if (formData.visaId) {
+            data.append('visaId', formData.visaId);
+        }
+        if (formData.otherDoc) {
+            data.append('otherDoc', formData.otherDoc);
+        }
+
         // Add file if exists
         if (formData.file) {
             data.append('file', formData.file);

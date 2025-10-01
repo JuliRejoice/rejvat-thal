@@ -70,7 +70,9 @@ const getNavigationItems = (role: string) => {
       // { title: 'Daily Tiffin Summary', url: '/daily-summary', icon: Calendar },
       { title: 'Vendor Management', url: '/vendors', icon: Truck },
       { title: 'Inventory', url: '/inventory', icon: ClipboardList },
-      { title: 'Monthly Menu Plan', url: '/menu-plan', icon: FileText }
+      { title: 'Monthly Menu Plan', url: '/menu-plan', icon: FileText },
+      { title: 'Expense Categories', url: '/expense-categories', icon: Tags },
+      { title: 'Notifications', url: '/notifications', icon: Bell }
     ];
   }
 

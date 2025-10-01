@@ -1,10 +1,9 @@
-import React, { useEffect } from 'react';
-import { Save, Settings as SettingsIcon, Upload, Bell, Shield, Database, Loader2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Save, Settings as SettingsIcon, Upload, Bell, Shield, Database, Loader2, Plus, Edit2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
@@ -13,9 +12,35 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { getThresholdAmont, updateSetting } from '@/api/settings.api';
+import { addSetting, getThresholdAmont, updateSetting } from '@/api/settings.api';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Badge } from '../ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { getRestaurants } from '@/api/restaurant.api';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
+interface ExpenseThreshold {
+  _id: string;
+  expenseThresholdAmount: number;
+  isActive: boolean;
+  restaurantId?: {
+    _id: string;
+    name: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
 
 const Settings = () => {
+
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingThreshold, setEditingThreshold] = useState<ExpenseThreshold | null>(null);
+  const [selectedRestaurant, setSelectedRestaurant] = useState("");
+  const [thresholdAmount, setThresholdAmount] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const [page, setPage] = useState(1);
+const [pageSize, setPageSize] = useState(10);
+const [totalItems, setTotalItems] = useState(0);
   const { toast } = useToast();
   const settingsSchema = z.object({
     // autoBackup: true,
@@ -57,10 +82,21 @@ const Settings = () => {
     return <p className="text-red-500 text-sm">{message}</p>;
   };
 
-  const { data: getSettingData, isPending: isLoading, refetch } = useQuery({
-    queryKey: ["get-setting-details"],
-    queryFn: getThresholdAmont,
+  const { data: thresholdsData, isPending: isLoading, refetch } = useQuery({
+    queryKey: ["get-setting-details", page, pageSize],
+    queryFn: () => getThresholdAmont({ page, limit: pageSize }),
   });
+
+  const thresholds = thresholdsData?.payload?.data;
+
+  const { data: restaurantsData } = useQuery({
+    queryKey: ["get-all-restaurants"],
+    queryFn: () => getRestaurants({}),
+  });
+
+  console.log(restaurantsData);
+
+  const restaurants = restaurantsData?.payload?.data;
 
   // const handleExportData = () => {
   //   toast({
@@ -79,7 +115,7 @@ const Settings = () => {
 
   const { mutate: handleUpdate } = useMutation({
     mutationKey: ["update-expense-category"],
-    mutationFn: ({ id, data }: { id: string, data: any }) => updateSetting(id, data),
+    mutationFn: (data: any) => updateSetting(data),
     onSuccess: () => {
       toast({
         title: "Settings saved",
@@ -101,11 +137,45 @@ const Settings = () => {
   const onSubmit = (data: SettingsFormValues) => {
     handleUpdate({ id: data._id, data: { expenseThresholdAmount: data.expenseThresholdAmount }, });
   };
-  useEffect(() => {
-    if (getSettingData?.payload) {
-      reset({ ...defaultFormValues, ...getSettingData.payload, });
+
+  const handleSaveThreshold = async () => {
+    setIsSaving(true);
+    try {
+      if (editingThreshold) {
+        await updateSetting({
+          restaurantId: editingThreshold._id,
+          expenseThresholdAmount: thresholdAmount
+        });
+        toast({
+          title: "Success",
+          description: "Threshold updated successfully",
+          variant: "default",
+        });
+      } else {
+        await addSetting({
+          restaurantId: selectedRestaurant === "default" ? "" : selectedRestaurant,
+          expenseThresholdAmount: thresholdAmount
+        });
+        toast({
+          title: "Success",
+          description: "Threshold added successfully",
+          variant: "default",
+        });
+        // Reset to first page when adding a new item
+        setPage(1);
+      }
+      setIsModalOpen(false);
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "An error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
-  }, [getSettingData, reset]);
+  };
 
 
   return (
@@ -159,68 +229,133 @@ const Settings = () => {
         {/* Financial Settings */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5" />
-              Financial Settings
-            </CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Financial Settings
+              </CardTitle>
+              <Button onClick={() => {
+                setEditingThreshold(null);
+                setSelectedRestaurant("");
+                setThresholdAmount(0);
+                setIsModalOpen(true);
+              }}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Threshold
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="expenseThreshold">Minimum Expense Threshold for Image Upload (₹)</Label>
-              <Input id="expenseThreshold" type="number" {...register('expenseThresholdAmount', { valueAsNumber: true })} />
-              <FieldError message={errors.expenseThresholdAmount?.message} />
-              <p className="text-sm text-muted-foreground">
-                Expenses above this amount will require image upload
-              </p>
-            </div>
-            {/* <div className="space-y-2">
-              <Label htmlFor="currency">Currency</Label>
-              <Select value={settings.currency} onValueChange={(value) => handleSettingChange('currency', value)}>
-                <SelectTrigger>
-                  <SelectValue />
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Restaurant</TableHead>
+                  <TableHead>Threshold Amount (₹)</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {thresholds?.map((threshold) => (
+                  <TableRow key={threshold._id}>
+                    <TableCell>{threshold.restaurantId?.name || 'Default'}</TableCell>
+                    <TableCell>₹{threshold.expenseThresholdAmount.toLocaleString()}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={`${threshold.isActive
+                          ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                          : "bg-red-100 border border-red-300 hover:bg-red-200"
+                          }`}
+                      >
+                        {threshold.isActive ? "Active" : "Deactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditingThreshold(threshold);
+                          setSelectedRestaurant(threshold.restaurantId?._id || '');
+                          setThresholdAmount(threshold.expenseThresholdAmount);
+                          setIsModalOpen(true);
+                        }}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+
+            <div className="flex items-center justify-between px-2">
+              <div className="text-sm text-muted-foreground">
+                Showing {Math.min((page - 1) * pageSize + 1, totalItems)}-
+                {Math.min(page * pageSize, totalItems)} of {totalItems} items
+              </div>
+
+              <Pagination className="mx-0 w-auto">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (page > 1) setPage(p => p - 1);
+                      }}
+                      className={page <= 1 ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+
+                  {Array.from({ length: Math.ceil(totalItems / pageSize) }, (_, i) => i + 1).map((pageNum) => (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        href="#"
+                        isActive={pageNum === page}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setPage(pageNum);
+                        }}
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (page < Math.ceil(totalItems / pageSize)) setPage(p => p + 1);
+                      }}
+                      className={page >= Math.ceil(totalItems / pageSize) ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+
+              <Select
+                value={pageSize.toString()}
+                onValueChange={(value) => {
+                  setPageSize(Number(value));
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 w-[70px]">
+                  <SelectValue placeholder={pageSize} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="INR">Indian Rupee (₹)</SelectItem>
-                  <SelectItem value="USD">US Dollar ($)</SelectItem>
-                  <SelectItem value="EUR">Euro (€)</SelectItem>
+                  {[5, 10, 20, 30, 40, 50].map((size) => (
+                    <SelectItem key={size} value={size.toString()}>
+                      {size}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="defaultPayment">Default Payment Method</Label>
-              <Select value={settings.defaultPaymentMethod} onValueChange={(value) => handleSettingChange('defaultPaymentMethod', value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="card">Card</SelectItem>
-                  <SelectItem value="upi">UPI</SelectItem>
-                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="taxRate">Tax Rate (%)</Label>
-              <Input
-                id="taxRate"
-                type="number"
-                value={settings.taxRate}
-                onChange={(e) => handleSettingChange('taxRate', parseFloat(e.target.value))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="fiscalYear">Fiscal Year Start</Label>
-              <Select value={settings.fiscalYearStart} onValueChange={(value) => handleSettingChange('fiscalYearStart', value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="january">January</SelectItem>
-                  <SelectItem value="april">April</SelectItem>
-                </SelectContent>
-              </Select>
-            </div> */}
           </CardContent>
         </Card>
 
@@ -331,6 +466,63 @@ const Settings = () => {
           </div>
         </CardContent>
       </Card>
+
+
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingThreshold ? 'Edit Threshold' : 'Add New Threshold'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Restaurant</Label>
+              <Select
+                value={selectedRestaurant}
+                onValueChange={setSelectedRestaurant}
+                disabled={!!editingThreshold}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select restaurant" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Default (applies to all restaurants)</SelectItem>
+                  {restaurants?.map((restaurant) => (
+                    <SelectItem key={restaurant._id} value={restaurant._id}>
+                      {restaurant.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Threshold Amount (₹)</Label>
+              <Input
+                type="number"
+                value={thresholdAmount}
+                onChange={(e) => setThresholdAmount(Number(e.target.value))}
+                placeholder="Enter threshold amount"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                onClick={handleSaveThreshold}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {editingThreshold ? 'Updating...' : 'Creating...'}
+                  </>
+                ) : (
+                  editingThreshold ? 'Update' : 'Create'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

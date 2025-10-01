@@ -9,8 +9,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { SearchableDropDown } from "./SearchableDropDown";
+import { uploadImage } from "@/api/managerStaff.api";
+import DatePicker from "react-datepicker";
 
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 
@@ -20,15 +22,19 @@ interface StaffMangerFormProps {
   isPending?: boolean;
   type?: "staff" | "manager";
   onCancel?: () => void;
+  setIsImagePending?: (pending: boolean) => void;
+  isImagePending?: boolean;
   mode?: "create" | "edit";
 }
 
-export function StaffManagerForm ({
+export function StaffManagerForm({
   defaultValues,
   onSubmit,
   isPending,
   type = "staff",
   onCancel,
+  setIsImagePending,
+  isImagePending,
   mode = "create",
 }: StaffMangerFormProps) {
   const [showPassword, setShowPassword] = useState(false);
@@ -72,6 +78,7 @@ export function StaffManagerForm ({
     handleSubmit,
     watch,
     setValue,
+    control,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -85,17 +92,29 @@ export function StaffManagerForm ({
       joiningDate: "",
       position: type,
       isUserType: type,
+      shiftStart: "",
+      shiftEnd: "",
+      lunchStart: "",
+      lunchEnd: "",
+      description: "",
+      passport: null as File | null,
+      visaId: null as File | null,
+      otherDoc: null as File | null,
       file: null as File | null,
       ...defaultValues,
     },
     mode: "onSubmit",
   });
 
+
   useEffect(() => {
     register("restaurantId", {
       required: isManager ? false : "Select restaurant is required",
     });
     register("file", { required: "Profile Picture is required" });
+    register("passport", { required: "Passport is required" });
+    register("visaId", { required: "Visa ID is required" });
+    register("otherDoc", { required: "Additional document is required" });
   }, [register, isManager]);
 
   useEffect(() => {
@@ -107,7 +126,7 @@ export function StaffManagerForm ({
     }
   }, [isManager, user?.restaurantId, setValue, defaultValues?.restaurantId]);
 
-  const internalSubmit = (data: any) => {
+  const internalSubmit = async (data: any) => {
     if (mode === "create" && !data.file) {
       toast({
         variant: "destructive",
@@ -116,12 +135,67 @@ export function StaffManagerForm ({
       });
       return;
     }
-    onSubmit(data);
+
+    try {
+      setIsImagePending(true);
+      // Upload files sequentially
+      let passportUrl = null;
+      let visaIdUrl = null;
+      let otherDocUrl = null;
+
+
+      // Upload passport if it exists
+      if (data.passport) {
+        passportUrl = await uploadImage(data.passport);
+      }
+
+      // Upload visa ID if it exists
+      if (data.visaId) {
+        visaIdUrl = await uploadImage(data.visaId);
+      }
+
+      // Upload other document if it exists
+      if (data.otherDoc) {
+        otherDocUrl = await uploadImage(data.otherDoc);
+      }
+
+      const formattedData = {
+        email: data.email,
+        name: data.name,
+        password: data.password,
+        phone: data.phone,
+        address: data.address,
+        restaurantId: data.restaurantId,
+        salary: data.salary,
+        joiningDate: data.joiningDate,
+        position: type,
+        isUserType: type,
+        description: data.description,
+        passport: passportUrl.payload,
+        visaId: visaIdUrl.payload,
+        otherDoc: otherDocUrl.payload,
+        file: data.file,
+        timingShift: `${data.shiftStart} - ${data.shiftEnd}`,
+        lunchTime: `${data.lunchStart} - ${data.lunchEnd}`,
+      };
+
+      console.log("Formatted Data:", formattedData);
+      onSubmit(formattedData);
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      toast({
+        variant: "destructive",
+        title: "Upload Error",
+        description: error.message || "Failed to upload files. Please try again.",
+      });
+    } finally {
+      setIsImagePending(false);
+      }
   };
 
   return (
     <form onSubmit={handleSubmit(internalSubmit)}>
-      <Card className="shadow-none">
+      <Card className="shadow-none max-h-[calc(100vh-200px)] overflow-y-auto">
         <CardContent className="space-y-6 pt-2">
           <div className="grid grid-cols-2 gap-4">
             {/* Name */}
@@ -219,49 +293,30 @@ export function StaffManagerForm ({
                 maxLength={11}
               />
             </div>
+          </div>
 
-            {/* Salary */}
-            {type === "staff" && (
-              <div className="space-y-2">
-                <div className="flex gap-3 items-baseline">
-                  <Label htmlFor="salary">Salary *</Label>
-                  {errors.salary && (
-                    <p className="mt-1 text-xs text-red-500">
-                      {errors.salary.message as string}
-                    </p>
-                  )}
-                </div>
-                <Input
-                  id="salary"
-                  placeholder="Enter salary"
-                  {...register("salary", { required: "Salary is required" })}
-                  maxLength={8}
-                />
-              </div>
-            )}
-
-            {/* Joining Date */}
+          {/* Salary */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <div className="flex gap-3 items-baseline">
-                <Label htmlFor="restaurantId">Joining Date *</Label>
-                {errors.joiningDate && (
+                <Label htmlFor="salary">Salary *</Label>
+                {errors.salary && (
                   <p className="mt-1 text-xs text-red-500">
-                    {errors.joiningDate.message as string}
+                    {errors.salary.message as string}
                   </p>
                 )}
               </div>
               <Input
-                type="date"
-                id="joiningDate"
-                max={new Date().toISOString().split("T")[0]}
-                {...register("joiningDate", {
-                  required: "Joining date is required",
-                })}
+                id="salary"
+                placeholder="Enter salary"
+                {...register("salary", { required: "Salary is required" })}
+                maxLength={8}
+                className="w-full"
               />
             </div>
 
-            {/* Restaurant */}
-            <div className={`${type === "staff" && "col-span-2"} space-y-2`}>
+
+            <div className="space-y-2">
               <div className="flex gap-3 items-baseline">
                 <Label htmlFor="restaurantId">Restaurant *</Label>
                 {errors.restaurantId && (
@@ -270,7 +325,15 @@ export function StaffManagerForm ({
                   </p>
                 )}
               </div>
-              {
+              {isManager && user?.restaurantId ? (
+                // Show disabled input with manager's restaurant
+                <Input
+                  value={user.restaurantId.name}
+                  disabled
+                  className="bg-gray-100"
+                />
+              ) : (
+                // Show dropdown for non-managers
                 <SearchableDropDown
                   options={[
                     { id: "all", name: "All Restaurants" },
@@ -287,9 +350,110 @@ export function StaffManagerForm ({
                     });
                   }}
                 />
-              }
+              )}
+            </div>
+
+          </div>
+
+
+
+          {/* Timing Shift */}
+          <div className="grid grid-cols-3 gap-6">
+            {/* Joining Date */}
+            <div className="space-y-2">
+              {/* <div className="flex gap-3 items-baseline"> */}
+              <Label htmlFor="restaurantId">Joining Date *</Label>
+              {errors.joiningDate && (
+                <p className="mt-1 text-xs text-red-500">
+                  {errors.joiningDate.message as string}
+                </p>
+              )}
+              {/* </div> */}
+              <Input
+                type="date"
+                id="joiningDate"
+                max={new Date().toISOString().split("T")[0]}
+                {...register("joiningDate", {
+                  required: "Joining date is required",
+                })}
+              />
+            </div>
+            {/* Shift Timing */}
+            <div className="space-y-2">
+            <Controller
+            control={control}
+            name="shiftStart"
+            rules={{ required: "Shift start is required" }}
+            render={({ field }) => (
+              <DatePicker
+                selected={field.value}
+                onChange={field.onChange}
+                showTimeSelect
+                showTimeSelectOnly
+                timeIntervals={15} // 15 min step
+                timeFormat="HH:mm" // force 24h format
+                dateFormat="HH:mm"
+                placeholderText="Start Time"
+                className="border rounded-md px-3 py-2 w-[140px]"
+              />
+            )}
+          />
+
+          <span className="text-muted-foreground">to</span>
+
+          {/* Shift End */}
+          <Controller
+            control={control}
+            name="shiftEnd"
+            rules={{
+              required: "Shift end is required",
+              validate: (value) =>
+                !watch("shiftStart") ||
+                value > watch("shiftStart") ||
+                "End must be after start",
+            }}
+            render={({ field }) => (
+              <DatePicker
+                selected={field.value}
+                onChange={field.onChange}
+                showTimeSelect
+                showTimeSelectOnly
+                timeIntervals={15}
+                timeFormat="HH:mm"
+                dateFormat="HH:mm"
+                placeholderText="End Time"
+                className="border rounded-md px-3 py-2 w-[140px]"
+              />
+            )}
+          />
+            </div>
+
+            {/* Lunch Time */}
+            <div className="space-y-2">
+              <Label>Lunch Time *</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="time"
+                  {...register("lunchStart", { required: "Lunch start is required" })}
+                />
+                <span className="text-muted-foreground">to</span>
+                <Input
+                  type="time"
+                  {...register("lunchEnd", {
+                    required: "Lunch end is required",
+                    validate: (value) =>
+                      !watch("lunchStart") || value > watch("lunchStart") || "End must be after start",
+                  })}
+                />
+              </div>
+              {(errors.lunchStart || errors.lunchEnd) && (
+                <p className="mt-1 text-xs text-red-500">
+                  {(errors.lunchStart?.message as string) || (errors.lunchEnd?.message as string)}
+                </p>
+              )}
             </div>
           </div>
+
 
           {/* Address */}
           <div className="space-y-2">
@@ -306,6 +470,97 @@ export function StaffManagerForm ({
               placeholder="Enter address"
               {...register("address", { required: "Address is required" })}
             />
+          </div>
+
+
+          {/* Description */}
+          <div className="space-y-2 col-span-2">
+            <div className="flex gap-3 items-baseline">
+              <Label htmlFor="description">Description</Label>
+              {errors.description && (
+                <p className="mt-1 text-xs text-red-500">
+                  {errors.description.message as string}
+                </p>
+              )}
+            </div>
+            <Textarea
+              id="description"
+              placeholder="Enter any additional information"
+              {...register("description")}
+              rows={3}
+            />
+          </div>
+
+          {/* Proof ID Section */}
+          <div className="space-y-4 col-span-2 pt-4 border-t">
+            <h4 className="text-lg font-medium">Identification Documents</h4>
+
+            {/* Passport */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <div className="flex gap-3 items-baseline">
+                  <Label htmlFor="passport">Passport *</Label>
+                  {errors.passport && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors.passport.message as string}
+                    </p>
+                  )}
+                </div>
+                <Input
+                  id="passport"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    setValue("passport", file || null, { shouldValidate: true });
+                  }}
+                />
+              </div>
+
+              {/* Visa ID */}
+              <div className="space-y-2">
+                <div className="flex gap-3 items-baseline">
+                  <Label htmlFor="visaId">Visa ID *</Label>
+                  {errors.visaId && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors.visaId.message as string}
+                    </p>
+                  )}
+                </div>
+                <Input
+                  id="visaId"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    setValue("visaId", file || null, { shouldValidate: true });
+                  }}
+                />
+
+              </div>
+
+              {/* Other Document */}
+              <div className="space-y-2">
+                <div className="flex gap-3 items-baseline">
+                  <Label htmlFor="otherDoc">Other Document *</Label>
+                  {errors.otherDoc && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors.otherDoc.message as string}
+                    </p>
+                  )}
+                </div>
+                <Input
+                  id="otherDoc"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    setValue("otherDoc", file || null, { shouldValidate: true });
+                  }}
+                />
+
+              </div>
+            </div>
           </div>
 
           {/* File Upload */}
@@ -365,10 +620,12 @@ export function StaffManagerForm ({
             })()}
           </div>
 
+
+
           {/* Buttons */}
           <div className="flex justify-end gap-3 pt-2">
-            <Button className="rounded-xl" type="submit" disabled={isPending}>
-              {isPending
+            <Button className="rounded-xl" type="submit" disabled={isPending || isImagePending}>
+              {isPending || isImagePending
                 ? mode === "create"
                   ? "Saving..."
                   : "Updating..."

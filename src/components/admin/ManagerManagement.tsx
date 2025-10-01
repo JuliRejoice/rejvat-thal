@@ -339,7 +339,7 @@ const ManagerManagement = () => {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={manager.profileImage || ""} />
+                            {/* <AvatarImage src={manager.profileImage || ""} /> */}
                             <AvatarFallback>
                               {manager.name
                                 .split(" ")

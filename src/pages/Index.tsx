@@ -99,6 +99,8 @@ const Index = () => {
             <Route path="/vendors" element={<VendorManagement />} />
             <Route path="/inventory" element={<InventoryManagement />} />
             <Route path="/menu-plan" element={<MonthlyMenuPlan />} />
+            <Route path="/expense-categories" element={<ExpenseCategoryManagement />} />
+            <Route path="/notifications" element={<Notifications />} />
           </>
         )}
 

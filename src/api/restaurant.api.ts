@@ -100,7 +100,7 @@ export const updateRestaurantStatus = async (isActive: boolean, id: string) => {
     }
 }
 
-export const getRestaurants = async ({ search, page, limit, status }: QueryData) => {
+export const getRestaurants = async ({ search, page, limit, status}: QueryData) => {
     try {
         const queryParams = new URLSearchParams();
 
@@ -119,6 +119,29 @@ export const getRestaurants = async ({ search, page, limit, status }: QueryData)
 
     } catch (error) {
         console.error('get all restaurant API error:', error);
+
+        if (error.response) {
+            const errorMessage = error.response.data.message;
+            throw new Error(errorMessage);
+        } else if (error.request) {
+            throw new Error('Network error. Please check your connection.');
+        } else {
+            throw new Error('An unexpected error occurred');
+        }
+    }
+}
+
+export const getRestaurantOverview = async () => {
+
+    try {
+        const response = await axiosInstance.get(`/restaurant/getRestoDashDetails`);
+
+        console.log("get restaurant overview API Response:", response.data);
+
+        return response.data;
+
+    } catch (error) {
+        console.error('get restaurant overview API error:', error);
 
         if (error.response) {
             const errorMessage = error.response.data.message;

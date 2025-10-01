@@ -12,6 +12,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getRestaurants } from "@/api/restaurant.api";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -72,6 +74,8 @@ const VendorManagement = () => {
   const [editingVendor, setEditingVendor] = useState<any>(null);
   const [page, setPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [selectedRestaurant, setSelectedRestaurant] = useState("all");
+  const { user } = useAuth();
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
@@ -79,6 +83,7 @@ const VendorManagement = () => {
     page,
     limit: itemsPerPage,
     search: searchTerm,
+    ...((selectedRestaurant !== "all" || user.role === "manager") && { restaurantId: (selectedRestaurant !== "all" ? selectedRestaurant : user.restaurantId._id) }),
     ...(filterStatus !== "all" && { isActive: filterStatus === "active" }),
   };
 
@@ -94,6 +99,13 @@ const VendorManagement = () => {
   const vendors = allVendors?.payload?.data;
   const totalItems = allVendors?.payload?.count || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  const { data: restaurantsData } = useQuery({
+    queryKey: ["get-all-restaurants"],
+    queryFn: () => getRestaurants({}),
+  });
+
+  const restaurants = restaurantsData?.payload?.data;
 
   const { mutate: addVendor, isPending: isVendorAddPending } = useMutation({
     mutationKey: ["create-vendor"],
@@ -231,14 +243,14 @@ const VendorManagement = () => {
               defaultValues={
                 editingVendor
                   ? {
-                      name: editingVendor.name,
-                      contactPerson: editingVendor.contactPerson,
-                      phone: editingVendor.phone,
-                      email: editingVendor.email,
-                      wallet: editingVendor.wallet,
-                      description: editingVendor.description,
-                      address: editingVendor.address,
-                    }
+                    name: editingVendor.name,
+                    contactPerson: editingVendor.contactPerson,
+                    phone: editingVendor.phone,
+                    email: editingVendor.email,
+                    wallet: editingVendor.wallet,
+                    description: editingVendor.description,
+                    address: editingVendor.address,
+                  }
                   : undefined
               }
             />
@@ -362,7 +374,32 @@ const VendorManagement = () => {
       {/* Vendors Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Vendors ({totalItems})</CardTitle>
+          <CardTitle>
+            <div className="flex justify-between items-center">
+              <span>Vendors ({totalItems})</span>
+              {user?.role === 'admin' && (
+                <Select
+                  value={selectedRestaurant}
+                  onValueChange={(value) => {
+                    setSelectedRestaurant(value);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-full md:w-[180px]">
+                    <SelectValue placeholder="All Restaurants" />
+                  </SelectTrigger>
+                  <SelectContent className="max-w-[200px]">
+                    <SelectItem value="all">All Restaurants</SelectItem>
+                    {restaurants?.map((restaurant: any) => (
+                      <SelectItem key={restaurant._id} value={restaurant._id}>
+                        {restaurant.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -370,6 +407,7 @@ const VendorManagement = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Vendor</TableHead>
+                  {user?.role === 'admin' && <TableHead>Restaurant</TableHead>}
                   {!isMobile && <TableHead>Description</TableHead>}
                   {!isMobile && <TableHead>Contact</TableHead>}
                   {!isMobile && <TableHead>Total Paid</TableHead>}
@@ -417,6 +455,9 @@ const VendorManagement = () => {
                           </div>
                         </div>
                       </TableCell>
+                      {user?.role === 'admin' && <TableCell>
+                       {vendor?.restaurant?.name}
+                      </TableCell>}
                       {!isMobile && (
                         <TableCell className="max-w-[200px] truncate">
                           {vendor?.description}
@@ -454,11 +495,10 @@ const VendorManagement = () => {
                       </TableCell>
                       <TableCell>
                         <Badge
-                          className={`${
-                            vendor?.isActive
+                          className={`${vendor?.isActive
                               ? "bg-green-100 border border-green-300 text-green-400 hover:bg-green-200"
                               : "bg-red-100 border border-red-300 text-red-400 hover:bg-red-200"
-                          }`}
+                            }`}
                         >
                           {vendor?.isActive ? "Active" : "Deactive"}
                         </Badge>
@@ -481,11 +521,10 @@ const VendorManagement = () => {
                           </Button>
                           <Button
                             variant="outline"
-                            className={`${
-                              vendor?.isActive
+                            className={`${vendor?.isActive
                                 ? "bg-green-100 border border-green-300 hover:bg-green-200"
                                 : "bg-red-100 border border-red-300 hover:bg-red-200"
-                            }`}
+                              }`}
                             onClick={() => handleConfirmToggle(vendor)}
                             size="sm"
                           >
@@ -608,56 +647,91 @@ const VendorManagement = () => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="payments" className="space-y-4">
+              <TabsContent value="payments" className="space-y-4 max-h-[400px] overflow-y-auto">
                 <div className="space-y-2">
-                  {selectedVendor?.transaction?.length <= 0 ?
-                    <NoData 
+                  {selectedVendor?.transaction?.length <= 0 || selectedVendor?.inventoryData?.length <= 0 ?
+                    <NoData
                       icon={Wallet}
                       title="No Transaction found"
                       description={`Transaction is not available for ${selectedVendor?.contactPerson}`}
                     />
-                  : selectedVendor?.transaction?.map((transaction) => (
-                    <div
-                      key={transaction?._id}
-                      className="flex justify-between items-center p-3 border rounded-lg"
-                    >
-                      <div>
-                        <p className="font-medium">
-                          {transaction?.description}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {format(
-                            new Date(transaction.createdAt),
-                            "dd-MM-yy HH:mm"
-                          )}
-                          <Badge
-                            variant="outline"
-                            className={`ms-4 ${
-                              transaction.type === "income"
-                                ? "bg-green-100 border border-green-300 text-green-400 hover:bg-green-200"
-                                : "bg-red-100 border border-red-300 text-red-400 hover:bg-red-200"
-                            }`}
+                    : selectedVendor?.transaction?.map((transaction) => (
+                      <div
+                        key={transaction?._id}
+                        className="flex justify-between items-center p-3 border rounded-lg"
+                      >
+                        <div>
+                          <p className="font-medium">
+                            {transaction?.description}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(
+                              new Date(transaction.createdAt),
+                              "dd-MM-yy HH:mm"
+                            )}
+                            <Badge
+                              variant="outline"
+                              className={`ms-4 ${transaction.type === "income"
+                                  ? "bg-green-100 border border-green-300 text-green-400 hover:bg-green-200"
+                                  : "bg-red-100 border border-red-300 text-red-400 hover:bg-red-200"
+                                }`}
+                            >
+                              {transaction?.type?.charAt(0)?.toUpperCase() +
+                                transaction?.type?.slice(1)}
+                            </Badge>
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p
+                            className={`font-medium ${transaction?.incomeCategoryId
+                                ? "text-green-600"
+                                : "text-destructive"
+                              }`}
                           >
-                            {transaction?.type?.charAt(0)?.toUpperCase() +
-                              transaction?.type?.slice(1)}
-                          </Badge>
-                        </p>
+                            {transaction?.incomeCategoryId ? "+" : "-"}₹
+                            {transaction.amount.toLocaleString()}
+                          </p>
+                          <Badge variant="outline">{transaction.type}</Badge>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p
-                          className={`font-medium ${
-                            transaction?.incomeCategoryId
-                              ? "text-green-600"
-                              : "text-destructive"
-                          }`}
-                        >
-                          {transaction?.incomeCategoryId ? "+" : "-"}₹
-                          {transaction.amount.toLocaleString()}
-                        </p>
-                        <Badge variant="outline">{transaction.type}</Badge>
+                    ))}
+                    {selectedVendor?.inventoryData?.map((inventory) => (
+                      <div
+                        key={`inv-${inventory?._id}`}
+                        className="flex justify-between items-center p-3 border rounded-lg"
+                      >
+                        <div>
+                          <p className="font-medium">
+                            {inventory?.items}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(
+                              new Date(inventory.createdAt),
+                              "dd-MM-yy HH:mm"
+                            )}
+                            <Badge
+                              variant="outline"
+                              className={`ms-4 bg-green-100 border border-green-300 text-green-400 hover:bg-green-200`}
+                            >
+                              Order
+                            </Badge>
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p
+                            className={`font-medium`}
+                          >
+                           ₹{inventory.amount.toLocaleString()}
+                          </p>
+                          <Badge
+                              variant="outline"
+                              className={`ms-4 bg-green-100 border border-green-300 text-green-400 hover:bg-green-200`}
+                            >
+                              Order
+                            </Badge>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </TabsContent>
             </Tabs>
@@ -672,9 +746,8 @@ const VendorManagement = () => {
           }
         }}
         title={`${vendorToUpdate?.isActive ? "Deactivate" : "Activate"} Vendor`}
-        description={`Are you sure you want to ${
-          vendorToUpdate?.isActive ? "deactivate" : "activate"
-        } this Vendor member?`}
+        description={`Are you sure you want to ${vendorToUpdate?.isActive ? "deactivate" : "activate"
+          } this Vendor member?`}
         confirmText={vendorToUpdate?.isActive ? "Deactivate" : "Activate"}
         confirmVariant={vendorToUpdate?.isActive ? "destructive" : "success"}
         isLoading={isStatusUpdatePending}

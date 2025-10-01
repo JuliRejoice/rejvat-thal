@@ -26,7 +26,7 @@ interface FormValues {
   orderNotes: string
 }
 
-export default function AddOrderDialog({ vendors, isOpen, setIsOpen }: { vendors: { _id: string; name: string }[], isOpen: boolean, setIsOpen: (open: boolean) => void }) {
+export default function AddOrderDialog({ vendors, isOpen, setIsOpen ,onSubmit}: { vendors: { _id: string; name: string }[], isOpen: boolean, setIsOpen: (open: boolean) => void ,onSubmit: (data: FormValues) => void}) {
 
   const { toast } = useToast()
   const {
@@ -46,37 +46,7 @@ export default function AddOrderDialog({ vendors, isOpen, setIsOpen }: { vendors
     },
   })
 
-  const onSubmit = async (data: FormValues) => {
-    const formData = new FormData()
-    formData.append("vendorId", data.vendor)
-    formData.append("items", data.orderItems)
-    formData.append("amount", String(data.amount))
-    formData.append("orderDate", data.orderDate)
-    if (data.orderImage) {
-      formData.append("image", data.orderImage as File)
-    }
-    formData.append("notes", data.orderNotes ?? "")
 
-    await AddInventoryOrder(formData).then((res) => {
-      toast({
-        variant: "default",
-        title: "Success",
-        description: res.message || "Order added successfully",
-      });
-    }).catch((err) => {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: err.message || "Failed to add order",
-        })
-     
-      
-    })
-      reset()
-      setIsOpen(false)
-    
-  }
-  
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

@@ -12,18 +12,36 @@ const handleError = (error) => {
     }
 }
 
-export const getThresholdAmont = async () => {
+export const getThresholdAmont = async (params: { page?: number; limit?: number } = {}) => {
     try {
-        const response = await axiosInstance.get(`/utilitySetting/getUtilitySetting`);
+      const response = await axiosInstance.get('/utilitySetting/getUtilitySetting', {
+        params: {
+          page: params.page || 1,
+          limit: params.limit || 10,
+        }
+      });
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  };
+
+export const addSetting=  async (data) => {
+    try {
+        const response = await axiosInstance.post(`/utilitySetting/addUtilitySetting`, data);
+
+        console.log("get utility setting thershold amount API Response:", response.data);
+
         return response.data;
+
     } catch (error) {
         handleError(error)
     }
 }
 
-export const updateSetting = async (id: string, data) => {
+export const updateSetting = async (data) => {
     try {
-        const response = await axiosInstance.put(`/utilitySetting/updateUtilitySetting?id=${id}`, data);
+        const response = await axiosInstance.put(`/utilitySetting/updateUtilitySetting?id=${data.restaurantId}`, {expenseThresholdAmount:data.expenseThresholdAmount});
 
         console.log("get utility setting thershold amount API Response:", response.data);
 

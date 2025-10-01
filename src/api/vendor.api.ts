@@ -73,11 +73,13 @@ export const getAllVendors = async ({
     limit,
     search,
     isActive,
+    restaurantId
 }:{
     page?: any,
     limit?: any,
     search?: any,
-    isActive?: any
+    isActive?: any,
+    restaurantId?: any
 }) => {
     try {
         const queryParams = new URLSearchParams();
@@ -85,7 +87,7 @@ export const getAllVendors = async ({
         if (limit !== undefined) queryParams.append("limit", String(limit));
         if (search) queryParams.append("search", String(search));
         if(isActive !== undefined) queryParams.append("isActive", String(isActive));
-        
+        if(restaurantId) queryParams.append("restaurantId", String(restaurantId));
         const url = `/vendor/getAllVendor${queryParams.toString() ? `?${queryParams.toString()}` : ""}`
         const response = await axiosInstance.get(url);
 

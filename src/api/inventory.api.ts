@@ -59,3 +59,16 @@ export const getInventoryList = async (data) =>{
         
     }
 }
+
+export const getInventoryOverview = async (params: { restaurantId: string, vendorExpCatId: string }) => {
+    try {
+      const response = await axiosInstance.get('/inventory/overview', { params });
+      return response.data;
+    } catch (error) {
+      console.error('getInventoryOverview API error:', error);
+      if (error.response) {
+        throw new Error(error.response.data.message || 'Failed to fetch inventory overview');
+      }
+      throw new Error('Failed to fetch inventory overview');
+    }
+  };
