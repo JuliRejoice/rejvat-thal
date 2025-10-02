@@ -13,8 +13,8 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard,
@@ -22,17 +22,18 @@ import {
   DollarSign,
   Users,
   UserCheck,
-  Truck,
-  Settings,
-  Bell,
-  ClipboardList,
   PieChart,
+  Bell,
+  Settings,
+  Truck,
+  Tags,
+  ShoppingBag,
   LogOut,
   FileText,
   Clock,
-  Tags
+  ClipboardList,
+  Clipboard
 } from 'lucide-react';
-import Logo from '../../asset/img/logo.png'
 import smallLogo from '../../asset/img/smallLogo.png'
 
 // Navigation items based on role
@@ -49,8 +50,8 @@ const getNavigationItems = (role: string) => {
       { title: 'Managers', url: '/managers', icon: UserCheck },
       { title: 'Staff Members', url: '/staff', icon: Users },
       // { title: 'Customers', url: '/customers', icon: UserPlus },
-      // { title: 'Menu Items', url: '/items', icon: Package },
-      // { title: 'Meal Plans', url: '/meals', icon: ShoppingBag },
+      { title: 'Menu Items', url: '/items', icon: ClipboardList },
+      { title: 'Meal Plans', url: '/meals', icon: ShoppingBag },
       // { title: 'Daily Summary', url: '/daily-summary', icon: Calendar },
       { title: 'Vendors', url: '/vendors', icon: Truck },
       { title: 'Expense Categories', url: '/expense-categories', icon: Tags },
@@ -65,7 +66,8 @@ const getNavigationItems = (role: string) => {
       { title: 'Income & Expense', url: '/finance', icon: DollarSign },
       { title: 'Staff Management', url: '/staff', icon: Users },
       // { title: 'Customer Management', url: '/customers', icon: UserPlus },
-      // { title: 'Menu Items', url: '/items', icon: Package },
+      { title: 'Menu Items', url: '/items', icon: ClipboardList },
+      { title: 'Meal Plans', url: '/meals', icon: ShoppingBag },
       // { title: 'Meal Plans', url: '/meals', icon: ShoppingBag },
       // { title: 'Daily Tiffin Summary', url: '/daily-summary', icon: Calendar },
       { title: 'Vendor Management', url: '/vendors', icon: Truck },
@@ -108,7 +110,7 @@ export const AppSidebar = () => {
       <SidebarHeader className="border-b border-sidebar-border pt-4 pb-0">
         <div className="flex items-center justify-center">
           <div className="flex justify-center mb-3">
-            <img src={collapsed ? smallLogo : Logo} alt='' className='w-52' />
+            <img src={smallLogo} alt='Logo' className={collapsed ? 'w-8' : 'w-52'} />
           </div>
           {!collapsed && (
             <div>
@@ -167,6 +169,7 @@ export const AppSidebar = () => {
             title="Logout"
           >
             <LogOut className="h-4 w-4" />
+            {!collapsed && <span className="ml-2">Logout</span>}
           </Button>
         </div>
       </SidebarFooter>
