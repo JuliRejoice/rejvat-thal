@@ -13,7 +13,7 @@ export interface MealMenu {
   id: string;
   _id: string;
   name: string;
-  restaurantId: string;
+  restaurantId: any;
   type: 'BREAKFAST' | 'LUNCH' | 'DINNER';
   description: string;
   items: MealMenuItem[];
@@ -42,6 +42,12 @@ export interface UpdateMealMenuPayload extends Partial<CreateMealMenuPayload> {
   isActive?: boolean;
 }
 
+export interface MealMenuStatistics {
+  totalMealMenus: number;
+  totalActiveMealMenus: number;
+  averagePrice: number;
+}
+
 export interface GetMealMenusParams {
   page?: number;
   limit?: number;
@@ -59,6 +65,16 @@ export const mealMenuApi = {
   createMealMenu: async (data: CreateMealMenuPayload): Promise<MealMenu> => {
     try {
       const response = await axiosInstance.post("/mealMenu/createMealMenu", data);
+      return response.data.payload;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Get meal menu statistics
+  getMealMenuStatistics: async (): Promise<MealMenuStatistics> => {
+    try {
+      const response = await axiosInstance.get('/mealMenu/statistics');
       return response.data.payload;
     } catch (error: any) {
       throw error.response?.data || error;

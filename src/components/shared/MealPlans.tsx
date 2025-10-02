@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { MealMenu, mealMenuApi, type CreateMealMenuPayload } from '@/api/mealMenu.api';
+import { MealMenu, mealMenuApi, type CreateMealMenuPayload, type MealMenuStatistics } from '@/api/mealMenu.api';
 import { getRestaurants } from '@/api/restaurant.api';
 import { Plus, Search, Filter, Edit2, ToggleLeft, ToggleRight, IndianRupee, Eye, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,11 +26,13 @@ const MealPlans = () => {
   const [editingMeal, setEditingMeal] = useState<MealMenu | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [isLoadingMenuItems, setIsLoadingMenuItems] = useState(false);
-  const [ selectedItems, setSelectedItems] = useState<Array<{_id: string, name: string, price: number, quantity: number}>>([]);
+  const [selectedItems, setSelectedItems] = useState<Array<{ _id: string, name: string, price: number, quantity: number }>>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [restaurants, setRestaurants] = useState<Array<{_id: string, name: string}>>([]);
+  const [restaurants, setRestaurants] = useState<Array<{ _id: string, name: string }>>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState('');
-  
+  const [stats, setStats] = useState<MealMenuStatistics | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+
   const [formData, setFormData] = useState<{
     name: string;
     type: 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'Complete Meal';
@@ -50,19 +52,24 @@ const MealPlans = () => {
     const fetchData = async () => {
       try {
         // Fetch restaurants
+
+        const params: any = {
+          page: 1,
+          limit: 50,
+        };
+
+        if (filterStatus !== 'all') {
+          params.isActive = filterStatus;
+        }
         const [restaurantsResponse, mealMenusResponse] = await Promise.all([
           getRestaurants({}),
-          mealMenuApi.getMealMenus({
-            page: 1,
-            limit: 50,
-            isActive: true
-          })
+          mealMenuApi.getMealMenus(params)
         ]);
 
         // Handle restaurants response
         if (restaurantsResponse?.payload?.data) {
           setRestaurants(restaurantsResponse.payload.data);
-          
+
           // Set the first restaurant as default if available
           if (restaurantsResponse.payload.data.length > 0 && !selectedRestaurant) {
             const firstRestaurant = restaurantsResponse.payload.data[0]._id;
@@ -80,6 +87,17 @@ const MealPlans = () => {
         if (mealMenusResponse?.items) {
           setMeals(mealMenusResponse.items);
         }
+
+        // Fetch meal menu statistics
+        try {
+          setIsLoadingStats(true);
+          const s = await mealMenuApi.getMealMenuStatistics();
+          setStats(s);
+        } catch (e) {
+          console.error('Failed to load meal menu statistics', e);
+        } finally {
+          setIsLoadingStats(false);
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
         toast({
@@ -91,27 +109,31 @@ const MealPlans = () => {
     };
 
     fetchData();
-  }, []);
+  }, [filterStatus]);
 
 
   // Function to fetch menu items for a restaurant
   const fetchMenuItems = React.useCallback(async (restaurantId: string) => {
+    console.log('Fetching menu items for restaurant:', restaurantId);
     if (!restaurantId) {
       setMenuItems([]);
       return;
     }
-    
+
     let isMounted = true;
-    
+
     try {
       setIsLoadingMenuItems(true);
       console.log('Fetching menu items for restaurant:', restaurantId);
-      const response = await menuApi.getMenuItems({ 
+      const response = await menuApi.getMenuItems({
         restaurantId: restaurantId.trim(),
         limit: 100,
         isActive: 'active' // Only fetch active items
       });
-      
+
+      console.log("response",response);
+      console.log("response.items",response.items);
+      console.log("isMounted",isMounted)
       if (isMounted) {
         setMenuItems(response.items || []);
       }
@@ -130,33 +152,29 @@ const MealPlans = () => {
         setIsLoadingMenuItems(false);
       }
     }
-    
+
     return () => {
       isMounted = false;
     };
   }, []); // Empty dependency array as we don't use any external values
 
-    // Fetch menu items when selected restaurant changes
-    useEffect(() => {
-      console.log('Restaurant changed:', selectedRestaurant);
-      
-      // Clear previous items when changing restaurants
+  // Fetch menu items when selected restaurant changes
+  useEffect(() => {
+    // Clear previous items when changing restaurants
+    setMenuItems([]);
+
+    if (selectedRestaurant) {
+      fetchMenuItems(selectedRestaurant);
+    } else {
       setMenuItems([]);
-      
-      if (selectedRestaurant) {
-        console.log('Fetching menu for restaurant ID:', selectedRestaurant);
-        fetchMenuItems(selectedRestaurant);
-      } else {
-        console.log('No restaurant selected');
-        setMenuItems([]);
-      }
-      
-      // Cleanup function
-      return () => {
-        console.log('Cleaning up restaurant change effect');
-      };
-    }, [selectedRestaurant]); // Add fetchMenuItems to dependencies
-  
+    }
+
+    // Cleanup function
+    return () => {
+      console.log('Cleaning up restaurant change effect');
+    };
+  }, [selectedRestaurant]); // Add fetchMenuItems to dependencies
+
   const filteredMeals = meals;
 
   const handleViewMeal = (meal: MealMenu) => {
@@ -166,7 +184,7 @@ const MealPlans = () => {
 
   const handleEditMeal = async (meal: MealMenu) => {
     setEditingMeal(meal);
-    if (menuItems.length === 0 && meal.restaurantId) {
+    if (meal.restaurantId) {
       await fetchMenuItems(meal.restaurantId);
     }
     setFormData({
@@ -174,15 +192,12 @@ const MealPlans = () => {
       type: meal.type as any,
       description: meal.description,
       price: meal.price,
-      restaurantId: meal.restaurantId || '' 
+      restaurantId: meal.restaurantId || ''
     });
-    
+
     // Map the meal items to the format expected by selectedItems
     const items = meal.items.map(item => {
-      console.log(item, 'item');
-      console.log(menuItems, 'menuItems');
       const menuItem = menuItems.find(mi => mi.name === item.itemId.name);
-      console.log(menuItem);
       return {
         _id: item.itemId?._id || '',
         name: item.itemId.name,
@@ -190,7 +205,7 @@ const MealPlans = () => {
         quantity: item.qty
       };
     });
-    
+
     setSelectedItems(items);
     setIsAddModalOpen(true);
   };
@@ -225,7 +240,7 @@ const MealPlans = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.restaurantId) {
       toast({
         title: 'Error',
@@ -234,7 +249,7 @@ const MealPlans = () => {
       });
       return;
     }
-    
+
     if (selectedItems.length === 0) {
       toast({
         title: 'Error',
@@ -246,7 +261,7 @@ const MealPlans = () => {
 
     try {
       setIsSubmitting(true);
-      
+
       const payload: CreateMealMenuPayload = {
         name: formData.name,
         type: formData.type as 'BREAKFAST' | 'LUNCH' | 'DINNER',
@@ -266,27 +281,27 @@ const MealPlans = () => {
           id: editingMeal._id,
           ...payload
         });
-        
+
         toast({
           title: 'Success',
           description: 'Meal plan updated successfully',
         });
-        
+
         // Update local state
         setMeals(meals.map(m => m._id === editingMeal._id ? updatedMeal : m));
       } else {
         // Create new meal
         const newMeal = await mealMenuApi.createMealMenu(payload);
-        
+
         toast({
           title: 'Success',
           description: 'Meal plan created successfully',
         });
-        
+
         // Update local state
         setMeals([...meals, newMeal]);
       }
-      
+
       handleCloseModal();
     } catch (error) {
       console.error('Error saving meal plan:', error);
@@ -322,22 +337,22 @@ const MealPlans = () => {
       } else {
         const menuItem = menuItems.find(mi => mi._id === itemId);
         if (!menuItem) return prev; // Safety check
-        
+
         const newItems = [
-          ...prev, 
-          { 
-            _id: itemId, 
-            name: menuItem.name, 
-            price: menuItem.price, 
-            quantity: 1 
+          ...prev,
+          {
+            _id: itemId,
+            name: menuItem.name,
+            price: menuItem.price,
+            quantity: 1
           }
         ];
-        
+
         // Update the price when items change
         const totalPrice = newItems.reduce((total, item) => {
           return total + item.price * item.quantity;
         }, 0);
-        
+
         setFormData(prev => ({
           ...prev,
           price: totalPrice
@@ -349,23 +364,50 @@ const MealPlans = () => {
 
   const handleQuantityChange = (itemId: string, quantity: number) => {
     setSelectedItems(prev => {
-      const updated = prev.map(item => 
+      const updated = prev.map(item =>
         item._id === itemId ? { ...item, quantity } : item
       );
-      
+
       // Update the price when quantity changes
       const totalPrice = updated.reduce((total, item) => {
         const menuItem = menuItems.find(mi => mi._id === item._id);
         return total + (menuItem?.price || 0) * item.quantity;
       }, 0);
-      
+
       setFormData(prev => ({
         ...prev,
         price: totalPrice
       }));
-      
+
       return updated;
     });
+  };
+
+  const handleStatusToggle = async (meal: MealMenu) => {
+    try {
+      const mealToUpdate = meals.find(meal => meal._id === meal._id);
+      if (!mealToUpdate) return;
+
+      const items : { itemId: string; qty: number }[] = mealToUpdate.items.map(item => {         
+        return { itemId: item.itemId._id, qty: item.qty } });
+      console.log(items, 'items');
+      const updatedMeal = await mealMenuApi.updateMealMenu({
+        id: meal._id,
+        isActive: !mealToUpdate.isActive,
+        items : items,
+      });
+      console.log(updatedMeal, 'updatedMeal');
+      // Update the meals state with the updated meal
+      setMeals(meals.map(mea =>
+        mea._id === meal._id ? {
+          ...meal,
+          status: updatedMeal.isActive ? 'active' : 'inactive',
+          isActive: updatedMeal.isActive
+        } : mea
+      ));
+    } catch (error) {
+      console.error('Error updating meal status:', error);
+    }
   };
 
   return (
@@ -389,28 +431,28 @@ const MealPlans = () => {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                    <Label htmlFor="restaurantId">Restaurant *</Label>
-                    <Select 
-                      value={formData.restaurantId}
-                      onValueChange={(value) => handleRestaurantChange(value)}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select restaurant" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {restaurants.map(restaurant => (
-                          <SelectItem key={restaurant._id} value={restaurant._id}>
-                            {restaurant.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="restaurantId">Restaurant *</Label>
+                  <Select
+                    value={formData.restaurantId}
+                    onValueChange={(value) => handleRestaurantChange(value)}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select restaurant" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {restaurants.map(restaurant => (
+                        <SelectItem key={restaurant._id} value={restaurant._id}>
+                          {restaurant.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="name">Meal Name *</Label>
-                  <Input 
+                  <Input
                     id="name"
                     placeholder="Enter meal name"
                     value={formData.name}
@@ -420,8 +462,8 @@ const MealPlans = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="type">Meal Type *</Label>
-                  <Select 
-                    value={formData.type} 
+                  <Select
+                    value={formData.type}
                     onValueChange={(value) => handleSelectChange(value, 'type')}
                     required
                   >
@@ -436,10 +478,10 @@ const MealPlans = () => {
                   </Select>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
-                <Textarea 
+                <Textarea
                   id="description"
                   placeholder="Enter meal description"
                   value={formData.description}
@@ -492,7 +534,7 @@ const MealPlans = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="price">Final Price (₹) *</Label>
-                <Input 
+                <Input
                   id="price"
                   type="number"
                   placeholder="Enter final price"
@@ -505,16 +547,16 @@ const MealPlans = () => {
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="flex-1"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Saving...' : editingMeal ? 'Update Meal Plan' : 'Save Meal Plan'}
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={handleCloseModal}
                   disabled={isSubmitting}
                 >
@@ -533,7 +575,7 @@ const MealPlans = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Meals</p>
-                <p className="text-2xl font-bold text-foreground">{meals.length}</p>
+                <p className="text-2xl font-bold text-foreground">{stats?.totalMealMenus ?? meals.length}</p>
               </div>
               <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center">
                 <Plus className="h-4 w-4 text-primary" />
@@ -547,8 +589,7 @@ const MealPlans = () => {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Meals</p>
                 <p className="text-2xl font-bold text-primary">
-                  
-                  {meals.filter(meal => meal?.isActive).length}
+                  {stats?.totalActiveMealMenus ?? meals.filter(meal => meal?.isActive).length}
                 </p>
               </div>
               <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -563,7 +604,7 @@ const MealPlans = () => {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Avg Price</p>
                 <p className="text-2xl font-bold text-foreground">
-                  ₹{Math.round(meals.reduce((sum, meal) => sum + meal.price, 0) / meals.length)}
+                  ₹{Math.round((stats?.averagePrice ?? (meals.length ? meals.reduce((sum, meal) => sum + meal.price, 0) / meals.length : 0)))}
                 </p>
               </div>
               <div className="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center">
@@ -572,22 +613,22 @@ const MealPlans = () => {
             </div>
           </CardContent>
         </Card>
+          {/*
         <Card>
-          <CardContent className="p-6">
+           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Complete Meals</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {/* {meals.filter(meal => meal.type === 'Complete Meal').length} */}
-                  12
                 </p>
               </div>
               <div className="h-8 w-8 bg-amber-100 rounded-lg flex items-center justify-center">
                 <Filter className="h-4 w-4 text-amber-600" />
               </div>
             </div>
-          </CardContent>
+          </CardContent> 
         </Card>
+          */}
       </div>
 
       {/* Filters */}
@@ -605,7 +646,7 @@ const MealPlans = () => {
                 />
               </div>
             </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value={filterStatus} onValueChange={(value) => { setFilterStatus(value); }}>
               <SelectTrigger className="w-48">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue />
@@ -649,7 +690,7 @@ const MealPlans = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{meal.type}</Badge>
+                    <Badge variant="outline">{meal.type.toUpperCase()}</Badge>
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary">{meal.items.length} items</Badge>
@@ -666,7 +707,7 @@ const MealPlans = () => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-2">
                       <Button
                         variant="outline"
                         size="sm"
@@ -681,11 +722,12 @@ const MealPlans = () => {
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm"
+                        onClick={() => handleStatusToggle(meal)}>
                         {meal.isActive ? (
-                          <ToggleLeft className="h-4 w-4 text-destructive" />
-                        ) : (
                           <ToggleRight className="h-4 w-4 text-primary" />
+                        ) : (
+                          <ToggleLeft className="h-4 w-4 text-destructive" />
                         )}
                       </Button>
                     </div>
@@ -717,11 +759,11 @@ const MealPlans = () => {
                   </Badge>
                 </div>
               </div>
-              
+
               <div>
                 <p className="text-sm text-muted-foreground">{selectedMeal.description}</p>
               </div>
-              
+
               <div className="space-y-2">
                 <h4 className="font-medium">Included Items:</h4>
                 <div className="space-y-2">
