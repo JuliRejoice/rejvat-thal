@@ -56,6 +56,9 @@ import { useForm } from "react-hook-form";
 import { ConfirmationDialog } from "../common/ConfirmationDialog";
 import { format } from "date-fns"
 import ExpenseCategoryTableSkeleton from "./ExpenseCategoryTableSkeleton";
+import { useAuth } from "@/contexts/AuthContext";
+import { getRestaurants } from "@/api/restaurant.api";
+import { SearchableDropDown } from "../common/SearchableDropDown";
 
 type ExpenseCat = {
   _id: string;
@@ -81,16 +84,32 @@ const ExpenseCategoryManagement = () => {
   const [page, setPage] = useState(1);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+const isManager = user?.role === "manager";
+
+// Fetch restaurants
+const { data: restaurantsData } = useQuery({
+  queryKey: ["restaurants-for-expense"],
+  queryFn: () => getRestaurants({}),
+});
+
+const restaurantsOptions = restaurantsData?.payload?.data?.map((r: any) => ({
+  id: r._id,
+  name: r.name,
+})) || [];
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm({
     defaultValues: {
       name: "",
       description: "",
+      restaurantId: user?.restaurantId?._id,
     },
   });
 
@@ -109,6 +128,7 @@ const ExpenseCategoryManagement = () => {
     search: searchTerm,
     page: page,
     limit: itemsPerPage,
+    restaurantId: user?.restaurantId?._id,
     ...(filterStatus !== "all" && { status: filterStatus === "active" }),
   };
 
@@ -231,6 +251,35 @@ const ExpenseCategoryManagement = () => {
                 <p className="text-sm text-red-500">
                   {errors.name.message as string}
                 </p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="restaurantId">Restaurant</Label>
+            {isManager && user?.restaurantId ? (
+                // Show disabled input with manager's restaurant
+                <Input
+                  value={user.restaurantId.name}
+                  disabled
+                  className="bg-gray-100"
+                />
+              ) : (
+                // Show dropdown for non-managers
+                <SearchableDropDown
+                  options={[
+                    { id: "all", name: "All Restaurants" },
+                    ...(restaurantsOptions.map((restaurant) => ({
+                      id: restaurant.id,
+                      name: restaurant.name,
+                    })) || []),
+                  ]}
+                  value={watch("restaurantId")}
+                  onChange={(value) => {
+                    setValue("restaurantId", value, {
+                      shouldValidate: true,
+                      shouldTouch: true,
+                    });
+                  }}
+                />
               )}
             </div>
             <div className="space-y-2">

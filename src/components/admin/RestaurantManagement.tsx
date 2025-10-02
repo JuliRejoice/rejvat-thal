@@ -1,5 +1,6 @@
 import {
   createRestaurant,
+  getRestaurantOverview,
   getRestaurants,
   updateRestaurant,
   updateRestaurantStatus,
@@ -100,6 +101,14 @@ const RestaurantManagement = () => {
       setIsCreateModalOpen(true);
     }
   }, [editingRestaurant, reset]);
+
+  const { data: restaurantOverview, isLoading: isOverviewLoading } = useQuery({
+    queryKey: ['restaurant-overview'],
+    queryFn: getRestaurantOverview,
+    select: (data) => data.payload
+  });
+
+  console.log("restaurantOverview:", restaurantOverview);
 
   const queryData = {
     search: searchTerm,
@@ -601,7 +610,7 @@ const RestaurantManagement = () => {
             <div className="flex items-center space-x-2">
               <Building2 className="h-8 w-8 text-primary" />
               <div>
-                <p className="text-2xl font-bold">{restaurants.length}</p>
+                <p className="text-2xl font-bold">{restaurantOverview?.totalRestaurant}</p>
                 <p className="text-sm text-muted-foreground">
                   Total Restaurants
                 </p>
@@ -615,7 +624,7 @@ const RestaurantManagement = () => {
                 <CheckCircle className="h-8 w-8 text-success" />
                 <div>
                   <p className="text-2xl font-bold">
-                    {restaurants.filter((r) => r.status === "active").length}
+                    {restaurantOverview?.activeRestaurant}
                   </p>
                   <p className="text-sm text-muted-foreground">Active</p>
                 </div>
@@ -627,7 +636,7 @@ const RestaurantManagement = () => {
               <div className="flex items-center space-x-2">
                 <Users className="h-8 w-8 text-primary" />
                 <div>
-                  <p className="text-2xl font-bold">0</p>
+                  <p className="text-2xl font-bold">{restaurantOverview?.totalCustomer}</p>
                   <p className="text-sm text-muted-foreground">Total Customers</p>
                 </div>
               </div>
@@ -638,7 +647,7 @@ const RestaurantManagement = () => {
               <div className="flex items-center space-x-2">
                 <Users className="h-8 w-8 text-metrics-customers" />
                 <div>
-                  <p className="text-2xl font-bold">0</p>
+                  <p className="text-2xl font-bold">{restaurantOverview?.totalStaff}</p>
                   <p className="text-sm text-muted-foreground">Total Staff</p>
                 </div>
               </div>

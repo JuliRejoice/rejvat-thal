@@ -62,6 +62,7 @@ import { getAttendanceAndLeaveByStaff, updateLeaveRequest } from "@/api/attendan
 import { AttendanceRecordsSkeleton } from "../staff/AttendanceSkeleton";
 import { getRestaurants } from "@/api/restaurant.api";
 import { SearchableDropDown } from "@/components/common/SearchableDropDown";
+import { useAuth } from "@/contexts/AuthContext";
 
 const mockAttendance = [];
 const mockLeaveRequests = [];
@@ -80,8 +81,10 @@ const StaffManagement = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [selectedUpdateStaff, setSelectedUpdateStaff] = useState<any>(null);
   const [searchRestaurant, setSearchRestaurant] = useState("");
+  const [isImagePending, setIsImagePending] = useState(false);
   // Fetch selected staff's attendance and leave when View modal is open
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { user } = useAuth();
 
   const debouncedOnSearch = useCallback((query: string) => {
     if (debounceTimeoutRef.current) {
@@ -279,6 +282,8 @@ const StaffManagement = () => {
             <StaffManagerForm
               onSubmit={createStaff}
               isPending={isPending}
+              isImagePending={isImagePending}
+              setIsImagePending={setIsImagePending}
               type="staff"
               onCancel={() => setIsAddModalOpen(false)}
             />
@@ -395,7 +400,7 @@ const StaffManagement = () => {
       <Card>
         <CardHeader className="flex flex-row justify-between items-center">
           <CardTitle>Staff Members ({filteredStaff.length})</CardTitle>
-          <SearchableDropDown
+         {user?.role === "admin" && <SearchableDropDown
             options={[
               { id: "all", name: "All Restaurants" },
               ...(restaurants?.payload?.data?.map((restaurant) => ({
@@ -411,7 +416,7 @@ const StaffManagement = () => {
               setSearchRestaurant("");
             }}
             onChange={(value) => setFilterRestaurant(value)}
-          />
+          />}
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">

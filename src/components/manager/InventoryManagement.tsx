@@ -15,13 +15,73 @@ import { usePagination } from '@/hooks/use-pagination';
 import { DataTablePagination } from '@/components/common/DataTablePagination';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getAllVendors } from '@/api/vendor.api';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Controller, useForm } from 'react-hook-form';
 import AddOrderDialog from './AddOrderDialog';
-import { getInventoryList } from '@/api/inventory.api';
+import { AddInventoryOrder, getInventoryList, getInventoryOverview } from '@/api/inventory.api';
 import { useAuth } from '@/contexts/AuthContext';
 import AddPaymentDialog from './AddPaymentDialog';
-import { getVendorPayment } from '@/api/paymentMethod.api';
+import { getPaymentMethods, getVendorPayment, vendorPayment } from '@/api/paymentMethod.api';
+import { toast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const TableSkeleton = () => (
+  <div className="space-y-4 px-4">
+    {Array.from({ length: 5 }).map((_, index) => (
+    <TableRow key={index} className="h-12">
+      {/* Vendor Column */}
+      <TableCell className="px-8 py-3">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <div className="flex-1">
+            <Skeleton className="h-6 w-32 mb-1" />
+           
+          </div>
+        </div>
+      </TableCell>
+      <TableCell className="max-w-[200px]">
+        <Skeleton className="h-6 w-full" />
+      </TableCell>
+
+      <TableCell className="px-12 py-3">
+       
+              <Skeleton className="h-6 w-24" />
+             
+      
+      </TableCell>
+      <TableCell  className="px-12 py-3">
+        <div className="flex items-center gap-1">
+          <Skeleton className="h-6 w-24" />
+         
+        </div>
+      </TableCell>
+
+      {/* Due Amount Column */}
+      <TableCell className="px-12 py-3">
+        <div className="flex items-center gap-1">
+          <Skeleton className="h-6 w-24" />
+        
+        </div>
+      </TableCell>
+
+      <TableCell className="px-12 py-3">
+        <div className="flex items-center gap-1">
+          <Skeleton className="h-6 w-24" />
+        
+        </div>
+      </TableCell>
+
+      {/* Status Column */}
+      <TableCell className="px-12 py-3">
+        <Skeleton className="h-6 w-16 rounded-full" />
+      </TableCell>
+
+
+    
+    </TableRow>
+  ))}
+  </div>
+);
 
 // Mock data
 const mockVendors = [
@@ -79,7 +139,41 @@ const InventoryManagement = () => {
   const [isAddOrderModalOpen, setIsAddOrderModalOpen] = useState(false);
   const [isAddPaymentModalOpen, setIsAddPaymentModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const {user} = useAuth();
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState('all');
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [paymentsPage, setPaymentsPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const { user } = useAuth();
+
+  const queryClient = useQueryClient();
+
+
+  // Fetch payment methods
+  const { data: paymentMethods } = useQuery({
+    queryKey: ['paymentMethods'],
+    queryFn: getPaymentMethods,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const { data: overviewData } = useQuery({
+    queryKey: ['inventoryOverview'],
+    queryFn: () => getInventoryOverview({
+      restaurantId: user?.restaurantId._id,
+      vendorExpCatId: '68bff6c834305c04a6926d1f'
+    }),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+ 
+
+
+  // Add this near your other state declarations
+  const stats = {
+    totalOrders: overviewData?.payload?.totalOrderValue || 0,
+    totalPayments: overviewData?.payload?.totaPayments || 0,
+    pendingAmount: overviewData?.payload?.totalPendingAmount || 0,
+    activeVendors: overviewData?.payload?.totalActiveVendor || 0,
+  };
 
   const { data: vendorsData, isLoading: vendorsLoading, error: vendorsError } = useQuery({
     queryKey: ['vendors'],
@@ -91,32 +185,34 @@ const InventoryManagement = () => {
     })
   });
 
-  const {data : orderData , isLoading : ordersLoading , error : ordersError} = useQuery({
-    queryKey : ['orders'],
-    queryFn : () => getInventoryList({
-      page : 1,
-      limit : 100,
-      search : '',
-      isActive : true,
-      restaurantId : user?.restaurantId._id,
-      // vendorId : 
-    })
+// Orders query
+const { data: orderData, isLoading: ordersLoading } = useQuery({
+  queryKey: ['orders', ordersPage, pageSize],
+  queryFn: () => getInventoryList({
+    page: ordersPage,
+    limit: pageSize,
+    search: '',
+    isActive: true,
+    restaurantId: user?.restaurantId._id,
   })
+});
 
-  const {data : paymentData , isLoading : paymentsLoading , error : paymentsError} = useQuery({
-    queryKey : ['payments'],
-    queryFn : () => getVendorPayment({
-      page : 1,
-      limit : 100,
-      search : '',
-      isActive : true,
-      restaurantId : user?.restaurantId._id,
-      expenseCategoryId : "68bff6c834305c04a6926d1f"
-    })
+// Payments query
+const { data: paymentData, isLoading: paymentsLoading } = useQuery({
+  queryKey: ['payments', paymentsPage, pageSize, selectedMethod],
+  queryFn: () => getVendorPayment({
+    page: paymentsPage,
+    limit: pageSize,
+    search: '',
+    isActive: true,
+    restaurantId: user?.restaurantId._id,
+    expenseCategoryId: "68bff6c834305c04a6926d1f",
+    method: selectedMethod === 'all' ? undefined : selectedMethod
   })
-  const vendors=vendorsData?.payload?.data;
-  const orders=orderData?.payload?.data;
-  const payments=paymentData?.payload?.items;
+});
+  const vendors = vendorsData?.payload?.data;
+  const orders = orderData?.payload?.data;
+  const payments = paymentData?.payload?.items;
 
   const { control, register } = useForm();
 
@@ -139,6 +235,70 @@ const InventoryManagement = () => {
     // return getTotalOrders() - getTotalPayments();
   };
 
+  const handleAddPayment = async (data) => {
+    const formData = new FormData()
+    formData.append("vendorId", data.vendorId)
+    formData.append("amount", String(data.amount))
+    formData.append("date", data.date)
+    formData.append("method", data.method)
+    if (data.image) {
+      formData.append("image", data.image as File)
+    }
+    formData.append("description", data.description)
+    formData.append("expenseCategoryId", "68bff6c834305c04a6926d1f")
+
+    try {
+      const response = await vendorPayment(formData);
+      await queryClient.invalidateQueries({ queryKey: ['payments'] });
+      toast({
+        variant: "default",
+        title: "Success",
+        description: response.message || "Payment added successfully",
+      })
+      setIsAddPaymentModalOpen(false)
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to add payment",
+      })
+    }
+  }
+
+  const handleAddOrder = async (data) => {
+    const formData = new FormData()
+    formData.append("vendorId", data.vendor)
+    formData.append("items", data.orderItems)
+    formData.append("amount", String(data.amount))
+    formData.append("orderDate", data.orderDate)
+    if (data.orderImage) {
+      formData.append("image", data.orderImage as File)
+    }
+    formData.append("notes", data.orderNotes ?? "")
+
+    try {
+      const response = await AddInventoryOrder(formData);
+      await queryClient.invalidateQueries({ queryKey: ['orders'] });
+      toast({
+        variant: "default",
+        title: "Success",
+        description: response.message || "Order added successfully",
+      });
+      setIsAddOrderModalOpen(false);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to add order",
+      });
+    }
+    setIsAddOrderModalOpen(false)
+  }
+
+  const filteredPayments = payments?.filter(payment =>
+    selectedMethod === 'all' || payment.methodId === selectedMethod
+  ) || [];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -148,8 +308,8 @@ const InventoryManagement = () => {
           <p className="text-muted-foreground">Manage vendor orders and payments</p>
         </div>
         <div className="flex gap-2">
-        <Button onClick={() => setIsAddOrderModalOpen(true)}>Add Order</Button>
-        <Button onClick={() => setIsAddPaymentModalOpen(true)}>Add Payment</Button>
+          <Button onClick={() => setIsAddOrderModalOpen(true)}>Add Order</Button>
+          <Button onClick={() => setIsAddPaymentModalOpen(true)}>Add Payment</Button>
           {/* <Dialog open={isAddOrderModalOpen} onOpenChange={setIsAddOrderModalOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
@@ -218,8 +378,10 @@ const InventoryManagement = () => {
             </DialogContent>
           </Dialog> */}
 
-          <AddOrderDialog vendors={vendors} isOpen={isAddOrderModalOpen} setIsOpen={setIsAddOrderModalOpen} />
-          <AddPaymentDialog vendors={vendors} isOpen={isAddPaymentModalOpen} setIsOpen={setIsAddPaymentModalOpen} />
+          <AddOrderDialog vendors={vendors} isOpen={isAddOrderModalOpen} setIsOpen={setIsAddOrderModalOpen}
+            onSubmit={handleAddOrder}
+          />
+          <AddPaymentDialog vendors={vendors} isOpen={isAddPaymentModalOpen} setIsOpen={setIsAddPaymentModalOpen} onSubmit={handleAddPayment} />
           {/* <Dialog open={isAddPaymentModalOpen} onOpenChange={setIsAddPaymentModalOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="gap-2">
@@ -304,7 +466,7 @@ const InventoryManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Orders</p>
-                {/* <p className="text-2xl font-bold text-foreground">₹{getTotalOrders().toLocaleString()}</p> */}
+                <p className="text-2xl font-bold text-foreground">₹{stats.totalOrders}</p>
               </div>
               <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center">
                 <Package className="h-4 w-4 text-primary" />
@@ -317,7 +479,7 @@ const InventoryManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Payments</p>
-                {/* <p className="text-2xl font-bold text-green-600">₹{getTotalPayments().toLocaleString()}</p> */}
+                <p className="text-2xl font-bold text-green-600">₹{stats.totalPayments}</p>
               </div>
               <div className="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center">
                 <IndianRupee className="h-4 w-4 text-green-600" />
@@ -330,7 +492,7 @@ const InventoryManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Pending Amount</p>
-                {/* <p className="text-2xl font-bold text-destructive">₹{getPendingAmount().toLocaleString()}</p> */}
+                <p className="text-2xl font-bold text-destructive">₹{stats.pendingAmount}</p>
               </div>
               <div className="h-8 w-8 bg-destructive/10 rounded-lg flex items-center justify-center">
                 <Receipt className="h-4 w-4 text-destructive" />
@@ -343,7 +505,7 @@ const InventoryManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Vendors</p>
-                {/* <p className="text-2xl font-bold text-foreground">{vendors.length}</p> */}
+                <p className="text-2xl font-bold text-foreground">{stats.activeVendors}</p>
               </div>
               <div className="h-8 w-8 bg-amber-100 rounded-lg flex items-center justify-center">
                 <Truck className="h-4 w-4 text-amber-600" />
@@ -385,7 +547,9 @@ const InventoryManagement = () => {
                     </SelectContent>
                   </Select>
                 </div>
-
+                {ordersLoading ? (
+        <TableSkeleton />
+      ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -395,6 +559,7 @@ const InventoryManagement = () => {
                       <TableHead>Date</TableHead>
                       {/* <TableHead>Status</TableHead> */}
                       <TableHead>Notes</TableHead>
+                      <TableHead>Proof</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -433,10 +598,26 @@ const InventoryManagement = () => {
                             {order.notes}
                           </div>
                         </TableCell>
+
+                        <TableCell>
+                          {order.imageUrl ? (
+                            <Badge
+                              variant="secondary"
+                              className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
+                              onClick={() => setImagePreview(order.imageUrl)}
+                            >
+                              <Receipt className="mr-1 h-3 w-3" />
+                              Attached
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No receipt</span>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+                )}
               </div>
             </CardContent>
           </TabsContent>
@@ -451,17 +632,21 @@ const InventoryManagement = () => {
                       <Input placeholder="Search payments..." className="pl-10" />
                     </div>
                   </div>
-                  <Select defaultValue="all">
+                  <Select
+                    value={selectedMethod}
+                    onValueChange={setSelectedMethod}
+                  >
                     <SelectTrigger className="w-48">
                       <Filter className="h-4 w-4 mr-2" />
-                      <SelectValue />
+                      <SelectValue placeholder="Select method" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Methods</SelectItem>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="card">Card</SelectItem>
-                      <SelectItem value="upi">UPI</SelectItem>
-                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                      {paymentMethods?.payload?.data.map((method) => (
+                        <SelectItem key={method._id} value={method._id}>
+                          {method.type}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -474,15 +659,16 @@ const InventoryManagement = () => {
                       <TableHead>Date</TableHead>
                       <TableHead>Method</TableHead>
                       <TableHead>Notes</TableHead>
+                      <TableHead>Proof</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {payments?.map((payment) => (
+                    {filteredPayments.map((payment) => (
                       <TableRow key={payment._id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
-                            <AvatarFallback>{payment?.vendor?.name?.split(' ').map(n => n[0]).join('') || <User className="h-4 w-4"/>}</AvatarFallback>
+                              <AvatarFallback>{payment?.vendor?.name?.split(' ').map(n => n[0]).join('') || <User className="h-4 w-4" />}</AvatarFallback>
                             </Avatar>
                             <span className="font-medium">{payment?.vendor?.name}</span>
                           </div>
@@ -507,6 +693,20 @@ const InventoryManagement = () => {
                             {payment.description}
                           </div>
                         </TableCell>
+                        <TableCell>
+                          {payment.proof ? (
+                            <Badge
+                              variant="secondary"
+                              className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
+                              onClick={() => setImagePreview(payment.proof)}
+                            >
+                              <Receipt className="mr-1 h-3 w-3" />
+                              Attached
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No proof</span>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -516,6 +716,24 @@ const InventoryManagement = () => {
           </TabsContent>
         </Tabs>
       </Card>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!imagePreview} onOpenChange={(open) => !open && setImagePreview(null)}>
+        <DialogContent className="max-w-3xl min-h-[300px]">
+          <DialogHeader>
+            <DialogTitle>Receipt Image</DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-center">
+            {imagePreview && (
+              <img
+                src={imagePreview}
+                alt="Receipt"
+                className="max-h-[70vh] max-w-full object-contain"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

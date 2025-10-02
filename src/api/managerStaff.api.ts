@@ -96,3 +96,34 @@ export const updateStaffManager = async (userData, id) => {
         }
     }
 }
+
+export const uploadImage = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+        const response = await axiosInstance.post('/user/upload-image', formData,{
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        
+        console.log("upload image API Response:", response.data);
+        
+        return response.data;
+        
+    } catch (error) {
+        console.error('upload image API error:', error);
+        
+        // Handle different types of errors
+        if (error.response) {
+            const errorMessage = error.response.data.message;
+            throw new Error(errorMessage);
+        } else if (error.request) {
+            // Network error
+            throw new Error('Network error. Please check your connection.');
+        } else {
+            // Other error
+            throw new Error('An unexpected error occurred');
+        }
+    }
+}

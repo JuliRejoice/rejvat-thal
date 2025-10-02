@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 type VendorFormMode = "create" | "edit";
 
@@ -24,6 +25,7 @@ export function VendorAddForm({
     mode = "create",
 }: VendorAddFormProps) {
 
+    const {user} = useAuth();
     const {
         register,
         handleSubmit,
@@ -42,7 +44,7 @@ export function VendorAddForm({
     });
 
     const internalSubmit = (data: any) => {
-        onSubmit(data);
+        onSubmit({...data,restaurantId: user?.restaurantId._id});
     };
 
     return (

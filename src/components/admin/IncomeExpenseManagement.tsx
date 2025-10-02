@@ -95,9 +95,9 @@ const IncomeExpenseManagement = () => {
     limit: itemsPerPage,
     ...(typeTransaction !== "all" && { type: typeTransaction }),
     ...(paymentFilter && { paymentMethodId: paymentFilter }),
-    ...(expenseCategoryId?.length > 0 && { categoryId: expenseCategoryId }),
-    ...(incomeCategoryId?.length > 0 && { categoryId: incomeCategoryId }),
-  };
+    ...(expenseCategoryId?.length > 0 && { expenseCategoryId }),
+    ...(incomeCategoryId?.length > 0 && { incomeCategoryId }),
+  }; 
 
   const cardsQueryData = {
     restaurantId: restaurant,
