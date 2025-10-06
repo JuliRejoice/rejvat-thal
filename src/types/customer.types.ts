@@ -37,6 +37,7 @@ export interface CustomerFormProps {
   onClose?: () => void;
   refetch?: boolean;
   setRefetch?: (value: boolean) => void;
+  // customer?: Customer;
 }
 
 

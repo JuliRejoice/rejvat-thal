@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, Search, Eye, Edit, MapPin, Phone, Mail, Calendar, DollarSign, Package, Clock, CheckCircle, XCircle, Pause, Play, User, Loader2 } from "lucide-react";
-import { getCustomer, getCustomerDetails, getCustomerOverview } from "@/api/customer.api";
+import { getCustomer, getCustomerDetails, getCustomerOverview, updateCustomer } from "@/api/customer.api";
 import { Customer, CustomerResponse, GetCustomerParams, InputOrCustomEvent } from "@/types/customer.types";
 // import { CustomerForm } from "../admin/CustomerForm";
 import { CustomerForm } from "@/components/common/CustomerForm";
@@ -21,11 +21,14 @@ import lodash from "lodash";
 import { NoData } from "../common/NoData";
 import { Dirham } from "../Svg";
 import { dateFormate, getUser } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 const CustomerDetails = ({ customer }: { customer: any }) => {
   console.log(customer.name, "------------------------------@");
   const [customerDetails, setCustomerDetails] = useState<any>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
   const paymentHistory = [
     { date: "2024-11-25", amount: 2500, type: "credit", method: "UPI", description: "Monthly plan payment" },
     { date: "2024-11-20", amount: 500, type: "debit", method: "Cash", description: "Delivery charges" },
@@ -39,6 +42,8 @@ const CustomerDetails = ({ customer }: { customer: any }) => {
     { meal: "Dinner", items: "3 Roti, Sabji, Dal, Pickle", price: 120, days: "Mon-Sat" },
   ];
 
+  const queryClient = useQueryClient();
+
   // Fetch selected customer details
   const { data: customerDetailsData, isPending: isCustomerDetailsPending } = useQuery({
     queryKey: [
@@ -49,6 +54,24 @@ const CustomerDetails = ({ customer }: { customer: any }) => {
     queryFn: () => getCustomerDetails(customer._id),
     // enabled: Boolean(isViewModalOpen && customer && customer._id),
   });
+
+  // const { mutate: updateCustomerMutation, isPending: isUpdatingCustomer } = useMutation({
+  //   mutationFn: updateCustomer,
+  //   onSuccess: () => {
+  //     toast.success("Customer updated successfully!");
+  //     setIsEditDialogOpen(false);
+  //     queryClient.invalidateQueries({ queryKey: ["get-customer-details", customer?._id] });
+  //     queryClient.invalidateQueries({ queryKey: ["customers"] });
+  //   },
+  //   onError: (error: any) => {
+  //     toast.error(error.message || "Failed to update customer.");
+  //   },
+  // });
+
+  // const handleUpdateCustomer = (formData: Partial<Customer>) => {
+  //   if (!customerDetails?._id) return;
+  //   updateCustomerMutation({ id: customerDetails._id, data: formData });
+  // };
 
   useEffect(() => {
     if (customerDetailsData) {
@@ -149,7 +172,7 @@ const CustomerDetails = ({ customer }: { customer: any }) => {
                       <TableCell className="font-medium">{customerDetails?.tiffinData?.breakfast?.mealMenu?.name ?? ""}</TableCell>
                       <TableCell className="font-medium">{customerDetails?.tiffinData?.breakfast?.mealQuantity ?? ""} nos</TableCell>
                       <TableCell>{customerDetails?.tiffinData?.breakfast?.mealMenu?.breakfastMealIteams?.map((item) => item?.name).join(", ")}</TableCell>
-                      <TableCell>{customerDetails?.tiffinData?.breakfast?.addOnItems?.map((item) => `${item?.menuDetail?.name} (x${item?.quantity})`).join(", ") }</TableCell>
+                      <TableCell>{customerDetails?.tiffinData?.breakfast?.addOnItems?.map((item) => `${item?.menuDetail?.name} (x${item?.quantity})`).join(", ")}</TableCell>
                       <TableCell>₹{(customerDetails?.tiffinData?.breakfast?.mealPrice ?? 0) + customerDetails?.tiffinData?.breakfast?.addOnItems?.reduce((total, item) => total + (item?.price ?? 0) * item?.quantity, 0)}</TableCell>
                     </TableRow>
                   )}
