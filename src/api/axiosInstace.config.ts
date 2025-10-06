@@ -1,5 +1,7 @@
 import { getToken } from "@/lib/utils";
 import axios from "axios";
+import { toast } from "@/hooks/use-toast";
+
 
 const axiosInstance = axios.create({
     baseURL: import.meta.env.VITE_BACKEND_URL,
@@ -19,6 +21,11 @@ axiosInstance.interceptors.request.use((config) => {
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
+    toast({
+      title: "Request failed",
+      description: error?.response?.data?.message || error.message,
+      variant: "destructive",
+    });
     return Promise.reject(error);
   }
 );
