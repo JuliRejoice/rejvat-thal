@@ -32,7 +32,8 @@ import {
   FileText,
   Clock,
   ClipboardList,
-  Clipboard
+  Clipboard,
+  UserRoundCog
 } from 'lucide-react';
 import smallLogo from '../../asset/img/smallLogo.png'
 
@@ -45,18 +46,19 @@ const getNavigationItems = (role: string) => {
   if (role === 'admin') {
     return [
       ...baseItems,
-      { title: 'Restaurants', url: '/restaurants', icon: Building2 },
-      { title: 'Finance Overview', url: '/finance', icon: PieChart },
-      { title: 'Managers', url: '/managers', icon: UserCheck },
-      { title: 'Staff Members', url: '/staff', icon: Users },
+      { title: "Restaurants", url: "/restaurants", icon: Building2 },
+      { title: "Finance Overview", url: "/finance", icon: PieChart },
+      { title: "Managers", url: "/managers", icon: UserCheck },
+      { title: "Staff Members", url: "/staff", icon: Users },
       // { title: 'Customers', url: '/customers', icon: UserPlus },
       { title: 'Menu Items', url: '/items', icon: ClipboardList },
       { title: 'Meal Plans', url: '/meals', icon: ShoppingBag },
       // { title: 'Daily Summary', url: '/daily-summary', icon: Calendar },
-      { title: 'Vendors', url: '/vendors', icon: Truck },
-      { title: 'Expense Categories', url: '/expense-categories', icon: Tags },
-      { title: 'Settings', url: '/settings', icon: Settings },
-      { title: 'Notifications', url: '/notifications', icon: Bell }
+      { title: "Vendors", url: "/vendors", icon: Truck },
+      { title: "Expense Categories", url: "/expense-categories", icon: Tags },
+      { title: "Settings", url: "/settings", icon: Settings },
+      { title: "Notifications", url: "/notifications", icon: Bell },
+      { title: "Customer Management", url: "/customers", icon: UserRoundCog },
     ];
   }
 
@@ -73,6 +75,7 @@ const getNavigationItems = (role: string) => {
       { title: 'Vendor Management', url: '/vendors', icon: Truck },
       { title: 'Inventory', url: '/inventory', icon: ClipboardList },
       { title: 'Monthly Menu Plan', url: '/menu-plan', icon: FileText },
+      { title: 'Customer Management', url: '/customers', icon: UserRoundCog },,
       { title: 'Expense Categories', url: '/expense-categories', icon: Tags },
       { title: 'Notifications', url: '/notifications', icon: Bell }
     ];

@@ -60,8 +60,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AttendanceRecordsSkeleton } from "../staff/AttendanceSkeleton";
 import { BalanceOverviewSkeleton } from '../manager/ManagerIncomeExpenseSkeletons';
+import { useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import { RootState, AppDispatch } from "./../../store";
+import { setRestaurants } from "./../../store/slices/restaurentSlice";
 
 const RestaurantManagement = () => {
+  const dispatch = useDispatch<AppDispatch>();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -124,6 +129,10 @@ const RestaurantManagement = () => {
     queryKey: ["get-all-restaurant", queryData],
     queryFn: () => getRestaurants(queryData),
   });
+console.log(getAllRestaurants,'---------------------------kkkkkkkkkkkkk');
+  // useEffect(() => {
+  //   dispatch(setRestaurants(getAllRestaurants?.payload));
+  // }, [refetch]);
 
   const { mutate: createRest, isPending: isCreatePending } = useMutation({
     mutationKey: ["create-restaurant"],
@@ -198,7 +207,7 @@ const RestaurantManagement = () => {
         console.error("Error creating restaurant:", error);
       },
     });
-
+    
   const restaurants = getAllRestaurants?.payload?.data || [];
   const totalItems = getAllRestaurants?.payload?.count || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
