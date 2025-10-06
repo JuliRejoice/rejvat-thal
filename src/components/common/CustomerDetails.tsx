@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, Search, Eye, Edit, MapPin, Phone, Mail, Calendar, DollarSign, Package, Clock, CheckCircle, XCircle, Pause, Play, User, Loader2 } from "lucide-react";
-import { getCustomer, getCustomerDetails, getCustomerOverview, updateCustomer } from "@/api/customer.api";
+import { getCustomer, getCustomerDetails, getCustomerOverview } from "@/api/customer.api";
 import { Customer, CustomerResponse, GetCustomerParams, InputOrCustomEvent } from "@/types/customer.types";
 // import { CustomerForm } from "../admin/CustomerForm";
 import { CustomerForm } from "@/components/common/CustomerForm";
