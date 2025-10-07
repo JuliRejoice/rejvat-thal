@@ -33,9 +33,11 @@ import {
   Clock,
   ClipboardList,
   Clipboard,
-} from "lucide-react";
-import smallLogo from "../../asset/img/smallLogo.png";
+  UserRoundCog
+} from 'lucide-react';
+import smallLogo from '../../asset/img/smallLogo.png'
 import logo from "../../asset/img/logo.png";
+
 
 // Navigation items based on role
 const getNavigationItems = (role: string) => {
@@ -58,6 +60,7 @@ const getNavigationItems = (role: string) => {
       { title: "Expense Categories", url: "/expense-categories", icon: Tags },
       { title: "Settings", url: "/settings", icon: Settings },
       { title: "Notifications", url: "/notifications", icon: Bell },
+      { title: "Customer Management", url: "/customers", icon: UserRoundCog },
     ];
   }
 

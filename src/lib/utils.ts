@@ -47,3 +47,12 @@ export const getUser = (): User | null => {
 export const removeUser = () => {
   Cookies.remove(USER_KEY);
 };
+
+export const dateFormate = (date: string | Date) => {
+  if (!date) return ""; // handle empty or null
+  const d = typeof date === "string" ? new Date(date) : date;
+  return d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+};
+
+
+
