@@ -174,6 +174,8 @@ const AttendanceManagement = () => {
       }),
   });
   const attendanceData = getAttenStafWise?.payload?.data;
+  console.log(attendanceData);
+
   const hasMarkedToday = React.useMemo(() => {
     if (!attendanceData || attendanceData.length === 0) return false;
     const todayStr = new Date().toDateString();
@@ -358,6 +360,7 @@ const AttendanceManagement = () => {
           );
 
           toast({ title: "Clocked in successfully!", variant: "default" });
+          setIsMarkingAttendance(false);
         } else {
           // Clock Out API
           if (!attendanceId) {
@@ -389,6 +392,7 @@ const AttendanceManagement = () => {
           localStorage.removeItem(`attendance_${user._id}`);
 
           toast({ title: "Checked out successfully!", variant: "default" });
+          setIsMarkingAttendance(false);
         }
       } catch (err) {
         console.error(err);
@@ -651,6 +655,9 @@ const AttendanceManagement = () => {
         setDateRange([null, null]);
         setIsApplyingLeave(false);
         setIsCalendarOpen(false);
+        setLeaveImagePreview(null);
+        setLeaveValue("file", null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
       },
       onError: (error: any) => {
         toast({
@@ -771,7 +778,6 @@ const AttendanceManagement = () => {
                   Leave Date
                 </label>
                 <div className="relative">
-                  {/* 👉 Popup calendar on input click */}
                   <div
                     className="relative w-full"
                     onClick={() => setIsCalendarOpen(true)}
@@ -788,6 +794,15 @@ const AttendanceManagement = () => {
                       open={isCalendarOpen}
                       onClickOutside={() => setIsCalendarOpen(false)}
                       minDate={new Date()}
+                      value={
+                        startDate && endDate
+                          ? `${startDate.toLocaleDateString(
+                              "en-GB"
+                            )} - ${endDate.toLocaleDateString("en-GB")}`
+                          : startDate
+                          ? startDate.toLocaleDateString("en-GB")
+                          : ""
+                      }
                     />
                   </div>
                 </div>
@@ -1097,7 +1112,7 @@ const AttendanceManagement = () => {
                 <DialogTrigger asChild>
                   <Button
                     className="bg-gradient-primary"
-                    // disabled={hasMarkedToday}
+                    disabled={hasMarkedToday}
                   >
                     Mark Attendance
                   </Button>
@@ -1245,19 +1260,34 @@ const AttendanceManagement = () => {
                           }
                         )}
                       </p>
-                      <p className="text-sm text-muted-foreground">
-                        <b className="text-gray-800">Check-In Time</b>:{" "}
-                        {record.status === "present" &&
-                          record.createdAt &&
-                          new Date(record.createdAt).toLocaleTimeString(
-                            "en-US",
-                            {
-                              hour: "numeric",
-                              minute: "numeric",
-                              hour12: true,
-                            }
-                          )}
-                      </p>
+                      <div className="flex gap-5">
+                        <p className="text-sm text-muted-foreground">
+                          <b className="text-gray-800">Check-In: </b>{" "}
+                          {record.status === "present" &&
+                            record.createdAt &&
+                            new Date(record.createdAt).toLocaleTimeString(
+                              "en-US",
+                              {
+                                hour: "numeric",
+                                minute: "numeric",
+                                hour12: true,
+                              }
+                            )}
+                        </p>
+                        {record.checkOutAt && (
+                          <p className="text-sm text-muted-foreground">
+                            <b className="text-gray-800">Check-Out:</b>{" "}
+                            {new Date(record.checkOutAt).toLocaleTimeString(
+                              "en-US",
+                              {
+                                hour: "numeric",
+                                minute: "numeric",
+                                hour12: true,
+                              }
+                            )}
+                          </p>
+                        )}
+                      </div>
                       {record.notes && <NotesDisplay notes={record.notes} />}
                     </div>
                   </div>
