@@ -42,6 +42,7 @@ import {
   leaveRequest,
   checkInAttendance,
   checkOutAttendance,
+  getLastAttendance,
 } from "@/api/attendance.api";
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/contexts/AuthContext";
@@ -252,19 +253,150 @@ const AttendanceManagement = () => {
     const [clockOutTime, setClockOutTime] = useState<string | null>(null);
     const [attendanceId, setAttendanceId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+
     const webcamRef = useRef<Webcam>(null);
 
-    useEffect(() => {
-      if (!user?._id) return;
+    const {
+      data: attendanceData,
+      isLoading: attendanceLoading,
+      refetch: refetchLastAttendance,
+    } = useQuery({
+      queryKey: ["lastAttendance", user?._id],
+      queryFn: () => getLastAttendance(user._id),
+      enabled: !!user?._id,
+      refetchOnWindowFocus: true,
+    });
 
-      const saved = localStorage.getItem(`attendance_${user._id}`);
-      if (saved) {
-        const data = JSON.parse(saved);
-        setIsClockedIn(data.isClockedIn);
-        setAttendanceId(data.attendanceId);
-        setClockInTime(data.clockInTime);
+    useEffect(() => {
+      if (!attendanceData) return;
+
+      if (!attendanceData) {
+        setIsClockedIn(false);
+        setAttendanceId(null);
+        setClockInTime(null);
+        setClockOutTime(null);
+        return;
       }
-    }, [user?._id]);
+
+      const lastDate = new Date(attendanceData.date).toDateString();
+      const today = new Date().toDateString();
+
+      if (lastDate === today) {
+        const activeClockIn = !attendanceData.checkOutAt;
+        setAttendanceId(attendanceData._id);
+        setIsClockedIn(activeClockIn);
+
+        setClockInTime(
+          attendanceData.checkInAt
+            ? new Date(attendanceData.checkInAt).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })
+            : null
+        );
+
+        setClockOutTime(
+          attendanceData.checkOutAt
+            ? new Date(attendanceData.checkOutAt).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })
+            : null
+        );
+      }
+    }, [attendanceData]); // Re-run when attendanceData changes
+
+    const handleClockAction = async () => {
+      if (isLoading) return;
+      setIsLoading(true);
+
+      const now = new Date();
+      const formattedTime = now.toISOString();
+
+      try {
+        if (!isClockedIn) {
+          if (!localImagePreview) {
+            alert("Please take a selfie before clocking in!");
+            setIsLoading(false);
+            return;
+          }
+
+          const payload = new FormData();
+          payload.append("_id", user._id);
+          payload.append("date", now.toISOString().split("T")[0]);
+          payload.append("status", "present");
+          payload.append("checkInAt", formattedTime);
+
+          const blob = await (await fetch(localImagePreview)).blob();
+          const file = new File([blob], `selfie_${Date.now()}.jpg`, {
+            type: "image/jpeg",
+          });
+          payload.append("file", file);
+
+          const res = await checkInAttendance(payload);
+          const newId = res.data?._id || res.data?.payload?._id;
+
+          setAttendanceId(newId);
+          setIsClockedIn(true);
+          setClockInTime(
+            now.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })
+          );
+
+          localStorage.setItem(
+            `attendance_${user._id}`,
+            JSON.stringify({
+              isClockedIn: true,
+              attendanceId: newId,
+              clockInTime: formattedTime,
+            })
+          );
+
+          toast({ title: "Clocked in successfully!", variant: "default" });
+        } else {
+          // Clock Out API
+          if (!attendanceId) {
+            alert("No active attendance found to checkout.");
+            setIsLoading(false);
+            return;
+          }
+
+          const payload = new FormData();
+          payload.append("checkOutAt", formattedTime);
+          const blob = await (await fetch(localImagePreview)).blob();
+          const file = new File([blob], `selfie_${Date.now()}.jpg`, {
+            type: "image/jpeg",
+          });
+          payload.append("file", file);
+
+          await checkOutAttendance(attendanceId, payload);
+
+          setIsClockedIn(false);
+          setAttendanceId(null);
+          setClockOutTime(
+            now.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })
+          );
+
+          localStorage.removeItem(`attendance_${user._id}`);
+
+          toast({ title: "Checked out successfully!", variant: "default" });
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Attendance error. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
     const capturePhoto = () => {
       if (!webcamRef.current) return;
@@ -310,126 +442,6 @@ const AttendanceManagement = () => {
       setLocalImagePreview(null);
     };
 
-    const handleClockAction = async () => {
-      const now = new Date();
-      const formattedTime = now.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
-
-      if (isLoading) return;
-      setIsLoading(true);
-
-      try {
-        if (!isClockedIn) {
-          if (!localImagePreview) {
-            alert("Please take a selfie before clocking in!");
-            setIsLoading(false);
-            return;
-          }
-
-          const payload = new FormData();
-          payload.append("_id", user?._id);
-          payload.append("date", now.toISOString().split("T")[0]);
-          payload.append("status", "present");
-          payload.append("checkInAt", now.toISOString());
-          payload.append("notes", "Checked in successfully");
-          for (let pair of payload.entries()) {
-            console.log(pair[0] + ": " + pair[1]);
-          }
-
-          const blob = await (await fetch(localImagePreview)).blob();
-          const file = new File([blob], `selfie_${Date.now()}.jpg`, {
-            type: "image/jpeg",
-          });
-          payload.append("file", file);
-
-          const res = await checkInAttendance(payload);
-          console.log(res);
-
-          const id = res.data?._id || null;
-          setAttendanceId(id);
-          setIsClockedIn(true);
-          setClockInTime(formattedTime);
-
-          localStorage.setItem(
-            `attendance_${user?._id}`,
-            JSON.stringify({
-              isClockedIn: true,
-              attendanceId: id,
-              clockInTime: formattedTime,
-            })
-          );
-
-          toast({
-            title: "Clocked in successfully!",
-            variant: "default",
-          });
-        } else {
-          if (!attendanceId) {
-            alert("No active attendance found to checkout.");
-            setIsLoading(false);
-            return;
-          }
-
-          const payload = new FormData();
-          payload.append("checkOutAt", now.toISOString());
-
-          await checkOutAttendance(user?._id, payload);
-
-          setClockOutTime(formattedTime);
-          setIsClockedIn(false);
-          setAttendanceId(null);
-
-          localStorage.removeItem(`attendance_${user?._id}`);
-
-          toast({
-            title: "Checked out successfully!",
-            variant: "default",
-          });
-        }
-      } catch (error: any) {
-        const status = error?.response?.status;
-        const message =
-          error?.response?.data?.message ||
-          error?.message ||
-          "Attendance error occurred";
-
-        if (status === 409 || message.includes("pending attendance")) {
-          toast({
-            variant: "destructive",
-            title: "Pending Attendance",
-            description:
-              "You have pending attendance. Please checkout before checking in again.",
-          });
-
-          setIsClockedIn(true);
-
-          const payloadData = error?.response?.data?.payload;
-          if (payloadData?._id) setAttendanceId(payloadData._id);
-
-          localStorage.setItem(
-            `attendance_${user?._id}`,
-            JSON.stringify({
-              isClockedIn: true,
-              attendanceId: payloadData?._id || null,
-              clockInTime:
-                payloadData?.checkInAt ||
-                formattedTime ||
-                new Date().toISOString(),
-            })
-          );
-        } else {
-          console.error("Attendance Error:", error);
-          alert("Something went wrong. Please try again.");
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    console.log("Saved attendance state:", user?._id);
     return (
       <DialogContent
         className="max-w-2xl"
@@ -535,25 +547,26 @@ const AttendanceManagement = () => {
                 </div> */}
                 <div className="flex justify-end gap-3 pt-2">
                   {clockInTime && (
-                    <Button
-                      variant="outline"
-                      className="text-sm border border-green-600 text-green-700"
-                    >
+                    <span className="text-sm border border-green-600 text-green-700 rounded-lg px-2 py-2">
                       Clock In: {clockInTime}
-                    </Button>
+                    </span>
                   )}
                   {!clockOutTime && (
-                    <Button type="button" onClick={handleClockAction}>
+                    <Button
+                      type="submit"
+                      onClick={handleClockAction}
+                      disabled={
+                        isLoading || (!isClockedIn && !localImagePreview)
+                      }
+                    >
                       {isClockedIn ? "Clock Out" : "Clock In"}
                     </Button>
                   )}
+
                   {clockOutTime && (
-                    <Button
-                      variant="outline"
-                      className="text-sm border border-red-600 text-red-700"
-                    >
+                    <span className="text-sm border border-red-600 text-red-700 rounded-lg px-2 py-2">
                       Clock Out: {clockOutTime}
-                    </Button>
+                    </span>
                   )}
                   {!clockOutTime && (
                     <Button

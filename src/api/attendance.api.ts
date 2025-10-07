@@ -309,6 +309,34 @@ export const checkInAttendance = async (payload: FormData) => {
   }
 };
 
+export const getLastAttendance = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(
+      `attendance/get-last-attendance?uid=${userId}`
+    );
+
+    console.log("Get Last Attendance Response:", response.data);
+
+    if (response.data.success && response.data.payload) {
+      return response.data.payload;
+    } else {
+      return null;
+    }
+  } catch (error: any) {
+    console.error("Get Last Attendance API Error:", error);
+
+    if (error.response) {
+      throw new Error(
+        error.response.data.message || "Error fetching last attendance"
+      );
+    } else if (error.request) {
+      throw new Error("Network error. Please check your connection.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
+
 export const checkOutAttendance = async (
   attendanceId: string,
   payload: FormData
