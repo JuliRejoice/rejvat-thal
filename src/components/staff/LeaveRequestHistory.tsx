@@ -1,23 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Filter, Eye, Clock, User, Camera, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { usePagination } from '@/hooks/use-pagination';
-import { DataTablePagination } from '@/components/common/DataTablePagination';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { getAllLeaveRequest } from '@/api/attendance.api';
+import React, { useState, useEffect } from "react";
+import {
+  Calendar,
+  Filter,
+  Eye,
+  Clock,
+  User,
+  Camera,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { usePagination } from "@/hooks/use-pagination";
+import { DataTablePagination } from "@/components/common/DataTablePagination";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { getAllLeaveRequest } from "@/api/attendance.api";
 
 type LeaveRequest = {
   id: string;
   date: string; // formatted for display; could be range: fromDate - toDate
   reason: string;
-  status: 'approved' | 'rejected' | 'pending' | string;
+  status: "approved" | "rejected" | "pending" | string;
   appliedOn: string;
   selfieUrl: string | null;
   approvedBy: string | null;
@@ -27,10 +55,12 @@ type LeaveRequest = {
 
 const LeaveRequestHistory = () => {
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
-  const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(
+    null
+  );
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,25 +76,35 @@ const LeaveRequestHistory = () => {
         const list = Array.isArray(res)
           ? res
           : Array.isArray(res?.data)
-            ? res.data
-            : Array.isArray(res?.result)
-              ? res.result
-              : Array.isArray(res?.leaveRequests)
-                ? res.leaveRequests
-                : Array.isArray(res?.payload?.data)
-                  ? res.payload.data
-                  : [];
+          ? res.data
+          : Array.isArray(res?.result)
+          ? res.result
+          : Array.isArray(res?.leaveRequests)
+          ? res.leaveRequests
+          : Array.isArray(res?.payload?.data)
+          ? res.payload.data
+          : [];
 
         const mapped: LeaveRequest[] = list.map((item: any) => {
           const id = String(item._id ?? item.id);
-          const fromDate = item.fromDate ?? item.date ?? item.startDate ?? item.createdAt;
-          const toDate = item.toDate ?? item.endDate ?? item.date ?? item.updatedAt ?? item.createdAt;
-          const appliedOn = item.appliedOn ?? item.createdAt ?? item.requestedOn ?? item.created_at;
-          const status = String(item.status ?? 'pending').toLowerCase();
+          const fromDate =
+            item.fromDate ?? item.date ?? item.startDate ?? item.createdAt;
+          const toDate =
+            item.toDate ??
+            item.endDate ??
+            item.date ??
+            item.updatedAt ??
+            item.createdAt;
+          const appliedOn =
+            item.appliedOn ??
+            item.createdAt ??
+            item.requestedOn ??
+            item.created_at;
+          const status = String(item.status ?? "pending").toLowerCase();
 
           const format = (d: any) => {
             try {
-              if (!d) return '-';
+              if (!d) return "-";
               const dt = new Date(d);
               if (isNaN(dt.getTime())) return String(d);
               return dt.toISOString().slice(0, 10);
@@ -73,15 +113,16 @@ const LeaveRequestHistory = () => {
             }
           };
 
-          const displayDate = fromDate && toDate && fromDate !== toDate
-            ? `${format(fromDate)} - ${format(toDate)}`
-            : format(fromDate ?? toDate);
+          const displayDate =
+            fromDate && toDate && fromDate !== toDate
+              ? `${format(fromDate)} - ${format(toDate)}`
+              : format(fromDate ?? toDate);
 
           return {
             id,
             date: displayDate,
-            reason: item.reason ?? '-',
-            status: status as LeaveRequest['status'],
+            reason: item.reason ?? "-",
+            status: status as LeaveRequest["status"],
             appliedOn: format(appliedOn),
             selfieUrl: item.selfieUrl ?? item.fileUrl ?? null,
             approvedBy: item.approvedBy ?? item.approverName ?? null,
@@ -92,7 +133,7 @@ const LeaveRequestHistory = () => {
 
         setLeaveRequests(mapped);
       } catch (e: any) {
-        setError(e.message ?? 'Failed to load leave requests');
+        setError(e.message ?? "Failed to load leave requests");
       } finally {
         setLoading(false);
       }
@@ -101,9 +142,12 @@ const LeaveRequestHistory = () => {
     fetchLeaveRequests();
   }, []);
 
-  const filteredRequests = leaveRequests.filter(request => {
-    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    const matchesSearch = request.reason.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredRequests = leaveRequests.filter((request) => {
+    const matchesStatus =
+      statusFilter === "all" || request.status === statusFilter;
+    const matchesSearch = request.reason
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
@@ -119,10 +163,10 @@ const LeaveRequestHistory = () => {
     startIndex,
     endIndex,
     totalItems,
-    reset
+    reset,
   } = usePagination({
     data: filteredRequests,
-    itemsPerPage
+    itemsPerPage,
   });
 
   const handleViewRequest = (request: LeaveRequest) => {
@@ -132,11 +176,11 @@ const LeaveRequestHistory = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'approved':
+      case "approved":
         return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'rejected':
+      case "rejected":
         return <XCircle className="h-4 w-4 text-red-600" />;
-      case 'pending':
+      case "pending":
         return <AlertCircle className="h-4 w-4 text-amber-600" />;
       default:
         return <Clock className="h-4 w-4" />;
@@ -145,23 +189,23 @@ const LeaveRequestHistory = () => {
 
   const getStatusVariant = (status: string) => {
     switch (status) {
-      case 'approved':
-        return 'default';
-      case 'rejected':
-        return 'destructive';
-      case 'pending':
-        return 'secondary';
+      case "approved":
+        return "default";
+      case "rejected":
+        return "destructive";
+      case "pending":
+        return "secondary";
       default:
-        return 'outline';
+        return "outline";
     }
   };
 
   const getStats = () => {
     return {
       total: leaveRequests.length,
-      approved: leaveRequests.filter(r => r.status === 'approved').length,
-      pending: leaveRequests.filter(r => r.status === 'pending').length,
-      rejected: leaveRequests.filter(r => r.status === 'rejected').length
+      approved: leaveRequests.filter((r) => r.status === "approved").length,
+      pending: leaveRequests.filter((r) => r.status === "pending").length,
+      rejected: leaveRequests.filter((r) => r.status === "rejected").length,
     };
   };
 
@@ -172,8 +216,12 @@ const LeaveRequestHistory = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Leave Request History</h1>
-          <p className="text-muted-foreground">Track your leave applications and their status</p>
+          <h1 className="text-3xl font-bold text-foreground">
+            Leave Request History
+          </h1>
+          <p className="text-muted-foreground">
+            Track your leave applications and their status
+          </p>
         </div>
       </div>
 
@@ -191,8 +239,12 @@ const LeaveRequestHistory = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Requests</p>
-                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Requests
+                </p>
+                <p className="text-2xl font-bold text-foreground">
+                  {stats.total}
+                </p>
               </div>
               <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center">
                 <Calendar className="h-4 w-4 text-primary" />
@@ -204,8 +256,12 @@ const LeaveRequestHistory = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Approved</p>
-                <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Approved
+                </p>
+                <p className="text-2xl font-bold text-green-600">
+                  {stats.approved}
+                </p>
               </div>
               <div className="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center">
                 <CheckCircle className="h-4 w-4 text-green-600" />
@@ -217,8 +273,12 @@ const LeaveRequestHistory = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Pending</p>
-                <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Pending
+                </p>
+                <p className="text-2xl font-bold text-amber-600">
+                  {stats.pending}
+                </p>
               </div>
               <div className="h-8 w-8 bg-amber-100 rounded-lg flex items-center justify-center">
                 <AlertCircle className="h-4 w-4 text-amber-600" />
@@ -230,8 +290,12 @@ const LeaveRequestHistory = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Rejected</p>
-                <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Rejected
+                </p>
+                <p className="text-2xl font-bold text-red-600">
+                  {stats.rejected}
+                </p>
               </div>
               <div className="h-8 w-8 bg-red-100 rounded-lg flex items-center justify-center">
                 <XCircle className="h-4 w-4 text-red-600" />
@@ -317,19 +381,33 @@ const LeaveRequestHistory = () => {
                         </TableCell>
                         <TableCell>
                           <div className="max-w-xs">
-                            <p className="font-medium truncate">{request.reason}</p>
+                            <p className="font-medium truncate">
+                              {request.reason}
+                            </p>
                           </div>
                         </TableCell>
-                        {!isMobile && <TableCell>{request.appliedOn}</TableCell>}
+                        {!isMobile && (
+                          <TableCell>
+                            {(() => {
+                              const d = new Date(request.appliedOn);
+                              const day = String(d.getDate()).padStart(2, "0");
+                              const month = String(d.getMonth() + 1).padStart(
+                                2,
+                                "0"
+                              ); // Months are 0-based
+                              const year = d.getFullYear();
+                              return `${day}-${month}-${year}`;
+                            })()}
+                          </TableCell>
+                        )}
+
                         <TableCell>
                           <Badge variant={getStatusVariant(request.status)}>
                             {request.status}
                           </Badge>
                         </TableCell>
                         {!isMobile && (
-                          <TableCell>
-                            {request.approvedBy || '-'}
-                          </TableCell>
+                          <TableCell>{request.approvedBy || "-"}</TableCell>
                         )}
                         <TableCell className="text-right">
                           <Button
@@ -389,38 +467,58 @@ const LeaveRequestHistory = () => {
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Reason</label>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Reason
+                  </label>
                   <p className="text-sm mt-1">{selectedRequest.reason}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Applied On</label>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Applied On
+                    </label>
                     <p className="text-sm mt-1">{selectedRequest.appliedOn}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Status</label>
-                    <p className="text-sm mt-1 capitalize">{selectedRequest.status}</p>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Status
+                    </label>
+                    <p className="text-sm mt-1 capitalize">
+                      {selectedRequest.status}
+                    </p>
                   </div>
                 </div>
 
                 {selectedRequest.approvedBy && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Approved By</label>
-                      <p className="text-sm mt-1">{selectedRequest.approvedBy}</p>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Approved By
+                      </label>
+                      <p className="text-sm mt-1">
+                        {selectedRequest.approvedBy}
+                      </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Approved On</label>
-                      <p className="text-sm mt-1">{selectedRequest.approvedOn}</p>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Approved On
+                      </label>
+                      <p className="text-sm mt-1">
+                        {selectedRequest.approvedOn}
+                      </p>
                     </div>
                   </div>
                 )}
 
                 {selectedRequest.comments && (
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Comments</label>
-                    <p className="text-sm mt-1 p-2 bg-muted rounded">{selectedRequest.comments}</p>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Comments
+                    </label>
+                    <p className="text-sm mt-1 p-2 bg-muted rounded">
+                      {selectedRequest.comments}
+                    </p>
                   </div>
                 )}
 
@@ -438,7 +536,9 @@ const LeaveRequestHistory = () => {
                     ) : (
                       <div className="text-muted-foreground">
                         <Camera className="h-8 w-8 mx-auto mb-2" />
-                        <p className="text-sm">Selfie was submitted with the request</p>
+                        <p className="text-sm">
+                          Selfie was submitted with the request
+                        </p>
                       </div>
                     )}
                   </div>

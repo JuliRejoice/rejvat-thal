@@ -45,7 +45,7 @@ export const getStaffAttendance = async ({
   search,
   isActive,
   startDate,
-  endDate
+  endDate,
 }: {
   page?: any;
   limit?: any;
@@ -56,7 +56,8 @@ export const getStaffAttendance = async ({
 }) => {
   try {
     const queryParams = new URLSearchParams();
-    if (startDate !== undefined) queryParams.append("startDate", String(startDate));
+    if (startDate !== undefined)
+      queryParams.append("startDate", String(startDate));
     if (endDate !== undefined) queryParams.append("endDate", String(endDate));
     // if (page !== undefined) queryParams.append("page", String(page));
     // if (limit !== undefined) queryParams.append("limit", String(limit));
@@ -64,7 +65,9 @@ export const getStaffAttendance = async ({
     // if (isActive !== undefined)
     //   queryParams.append("isActive", String(isActive));
 
-    const url = `/attendance/getAllAttendance${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
+    const url = `/attendance/getAllAttendance${
+      queryParams.toString() ? `?${queryParams.toString()}` : ""
+    }`;
     const response = await axiosInstance.get(url);
 
     console.log("get all vendor API Response:", response.data);
@@ -92,13 +95,17 @@ export const getStaffAttendanceByRest = async (
   try {
     const queryParams = new URLSearchParams();
     queryParams.append("restaurantId", String(id));
-    if (startDate !== undefined) queryParams.append("startDate", String(startDate));
+    if (startDate !== undefined)
+      queryParams.append("startDate", String(startDate));
     if (endDate !== undefined) queryParams.append("endDate", String(endDate));
 
     const url = `/attendance/getRestaurantByAttendance?${queryParams.toString()}`;
     const response = await axiosInstance.get(url);
 
-    console.log("get all staff attendance by restaurant API Response:", response.data);
+    console.log(
+      "get all staff attendance by restaurant API Response:",
+      response.data
+    );
 
     return response.data;
   } catch (error) {
@@ -115,15 +122,15 @@ export const getStaffAttendanceByRest = async (
   }
 };
 
-export const getAttendanceAndLeaveByStaff = async (
-  id: string,
-) => {
+export const getAttendanceAndLeaveByStaff = async (id: string) => {
   try {
-
     const url = `/user/getStaffAttendanceAndLeave?uid=${id}`;
     const response = await axiosInstance.get(url);
 
-    console.log("get all staff attendance by restaurant API Response:", response.data);
+    console.log(
+      "get all staff attendance by restaurant API Response:",
+      response.data
+    );
 
     return response.data;
   } catch (error) {
@@ -145,16 +152,19 @@ export const getMonthlyStaffAttendance = async (
   endDate?: string | number | Date
 ) => {
   try {
-
     const queryParams = new URLSearchParams();
     queryParams.append("restaurantId", String(id));
-    if (startDate !== undefined) queryParams.append("startDate", String(startDate));
+    if (startDate !== undefined)
+      queryParams.append("startDate", String(startDate));
     if (endDate !== undefined) queryParams.append("endDate", String(endDate));
 
     const url = `/attendance/getMonthlyAttendance?${queryParams.toString()}`;
     const response = await axiosInstance.get(url);
 
-    console.log("get all staff attendance by restaurant API Response:", response.data);
+    console.log(
+      "get all staff attendance by restaurant API Response:",
+      response.data
+    );
 
     return response.data;
   } catch (error) {
@@ -171,11 +181,10 @@ export const getMonthlyStaffAttendance = async (
   }
 };
 
-
 export const leaveRequest = async (payload: {
   restaurantId: string;
   fromDate: string; // yyyy-MM-dd
-  toDate: string;   // yyyy-MM-dd
+  toDate: string; // yyyy-MM-dd
   reason: string;
   status?: string; // default pending
   file?: File | null;
@@ -191,15 +200,11 @@ export const leaveRequest = async (payload: {
       form.append("file", payload.file);
     }
 
-    const response = await axiosInstance.post(
-      `/leave/addLeaveRequest`,
-      form,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
+    const response = await axiosInstance.post(`/leave/addLeaveRequest`, form, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
 
     console.log("leave request API Response:", response.data);
     return response.data;
@@ -214,13 +219,13 @@ export const leaveRequest = async (payload: {
       throw new Error("An unexpected error occurred");
     }
   }
-}
+};
 
 export const updateLeaveRequest = async (payload: {
   id: string;
   restaurantId: string;
   fromDate: string; // yyyy-MM-dd
-  toDate: string;   // yyyy-MM-dd
+  toDate: string; // yyyy-MM-dd
   reason: string;
   status: string; // pending | approved | rejected
   file?: File | null;
@@ -278,5 +283,60 @@ export const getAllLeaveRequest = async () => {
       throw new Error("An unexpected error occurred");
     }
   }
-}
+};
 
+export const checkInAttendance = async (payload: FormData) => {
+  try {
+    const response = await axiosInstance.post(`attendance/check-in`, payload, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error("Check-in API Error:", error);
+
+    if (error.response) {
+      throw new Error(
+        error.response.data.message || "Error marking attendance"
+      );
+    } else if (error.request) {
+      throw new Error("Network error. Please check your connection.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
+
+export const checkOutAttendance = async (
+  attendanceId: string,
+  payload: FormData
+) => {
+  try {
+    const response = await axiosInstance.put(
+      `attendance/check-out/${attendanceId}`,
+      payload,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    console.log("Check-out API Response:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("Check-out API Error:", error);
+
+    if (error.response) {
+      throw new Error(
+        error.response.data.message || "Error marking attendance"
+      );
+    } else if (error.request) {
+      throw new Error("Network error. Please check your connection.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
