@@ -27,6 +27,7 @@ import ExpenseCategoryManagement from '@/components/admin/ExpenseCategoryManagem
 import { ForgetPassForm } from '@/components/auth/ForgetPass';
 import { OTPVerificationForm } from '@/components/auth/OtpVerification';
 import { ResetPasswordForm } from '@/components/auth/ResetPass';
+import AreaManagement from '@/components/manager/AreaManagement';
 
 // Placeholder components for other routes
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -101,6 +102,7 @@ const Index = () => {
             <Route path="/inventory" element={<InventoryManagement />} />
             <Route path="/menu-plan" element={<MonthlyMenuPlan />} />
             <Route path="/expense-categories" element={<ExpenseCategoryManagement />} />
+            <Route path="/manage-area" element={<AreaManagement />} />
             <Route path="/notifications" element={<Notifications />} />
           </>
         )}

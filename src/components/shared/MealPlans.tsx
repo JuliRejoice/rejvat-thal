@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { MealMenu, mealMenuApi, type CreateMealMenuPayload, type MealMenuStatistics } from '@/api/mealMenu.api';
+import { MealMenu, mealMenuApi, MealType, type CreateMealMenuPayload, type MealMenuStatistics } from '@/api/mealMenu.api';
 import { getRestaurants } from '@/api/restaurant.api';
 import { Plus, Search, Filter, Edit2, ToggleLeft, ToggleRight, IndianRupee, Eye, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { menuApi, type MenuItem } from '@/api/menu.api';
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover"
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandInput,
+  CommandEmpty,
+} from "@/components/ui/command"
+import { Check, ChevronsUpDown } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 const MealPlans = () => {
   const { toast } = useToast();
@@ -35,14 +49,14 @@ const MealPlans = () => {
 
   const [formData, setFormData] = useState<{
     name: string;
-    type: 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'Complete Meal';
+    type: MealType[];
     description: string;
     price: number;
     restaurantId: string;
   }>({
     name: '',
-    type: 'LUNCH',
-    description: '',
+    type: ['lunch'],
+    description: '',  
     price: 0,
     restaurantId: ''
   });
@@ -189,7 +203,7 @@ const MealPlans = () => {
     }
     setFormData({
       name: meal.name,
-      type: meal.type as any,
+      type: meal.type  as unknown as MealType[],
       description: meal.description,
       price: meal.price,
       restaurantId: meal.restaurantId || ''
@@ -216,7 +230,7 @@ const MealPlans = () => {
     setSelectedItems([]);
     setFormData({
       name: '',
-      type: 'LUNCH',
+      type: [],
       description: '',
       price: 0,
       restaurantId: selectedRestaurant || ''
@@ -264,7 +278,7 @@ const MealPlans = () => {
 
       const payload: CreateMealMenuPayload = {
         name: formData.name,
-        type: formData.type as 'BREAKFAST' | 'LUNCH' | 'DINNER',
+        type: formData.type as unknown as MealType[],
         description: formData.description,
         price: formData.price,
         itemPrice: calculateTotalPrice(),
@@ -431,7 +445,7 @@ const MealPlans = () => {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label htmlFor="restaurantId">Restaurant *</Label>
                   <Select
                     value={formData.restaurantId}
@@ -449,7 +463,7 @@ const MealPlans = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                </div> */}
                 <div className="space-y-2">
                   <Label htmlFor="name">Meal Name *</Label>
                   <Input
@@ -462,20 +476,64 @@ const MealPlans = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="type">Meal Type *</Label>
-                  <Select
-                    value={formData.type}
-                    onValueChange={(value) => handleSelectChange(value, 'type')}
-                    required
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select meal type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="LUNCH">Lunch</SelectItem>
-                      <SelectItem value="BREAKFAST">Breakfast</SelectItem>
-                      <SelectItem value="DINNER">Dinner</SelectItem>
-                    </SelectContent>
-                  </Select>
+               
+  <Popover>
+    <PopoverTrigger asChild>
+      <Button
+        variant="outline"
+        role="combobox"
+        className="w-full justify-between"
+      >
+        {formData.type && formData.type.length > 0
+          ? Array.isArray(formData.type)
+            ? formData.type.map((t) => t.charAt(0) + t.slice(1)).join(", ")
+            :formData?.type
+          : "Select meal type"}
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+      </Button>
+    </PopoverTrigger>
+    <PopoverContent className="w-[200px] p-0">
+      <Command>
+        <CommandInput placeholder="Search type..." />
+        <CommandEmpty>No meal type found.</CommandEmpty>
+        <CommandGroup>
+          {["breakfast", "lunch", "dinner", "complete meal"].map((type) => (
+            <CommandItem
+              key={type}
+              onSelect={() => {
+                setFormData((prev:any) => {
+                  const current = Array.isArray(prev.type)
+                    ? [...prev.type]
+                    : [prev.type].filter(Boolean)
+                  const exists = current.includes(type)
+                  const updated = exists
+                    ? current.filter((t) => t !== type)
+                    : [...current, type]
+                  return { ...prev, type: updated }
+                })
+              }}
+            >
+              <div
+                className={cn(
+                  "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                  Array.isArray(formData.type) && formData.type.includes(type as MealType)
+                    ? "bg-primary text-primary-foreground"
+                    : "opacity-50"
+                )}
+              >
+                {Array.isArray(formData.type) && formData.type.includes(type as MealType) && (
+                  <Check className="h-3 w-3" />
+                )}
+              </div>
+              {type.charAt(0) + type.slice(1)}
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      </Command>
+    </PopoverContent>
+  </Popover>
+
+
                 </div>
               </div>
 
@@ -507,19 +565,19 @@ const MealPlans = () => {
                               <p className="text-sm text-muted-foreground">₹{item.price}</p>
                             </div>
                           </div>
-                          {selectedItem && (
+                     
                             <div className="flex items-center gap-2">
                               <Label htmlFor={`qty-${item._id}`} className="text-sm">Qty:</Label>
                               <Input
                                 id={`qty-${item._id}`}
                                 type="number"
                                 min="1"
-                                value={selectedItem.quantity}
+                                value={selectedItem?.quantity}
                                 onChange={(e) => handleQuantityChange(item._id, parseInt(e.target.value) || 1)}
                                 className="w-16"
                               />
                             </div>
-                          )}
+                        
                         </div>
                       );
                     })}
@@ -690,7 +748,7 @@ const MealPlans = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{meal.type.toUpperCase()}</Badge>
+                    <Badge variant="outline">{meal.type}</Badge>
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary">{meal.items.length} items</Badge>

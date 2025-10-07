@@ -428,6 +428,8 @@ const StaffManagement = () => {
                   {!isMobile && <TableHead>Restaurant</TableHead>}
                   {!isMobile && <TableHead>Attendance</TableHead>}
                   {!isMobile && <TableHead>Join Date</TableHead>}
+                  {!isMobile && <TableHead>Shift Time</TableHead>}
+                  {!isMobile && <TableHead>Lunch Time</TableHead>}
                   <TableHead>Status</TableHead>
                   <TableHead>Salary</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -447,7 +449,9 @@ const StaffManagement = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredStaff.map((member) => (
+                  filteredStaff.map((member) =>{ 
+                    console.log(member)
+                    return (
                     <TableRow key={member._id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -521,6 +525,27 @@ const StaffManagement = () => {
                           </div>
                         </TableCell>
                       )}
+
+
+                      {!isMobile && (
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm font-medium">
+                            {member.shift ? `${member.shift.startTime} - ${member.shift.endTime}` : "-"}
+                            </div>
+                          </div>
+                        </TableCell>
+                      )}
+
+                      {!isMobile && (
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm font-medium">
+                            {member.lunch ? `${member.lunch.startTime} - ${member.lunch.endTime}` : "-"}
+                            </div>
+                          </div>
+                        </TableCell>
+                      )}
                       <TableCell>
                         <Badge
                           variant="outline"
@@ -578,7 +603,7 @@ const StaffManagement = () => {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
+                  ) } )
                 )}
               </TableBody>
             </Table>
@@ -678,6 +703,33 @@ const StaffManagement = () => {
                         <p className="text-xs text-muted-foreground uppercase tracking-wide">Salary</p>
                         <p className="text-sm text-foreground">{selectedStaff?.salary}</p>
                       </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Timing Shift</p>
+                        <p className="text-sm text-foreground">{selectedStaff?.timingShift || "N/A"}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Lunch Time</p>
+                        <p className="text-sm text-foreground">{selectedStaff?.lunchTime || "N/A"}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Role</p>
+                        <p className="text-sm text-foreground">{selectedStaff?.position || "N/A"}</p>
+                      </div>
+                      <div>
+                      {selectedStaff?.passport && <div className="space-y-1 flex items-center">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Passport</p>
+                        <Button variant="outline" className="text-sm text-foreground border-none p-2 hover:bg-white"><a href={selectedStaff?.passport} target="_blank"><Eye /></a></Button>
+                      </div>}
+                      {selectedStaff?.visaId && <div className="space-y-1 flex items-center">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Visa ID</p>
+                        <Button variant="outline" className="text-sm text-foreground border-none p-2 hover:bg-white"><a href={selectedStaff?.visaId} target="_blank"><Eye /></a></Button>
+                      </div>} 
+                      {selectedStaff?.otherDoc && <div className="space-y-1 flex items-center">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Other Document</p>
+                        <Button variant="outline" className="text-sm text-foreground border-none p-2 hover:bg-white"><a href={selectedStaff?.otherDoc} target="_blank"><Eye /></a></Button>
+                      </div>}
+                      </div>
+                     
                       {/* <div className="space-y-1">
                         <p className="text-xs text-muted-foreground uppercase tracking-wide">Profile Image</p>
                         <div className="relative w-24 h-24 border rounded-lg overflow-hidden bg-muted/10 flex items-center justify-center">
@@ -752,8 +804,8 @@ const StaffManagement = () => {
                                 </p>
                                 <p className="text-sm text-muted-foreground">
                                   <b className="text-gray-800">Check-In Time</b>: {" "}
-                                  {record.status === "present" && record.checkInAt &&
-                                    new Date(record.checkInAt).toLocaleTimeString(
+                                  {record.status === "present" && record.createdAt &&
+                                    new Date(record.createdAt).toLocaleTimeString(
                                       "en-US",
                                       {
                                         hour: "numeric",
@@ -896,11 +948,21 @@ const StaffManagement = () => {
                       .split("T")[0]
                   : "",
                 salary: selectedEditStaff?.salary,
+                shiftStart: selectedEditStaff?.shift?.startTime,
+                shiftEnd: selectedEditStaff?.shift?.endTime,
+                lunchStart: selectedEditStaff?.lunch?.startTime,
+                lunchEnd: selectedEditStaff?.lunch?.endTime,
+                passport: selectedEditStaff?.passport,
+                visaId: selectedEditStaff?.visaId,
+                otherDoc: selectedEditStaff?.otherDoc,
+                description: selectedEditStaff?.description,
                 file: selectedEditStaff.profileImage || null,
+                areaId: selectedEditStaff.areaId || "",
               }}
-              onSubmit={(data: any) =>
+              onSubmit={(data: any) =>{
+                console.log("🚀 ~ StaffManagement ~ data:", data)
                 updateStaff({ userData: data, id: selectedEditStaff._id })
-              }
+              }}
               isPending={isUpdatePending}
               type="staff"
               mode="edit"

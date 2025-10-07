@@ -8,13 +8,14 @@ import { UserPlus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Customer, CustomerErrors, CustomerFormProps, InputOrCustomEvent } from "@/types/customer.types";
-import { createCustomer } from "@/api/customer.api";
+import { createNewCustomer } from "@/api/customer.api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "./../../store";
 import { setRestaurants } from "./../../store/slices/restaurentSlice";
 import { getUser } from "@/lib/utils";
+import { EnhancedCustomerForm } from "./EnhancedCustomerForm";
 
 export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFormProps) {
   const userRole = getUser();
@@ -29,6 +30,7 @@ export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFor
     restaurantId: "",
   };
   const [formData, setFormData] = useState<Customer>(initialFormData);
+  const [isOpen, setIsOpen] = useState(false);
   const [errors, setErrors] = useState<CustomerErrors>();
   const fetchedRef = useRef(false);
 
@@ -44,6 +46,9 @@ export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFor
       [name]: "",
     }));
   };
+
+  // npm install date-fns @hookform/resolvers zod
+
 
   const validate = (formData: Customer): CustomerErrors => {
     const errors: CustomerErrors = {};
@@ -77,7 +82,7 @@ export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFor
     }
     console.log(userRole, "-----------------111111111111");
 
-    const response = await createCustomer(formData);
+    const response = await createNewCustomer(formData);
     if (response.success) {
       toast({
         variant: "default",
@@ -144,7 +149,7 @@ export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFor
             handleCreateCustomer(formData);
           }}
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+          {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name *</Label>
               <span className="mt-1 pl-3 text-xs text-red-500">{errors?.name ?? ""}</span>
@@ -165,7 +170,7 @@ export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFor
               <Input id="reference" name="referenceName" placeholder="Referred by" onChange={handleChange} />
             </div>
 
-            {/* dropdown */}
+       
             {userRole?.role === "admin" && (
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="restaurant">Select Restaurant *</Label>
@@ -191,7 +196,14 @@ export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFor
               <span className="mt-1 pl-3 text-xs text-red-500">{errors?.address ?? ""}</span>
               <Textarea id="address" name="address" placeholder="Complete delivery address" onChange={handleChange} />
             </div>
-          </div>
+          </div> */}
+
+          <EnhancedCustomerForm
+            open={isOpen}
+            onClose={() => setIsOpen(false)}
+            refetch={refetch}
+            setRefetch={setRefetch}
+          />
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel

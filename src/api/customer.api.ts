@@ -13,7 +13,7 @@ const handleError = (error) => {
   }
 };
 
-export const createCustomer = async (customerData: Customer) => {
+export const createNewCustomer = async (customerData: Customer) => {
   try {
     const response = await axiosInstance.post(`/customer`, customerData);
     return response.data;

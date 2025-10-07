@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
+
 import type { MenuItem, MenuStatistics } from '@/api/menu.api';
 import { menuApi, type GetMenuItemsParams } from '@/api/menu.api';
 import { getRestaurants } from '@/api/restaurant.api';
@@ -16,8 +17,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { DataTablePagination } from '@/components/common/DataTablePagination';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { createMenuCategory, getAllMenuCategory } from '@/api/menuCategory.api';
+import { Dirham } from '../Svg';
 
 const MenuItems = () => {
+  const { user } = useAuth();
   const [items, setItems] = useState<MenuItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -42,6 +47,11 @@ const MenuItems = () => {
     restaurantId: '',
     price: '',
     description: ''
+  });
+  const [categoryForm, setCategoryForm] = useState({
+    name: '',
+    description: '',
+    restaurantId: user?.role === 'manager' ? user.restaurantId?._id : ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statistics, setStatistics] = useState<MenuStatistics | null>(null);
@@ -139,7 +149,7 @@ const MenuItems = () => {
     const fetchRestaurants = async () => {
       try {
         const response = await getRestaurants({});
-        console.log(response, 'response.data');  
+        console.log(response, 'response.data');
         if (response.success) {
           setRestaurants(response.payload.data.map((r: any) => ({ _id: r._id, name: r.name })));
         }
@@ -210,7 +220,7 @@ const MenuItems = () => {
     try {
       const itemToUpdate = items.find(item => item._id === editItem._id);
       if (!itemToUpdate) return;
-      
+
       const updatedItem = await menuApi.updateMenuItem({
         id: editItem._id,
         isActive: !itemToUpdate.isActive,
@@ -218,12 +228,14 @@ const MenuItems = () => {
       });
       console.log(updatedItem, 'updatedItem');
       // Update the items state with the updated item
-      setItems(items.map(item => 
-        item._id === editItem._id ? { ...editItem, 
+      setItems(items.map(item =>
+        item._id === editItem._id ? {
+          ...editItem,
           status: updatedItem.isActive ? 'active' : 'inactive',
-          isActive: updatedItem.isActive } : item
+          isActive: updatedItem.isActive
+        } : item
       ));
-      
+
       toast({
         title: 'Success',
         description: `Item ${updatedItem.isActive ? 'activated' : 'deactivated'} successfully`,
@@ -288,7 +300,7 @@ const MenuItems = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       setIsSubmitting(true);
       const payload = {
@@ -324,7 +336,7 @@ const MenuItems = () => {
         isActive: filterStatus !== 'all' ? filterStatus : undefined,
         search: searchTerm || undefined,
       });
-      
+
       setItems(items || []);
       handleCloseModal();
     } catch (error: any) {
@@ -339,6 +351,53 @@ const MenuItems = () => {
     }
   };
 
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setCategoryForm(prev => ({
+      ...prev,
+      [id]: value
+    }));
+  };
+  
+  // Add this handler for category form submission
+  const handleCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsSubmitting(true);
+      // Call your API to create category
+      await createMenuCategory({
+        name: categoryForm.name,
+        description: categoryForm.description || undefined,
+        restaurantId: categoryForm.restaurantId
+      });
+      toast({
+        title: 'Success',
+        description: 'Category created successfully',
+        variant: 'default',
+      });
+      // Refresh categories
+      const cats = await getAllMenuCategory();
+      setCategories(cats);
+      // Reset form and close dialog
+      setCategoryForm({
+        name: '',
+        description: '',
+        restaurantId: user?.role === 'manager' ? user.restaurantId?._id : ''
+      });
+      setIsAddModalOpen(false);
+    } catch (error) {
+      console.error('Error creating category:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to create category. Please try again.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -347,55 +406,50 @@ const MenuItems = () => {
           <h1 className="text-3xl font-bold text-foreground">Menu Items</h1>
           <p className="text-muted-foreground">Manage restaurant menu items and pricing</p>
         </div>
-        <Dialog open={isAddModalOpen} onOpenChange={handleOpenChange}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Item
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md" onInteractOutside={handleCloseModal}>
-            <DialogHeader>
-              <DialogTitle>{editingItem ? 'Edit Menu Item' : 'Add New Menu Item'}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4" key={editingItem?._id || 'new'}>
-              <div className="space-y-2">
-                <Label htmlFor="name">Item Name *</Label>
-                <Input
-                  id="name"
-                  placeholder="Enter item name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                  minLength={2}
-                />
-              </div>
-              <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="categoryId">Category *</Label>
-                    <Select 
-                      value={formData.categoryId}
-                      onValueChange={(value) => handleSelectChange(value, 'categoryId')}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map(category => (
-                          <SelectItem key={category._id} value={category._id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+
+        <div className='flex justify-end gap-4'>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Category
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Add New Category</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleCategorySubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Category Name *</Label>
+                  <Input
+                    id="name"
+                    placeholder="Enter category name"
+                    value={categoryForm.name}
+                    onChange={handleCategoryChange}
+                    required
+                    minLength={2}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Enter category description"
+                    value={categoryForm.description}
+                    onChange={handleCategoryChange}
+                    rows={3}
+                  />
+                </div>
+
+                {user?.role === 'admin' ? (
                   <div className="space-y-2">
                     <Label htmlFor="restaurantId">Restaurant *</Label>
-                    <Select 
-                      value={formData.restaurantId}
-                      onValueChange={(value) => handleSelectChange(value, 'restaurantId')}
+                    <Select
+                      value={categoryForm.restaurantId}
+                      onValueChange={(value) =>
+                        setCategoryForm(prev => ({ ...prev, restaurantId: value }))
+                      }
                       required
                     >
                       <SelectTrigger>
@@ -410,60 +464,156 @@ const MenuItems = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="price">Price (₹) *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  placeholder="Enter price"
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Restaurant</Label>
+                    <Input
+                      value={user?.restaurantId?.name || ''}
+                      disabled
+                    />
+                  </div>
+                )}
 
-                  value={formData.price}
-                  onChange={handleInputChange}
-                  required
-                  min="0.01"
-                  step="0.01"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Enter item description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows={3}
-                />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <Button 
-                  type="submit" 
-                  className="flex-1"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      {editingItem ? 'Updating...' : 'Creating...'}
-                    </>
-                  ) : editingItem ? 'Update Item' : 'Create Item'}
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={handleCloseModal}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsAddModalOpen(false)}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Creating...' : 'Create Category'}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+
+
+          <Dialog open={isAddModalOpen} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Item
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md" onInteractOutside={handleCloseModal}>
+              <DialogHeader>
+                <DialogTitle>{editingItem ? 'Edit Menu Item' : 'Add New Menu Item'}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4" key={editingItem?._id || 'new'}>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Item Name *</Label>
+                  <Input
+                    id="name"
+                    placeholder="Enter item name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    required
+                    minLength={2}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="categoryId">Category *</Label>
+                      <Select
+                        value={formData.categoryId}
+                        onValueChange={(value) => handleSelectChange(value, 'categoryId')}
+                        required
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories?.map(category => (
+                            <SelectItem key={category._id} value={category._id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="restaurantId">Restaurant *</Label>
+                      <Select
+                        value={formData.restaurantId}
+                        onValueChange={(value) => handleSelectChange(value, 'restaurantId')}
+                        required
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select restaurant" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {restaurants.map(restaurant => (
+                            <SelectItem key={restaurant._id} value={restaurant._id}>
+                              {restaurant.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="price">Price (₹) *</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    placeholder="Enter price"
+
+                    value={formData.price}
+                    onChange={handleInputChange}
+                    required
+                    min="0.01"
+                    step="0.01"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Enter item description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    rows={3}
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        {editingItem ? 'Updating...' : 'Creating...'}
+                      </>
+                    ) : editingItem ? 'Update Item' : 'Create Item'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCloseModal}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Stats Cards */}

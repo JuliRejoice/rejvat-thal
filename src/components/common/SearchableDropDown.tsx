@@ -30,6 +30,8 @@ type SearchableDropDownProps = {
   required?: boolean;
   error?: string;
   onClose?: () => void;
+  disabled?: boolean;
+  placeholder?: string;
 };
 
 export function SearchableDropDown({
@@ -39,7 +41,9 @@ export function SearchableDropDown({
   onChange,
   required,
   error,
-  onClose
+  onClose,
+  disabled = false,
+  placeholder = "Select option..."
 }: SearchableDropDownProps) {
   const [open, setOpen] = React.useState(false);
   const [internalValue, setInternalValue] = React.useState("");
@@ -65,39 +69,54 @@ export function SearchableDropDown({
 
   console.log(searchQuery,'-------------------');
 
+  const displayValue = selectedValue
+    ? options.find((opt) => opt.id === selectedValue)?.name
+    : placeholder || "Select option...";
+
   return (
-    <div>
-      <Popover open={open} onOpenChange={(newOpen) => {
-        setOpen(newOpen);
-        if (!newOpen && !optionSelected) {
-          if (onClose) {
-            onClose();
+    <div className={cn(disabled && "opacity-70 cursor-not-allowed")}>
+      <Popover 
+        open={!disabled && open} 
+        onOpenChange={(newOpen) => {
+          if (disabled) return;
+          setOpen(newOpen);
+          if (!newOpen && !optionSelected) {
+            if (onClose) {
+              onClose();
+            }
           }
-        }
 
-        if (newOpen) { // When opening
-          setSearchQuery(""); // Clear search
-        }
-
-        if (!newOpen) { // When popover closes
-          setOptionSelected(false);
-          setSearchQuery(""); // Always clear search
-          if (!optionSelected && onClose) {
-            onClose(); // Call callback if needed
+          if (newOpen) { // When opening
+            setSearchQuery(""); // Clear search
           }
-        }
-      }}>
+
+          if (!newOpen) { // When popover closes
+            setOptionSelected(false);
+            setSearchQuery(""); // Always clear search
+            if (!optionSelected && onClose) {
+              onClose(); // Call callback if needed
+            }
+          }
+        }}
+      >
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             role="combobox"
-            aria-expanded={open}
-            className="w-full justify-between"
+            aria-expanded={!disabled && open}
+            className={cn(
+              "w-full justify-between",
+              disabled && "cursor-not-allowed opacity-70"
+            )}
+            disabled={disabled}
           >
-            {selectedValue
-              ? options.find((opt) => opt.id === selectedValue)?.name
-              : "Select option..."}
-            <ChevronsUpDown className="opacity-50" />
+            <span className={cn(disabled && "text-muted-foreground")}>
+              {displayValue}
+            </span>
+            <ChevronsUpDown className={cn(
+              "ml-2 h-4 w-4 shrink-0 opacity-50",
+              disabled && "opacity-30"
+            )} />
           </Button>
         </PopoverTrigger>
         <PopoverContent

@@ -3,7 +3,7 @@ import axiosInstance from "./axiosInstace.config"
 export const signUp = async (formData) => {
     try {
         const data = new FormData();
-        
+
         // Add all the required fields from your form
         data.append('email', formData.email);
         data.append('name', formData.name);
@@ -13,10 +13,21 @@ export const signUp = async (formData) => {
         data.append('restaurantId', formData.restaurantId);
         data.append('position', formData.position || 'staff');
         data.append('isUserType', formData.isUserType || 'staff');
-        data.append('salary', formData.salary);
         data.append('description', formData.description);
-        data.append('timingShift', formData.timingShift);
-        data.append('lunchTime', formData.lunchTime);
+        
+        // Handle shift and lunch times in the format expected by the server
+        data.append('shift[startTime]', formData.shift?.startTime || '');
+        data.append('shift[endTime]', formData.shift?.endTime || '');
+        data.append('lunch[startTime]', formData.lunch?.startTime || '');
+        data.append('lunch[endTime]', formData.lunch?.endTime || '');
+
+        // Handle optional fields
+        if (formData.salary) {
+            data.append('salary', formData.salary);
+        }
+        if (formData.areaId) {
+            data.append('areaId', formData.areaId);
+        }
         if (formData.passport) {
             data.append('passport', formData.passport);
         }
@@ -26,27 +37,22 @@ export const signUp = async (formData) => {
         if (formData.otherDoc) {
             data.append('otherDoc', formData.otherDoc);
         }
-
-        // Add file if exists
         if (formData.file) {
             data.append('file', formData.file);
         }
 
-        // Fixed URL construction - use the endpoint path, not the full URL
         const response = await axiosInstance.post('/user/signup', data, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
         });
-        
+
         console.log("API Response:", response.data);
-        
-        // Return the response data
         return response.data;
-        
+
     } catch (error) {
         console.error('Sign up API error:', error);
-        
+
         // Handle different types of errors
         if (error.response) {
             // Server responded with error status
@@ -73,15 +79,15 @@ export const signIn = async (userData) => {
                 'Content-Type': 'application/json',
             },
         });
-        
+
         console.log("SignIn API Response:", response.data);
-        
+
         // Return the response data
         return response.data;
-        
+
     } catch (error) {
         console.error('Sign in API error:', error);
-        
+
         // Handle different types of errors
         if (error.response) {
             // Server responded with error status
@@ -106,15 +112,15 @@ export const forgetPassword = async (email) => {
                 'Content-Type': 'application/json',
             },
         });
-        
+
         console.log("Forget Paasword API Response:", response.data);
-        
+
         // Return the response data
         return response.data;
-        
+
     } catch (error) {
         console.error('Forget Paasword API error:', error);
-        
+
         // Handle different types of errors
         if (error.response) {
             // Server responded with error status
@@ -142,15 +148,15 @@ export const resetPassword = async (userData) => {
                 'Content-Type': 'application/json',
             },
         });
-        
+
         console.log("Reset Password API Response:", response.data);
-        
+
         // Return the response data
         return response.data;
-        
+
     } catch (error) {
         console.error('Reset Password API error:', error);
-        
+
         // Handle different types of errors
         if (error.response) {
             // Server responded with error status
@@ -178,15 +184,15 @@ export const otpVerification = async (userData) => {
                 'Content-Type': 'application/json',
             },
         });
-        
+
         console.log("OTP Verifcation API Response:", response.data);
-        
+
         // Return the response data
         return response.data;
-        
+
     } catch (error) {
         console.error('OTP Verifcation API error:', error);
-        
+
         // Handle different types of errors
         if (error.response) {
             // Server responded with error status
