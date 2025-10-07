@@ -60,7 +60,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AttendanceRecordsSkeleton } from "../staff/AttendanceSkeleton";
 import { BalanceOverviewSkeleton } from '../manager/ManagerIncomeExpenseSkeletons';
-import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "./../../store";
 import { setRestaurants } from "./../../store/slices/restaurentSlice";
@@ -407,12 +406,12 @@ console.log(getAllRestaurants,'---------------------------kkkkkkkkkkkkk');
 
           <TabsContent value="attendance" className="min-h-[360px]">
             <div className="flex items-center justify-between mb-3 rounded-md border bg-card px-3 py-2">
-              <div className="text-sm text-muted-foreground">
+              {/* <div className="text-sm text-muted-foreground">
                 Date:{" "}
                 <span className="font-medium text-foreground">
                   {selectedDateStr}
                 </span>
-              </div>
+              </div> */}
               <Input
                 type="date"
                 value={selectedDateStr}
@@ -476,8 +475,8 @@ console.log(getAllRestaurants,'---------------------------kkkkkkkkkkkkk');
                             <p className="text-sm text-muted-foreground">
                               <b className="text-gray-800">Check-In Time</b>:{" "}
                               {record.status === "present" &&
-                                record.checkInAt &&
-                                new Date(record.checkInAt).toLocaleTimeString(
+                                record.createdAt &&
+                                new Date(record.createdAt).toLocaleTimeString(
                                   "en-US",
                                   {
                                     hour: "numeric",
@@ -734,7 +733,7 @@ console.log(getAllRestaurants,'---------------------------kkkkkkkkkkkkk');
                     {/* <TableCell>
                     <div>
                       <p className="font-medium">
-                        ₹{restaurant.monthlyRevenue.toLocaleString()}
+                        <Dirham className="pt-px mr-1" />{restaurant.monthlyRevenue.toLocaleString()}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {restaurant.todayOrders} orders today

@@ -29,7 +29,7 @@ const AdminDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className={`flex items-center text-2xl font-bold ${color}`}>
-            <Dirham className="pt-px mr-1" /> {value.toLocaleString()}
+            ₹ {value.toLocaleString()}
           </div>
           <p className="text-xs text-muted-foreground"></p>
         </CardContent>

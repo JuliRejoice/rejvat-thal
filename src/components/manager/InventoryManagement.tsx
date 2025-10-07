@@ -28,58 +28,58 @@ import { Skeleton } from '@/components/ui/skeleton';
 const TableSkeleton = () => (
   <div className="space-y-4 px-4">
     {Array.from({ length: 5 }).map((_, index) => (
-    <TableRow key={index} className="h-12">
-      {/* Vendor Column */}
-      <TableCell className="px-8 py-3">
-        <div className="flex items-center gap-3">
-          <Skeleton className="h-10 w-10 rounded-full" />
-          <div className="flex-1">
-            <Skeleton className="h-6 w-32 mb-1" />
-           
+      <TableRow key={index} className="h-12">
+        {/* Vendor Column */}
+        <TableCell className="px-8 py-3">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <div className="flex-1">
+              <Skeleton className="h-6 w-32 mb-1" />
+
+            </div>
           </div>
-        </div>
-      </TableCell>
-      <TableCell className="max-w-[200px]">
-        <Skeleton className="h-6 w-full" />
-      </TableCell>
+        </TableCell>
+        <TableCell className="max-w-[200px]">
+          <Skeleton className="h-6 w-full" />
+        </TableCell>
 
-      <TableCell className="px-12 py-3">
-       
-              <Skeleton className="h-6 w-24" />
-             
-      
-      </TableCell>
-      <TableCell  className="px-12 py-3">
-        <div className="flex items-center gap-1">
+        <TableCell className="px-12 py-3">
+
           <Skeleton className="h-6 w-24" />
-         
-        </div>
-      </TableCell>
-
-      {/* Due Amount Column */}
-      <TableCell className="px-12 py-3">
-        <div className="flex items-center gap-1">
-          <Skeleton className="h-6 w-24" />
-        
-        </div>
-      </TableCell>
-
-      <TableCell className="px-12 py-3">
-        <div className="flex items-center gap-1">
-          <Skeleton className="h-6 w-24" />
-        
-        </div>
-      </TableCell>
-
-      {/* Status Column */}
-      <TableCell className="px-12 py-3">
-        <Skeleton className="h-6 w-16 rounded-full" />
-      </TableCell>
 
 
-    
-    </TableRow>
-  ))}
+        </TableCell>
+        <TableCell className="px-12 py-3">
+          <div className="flex items-center gap-1">
+            <Skeleton className="h-6 w-24" />
+
+          </div>
+        </TableCell>
+
+        {/* Due Amount Column */}
+        <TableCell className="px-12 py-3">
+          <div className="flex items-center gap-1">
+            <Skeleton className="h-6 w-24" />
+
+          </div>
+        </TableCell>
+
+        <TableCell className="px-12 py-3">
+          <div className="flex items-center gap-1">
+            <Skeleton className="h-6 w-24" />
+
+          </div>
+        </TableCell>
+
+        {/* Status Column */}
+        <TableCell className="px-12 py-3">
+          <Skeleton className="h-6 w-16 rounded-full" />
+        </TableCell>
+
+
+
+      </TableRow>
+    ))}
   </div>
 );
 
@@ -143,7 +143,8 @@ const InventoryManagement = () => {
   const [selectedMethod, setSelectedMethod] = useState('all');
   const [ordersPage, setOrdersPage] = useState(1);
   const [paymentsPage, setPaymentsPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [ordersPageSize, setOrdersPageSize] = useState(10);
+  const [paymentsPageSize, setPaymentsPageSize] = useState(10);
   const { user } = useAuth();
 
   const queryClient = useQueryClient();
@@ -164,7 +165,7 @@ const InventoryManagement = () => {
     }),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
- 
+
 
 
   // Add this near your other state declarations
@@ -185,39 +186,42 @@ const InventoryManagement = () => {
     })
   });
 
-// Orders query
-const { data: orderData, isLoading: ordersLoading } = useQuery({
-  queryKey: ['orders', ordersPage, pageSize],
-  queryFn: () => getInventoryList({
-    page: ordersPage,
-    limit: pageSize,
-    search: '',
-    isActive: true,
-    restaurantId: user?.restaurantId._id,
-  })
-});
+  // Orders query
+  const { data: orderData, isLoading: ordersLoading } = useQuery({
+    queryKey: ['orders', ordersPage, ordersPageSize],
+    queryFn: () => getInventoryList({
+      page: ordersPage,
+      limit: ordersPageSize,
+      search: '',
+      isActive: true,
+      restaurantId: user?.restaurantId._id,
+    })
+  });
 
-// Payments query
-const { data: paymentData, isLoading: paymentsLoading } = useQuery({
-  queryKey: ['payments', paymentsPage, pageSize, selectedMethod],
-  queryFn: () => getVendorPayment({
-    page: paymentsPage,
-    limit: pageSize,
-    search: '',
-    isActive: true,
-    restaurantId: user?.restaurantId._id,
-    expenseCategoryId: "68bff6c834305c04a6926d1f",
-    method: selectedMethod === 'all' ? undefined : selectedMethod
-  })
-});
+  // Payments query
+  const { data: paymentData, isLoading: paymentsLoading } = useQuery({
+    queryKey: ['payments', paymentsPage, paymentsPageSize, selectedMethod],
+    queryFn: () => getVendorPayment({
+      page: paymentsPage,
+      limit: paymentsPageSize,
+      search: '',
+      isActive: true,
+      restaurantId: user?.restaurantId._id,
+      expenseCategoryId: "68bff6c834305c04a6926d1f",
+      method: selectedMethod === 'all' ? undefined : selectedMethod
+    })
+  });
   const vendors = vendorsData?.payload?.data;
   const orders = orderData?.payload?.data;
-  const payments = paymentData?.payload?.items;
+  const payments = paymentData?.payload?.items || [];
+  const totalPayments = paymentData?.payload?.total || 0;
+  const totalPaymentPages = Math.ceil(totalPayments / paymentsPageSize) || 1;
 
   const { control, register } = useForm();
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+
     if (file) {
       setSelectedImage(file);
     }
@@ -298,6 +302,9 @@ const { data: paymentData, isLoading: paymentsLoading } = useQuery({
   const filteredPayments = payments?.filter(payment =>
     selectedMethod === 'all' || payment.methodId === selectedMethod
   ) || [];
+
+
+  console.log("🚀 ~ payments:", paymentData)
 
   return (
     <div className="space-y-6">
@@ -548,75 +555,119 @@ const { data: paymentData, isLoading: paymentsLoading } = useQuery({
                   </Select>
                 </div>
                 {ordersLoading ? (
-        <TableSkeleton />
-      ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Vendor</TableHead>
-                      <TableHead>Items</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Date</TableHead>
-                      {/* <TableHead>Status</TableHead> */}
-                      <TableHead>Notes</TableHead>
-                      <TableHead>Proof</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {orders?.map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback>{order.vendor.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">{order.vendor.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="max-w-xs truncate">{order.items}</div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <IndianRupee className="h-3 w-3" />
-                            <span className="font-medium">{order.amount.toLocaleString()}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {new Date(order.orderDate).toLocaleDateString()}
-                          </div>
-                        </TableCell>
-                        {/* <TableCell>
+                  <TableSkeleton />
+                ) : (
+                  <>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Vendor</TableHead>
+                          <TableHead>Items</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Date</TableHead>
+                          {/* <TableHead>Status</TableHead> */}
+                          <TableHead>Notes</TableHead>
+                          <TableHead>Proof</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {orders?.map((order) => (
+                          <TableRow key={order.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarFallback>{order.vendor.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                                </Avatar>
+                                <span className="font-medium">{order.vendor.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="max-w-xs truncate">{order.items}</div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <IndianRupee className="h-3 w-3" />
+                                <span className="font-medium">{order.amount.toLocaleString()}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {new Date(order.orderDate).toLocaleDateString()}
+                              </div>
+                            </TableCell>
+                            {/* <TableCell>
                           <Badge variant={order.status === 'received' ? 'default' : 'secondary'}>
                             {order.status}
                           </Badge>
                         </TableCell> */}
-                        <TableCell>
-                          <div className="max-w-xs truncate text-muted-foreground">
-                            {order.notes}
-                          </div>
-                        </TableCell>
+                            <TableCell>
+                              <div className="max-w-xs truncate text-muted-foreground">
+                                {order.notes}
+                              </div>
+                            </TableCell>
 
-                        <TableCell>
-                          {order.imageUrl ? (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
-                              onClick={() => setImagePreview(order.imageUrl)}
-                            >
-                              <Receipt className="mr-1 h-3 w-3" />
-                              Attached
-                            </Badge>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">No receipt</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                            <TableCell>
+                              {order.imageUrl ? (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
+                                  onClick={() => setImagePreview(order.imageUrl)}
+                                >
+                                  <Receipt className="mr-1 h-3 w-3" />
+                                  Attached
+                                </Badge>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">No receipt</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {orderData?.payload?.total > 0 && (
+                      <div className="mt-4">
+                        <div className="text-sm text-muted-foreground mb-2">
+                          Showing {Math.min((ordersPage - 1) * ordersPageSize + 1, orderData.payload.total)}-{Math.min(ordersPage * ordersPageSize, orderData.payload.total)} of {orderData.payload.total} orders
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setOrdersPage(p => Math.max(p - 1, 1))}
+                            disabled={ordersPage === 1}
+                          >
+                            Previous
+                          </Button>
+                          <div className="text-sm">
+                            Page {ordersPage} of {Math.ceil(orderData.payload.total / ordersPageSize)}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setOrdersPage(p => Math.min(p + 1, Math.ceil(orderData.payload.total / ordersPageSize)))}
+                            disabled={ordersPage >= Math.ceil(orderData.payload.total / ordersPageSize)}
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    <DataTablePagination
+                      currentPage={ordersPage}
+                      totalItems={orderData?.payload?.totalCount || 0}
+                      itemsPerPage={ordersPageSize}
+                      totalPages={Math.ceil(orderData?.payload?.totalCount/ordersPageSize) || 1}
+                      startIndex={(ordersPage - 1) * ordersPageSize + 1}
+                      endIndex={Math.min(ordersPage * ordersPageSize, orderData?.payload?.totalCount || 0)}
+                      hasNextPage={ordersPage < (Math.ceil(orderData?.payload?.totalCount/ordersPageSize) || 1)}
+                      hasPreviousPage={ordersPage > 1}
+                      onPageChange={setOrdersPage}
+                      onNextPage={() => setOrdersPage(p => Math.min(p + 1, orderData?.payload?.totalPages || 1))}
+                      onPreviousPage={() => setOrdersPage(p => Math.max(p - 1, 1))}
+                      onItemsPerPageChange={setOrdersPageSize}
+                    />
+                  </>
                 )}
               </div>
             </CardContent>
@@ -711,6 +762,20 @@ const { data: paymentData, isLoading: paymentsLoading } = useQuery({
                     ))}
                   </TableBody>
                 </Table>
+                <DataTablePagination
+                  currentPage={paymentsPage}
+                  totalPages={paymentData?.payload?.totalPages || 1}
+                  totalItems={paymentData?.payload?.totalRecord || 0}
+                  itemsPerPage={paymentsPageSize}
+                  startIndex={(paymentsPage - 1) * paymentsPageSize + 1}
+                  endIndex={Math.min(paymentsPage * paymentsPageSize, paymentData?.payload?.totalRecord || 0)}
+                  hasNextPage={paymentsPage < paymentData?.payload?.totalPages}
+                  hasPreviousPage={paymentsPage > 1}
+                  onPageChange={setPaymentsPage}
+                  onNextPage={() => setPaymentsPage(p => Math.min(p + 1, paymentData?.payload?.totalPages))}
+                  onPreviousPage={() => setPaymentsPage(p => Math.max(p - 1, 1))}
+                  onItemsPerPageChange={setPaymentsPageSize}
+                />
               </div>
             </CardContent>
           </TabsContent>

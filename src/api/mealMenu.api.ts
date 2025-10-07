@@ -14,7 +14,7 @@ export interface MealMenu {
   _id: string;
   name: string;
   restaurantId: any;
-  type: 'BREAKFAST' | 'LUNCH' | 'DINNER';
+  type: 'breakfast' | 'lunch' | 'dinner';
   description: string;
   items: MealMenuItem[];
   price: number;
@@ -24,10 +24,12 @@ export interface MealMenu {
   updatedAt: string;
 }
 
+export type MealType = 'breakfast' | 'lunch' | 'dinner';
+
 export interface CreateMealMenuPayload {
   name: string;
   restaurantId: string;
-  type: 'BREAKFAST' | 'LUNCH' | 'DINNER';
+  type: MealType[]; 
   description: string;
   items: Array<{
     itemId: string;
@@ -52,7 +54,7 @@ export interface GetMealMenusParams {
   page?: number;
   limit?: number;
   search?: string;
-  type?: 'BREAKFAST' | 'LUNCH' | 'DINNER';
+  type?: 'breakfast' | 'lunch' | 'dinner';
   isActive?: boolean;
   startDate?: string;
   endDate?: string;
@@ -138,9 +140,9 @@ export const mealMenuApi = {
   // Get meal menu types
   getMealMenuTypes: (): Array<{ value: string; label: string }> => {
     return [
-      { value: 'BREAKFAST', label: 'Breakfast' },
-      { value: 'LUNCH', label: 'Lunch' },
-      { value: 'DINNER', label: 'Dinner' },
+      { value: 'breakfast', label: 'Breakfast' },
+      { value: 'lunch', label: 'Lunch' },
+      { value: 'dinner', label: 'Dinner' },
     ];
   },
 };

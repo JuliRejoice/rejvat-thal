@@ -8,11 +8,25 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, EyeOff, Lock } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { SearchableDropDown } from "./SearchableDropDown";
 import { uploadImage } from "@/api/managerStaff.api";
 import DatePicker from "react-datepicker";
+import { getAllArea } from "@/api/area.api";
+
+interface AreaData {
+  _id: string;
+  areaName?: string;
+  name?: string;
+  [key: string]: any;
+}
+
+interface AreasResponse {
+  payload: {
+    data: AreaData[];
+  };
+}
 
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 
@@ -20,12 +34,20 @@ interface StaffMangerFormProps {
   defaultValues?: any;
   onSubmit: (data: any) => void;
   isPending?: boolean;
+  isImagePending?: boolean;          // Add this
+  setIsImagePending?: (value: boolean) => void; // Add this
   type?: "staff" | "manager";
   onCancel?: () => void;
-  setIsImagePending?: (pending: boolean) => void;
-  isImagePending?: boolean;
   mode?: "create" | "edit";
 }
+
+const formatTime = (value: string) => {
+  if (!value) return "";
+  const [hours, minutes] = value.split(":").map(Number);
+  return `${hours.toString().padStart(2, "0")}:${minutes
+    .toString()
+    .padStart(2, "0")}`;
+};
 
 export function StaffManagerForm({
   defaultValues,
@@ -33,24 +55,91 @@ export function StaffManagerForm({
   isPending,
   type = "staff",
   onCancel,
-  setIsImagePending,
-  isImagePending,
   mode = "create",
 }: StaffMangerFormProps) {
+  const [isImagePending, setIsImagePending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { user } = useAuth();
   const isManager = user?.role === "manager";
   const { toast } = useToast();
-  const [restaurantsOptions, setRestaurantsOptions] = useState<
-    { id: string; name: string }[]
-  >([]);
+  const [restaurantsOptions, setRestaurantsOptions] = useState<{ id: string; name: string }[]>([]);
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState<string>(
+    user?.role === 'admin' ? '' : user?.restaurantId?._id || ''
+  );
 
+  console.log('Current user:', user);
+  console.log(defaultValues,'defaultValues')
+  
+  // Fetch all restaurants (only used for admin users)
   const { data: getAllRestaurants } = useQuery({
     queryKey: ["get-all-restaurant"],
     queryFn: () => getRestaurants({}),
+    enabled: user?.role === 'admin', // Only fetch if user is admin
   });
 
+  // Initialize selectedRestaurantId with default value from props or user context
+ 
+  // Fetch areas based on selected restaurant (or user's restaurant if not admin)
+  const { data: getAreas, isLoading: isLoadingAreas } = useQuery<AreasResponse>({
+    queryKey: ["get-areas-by-restaurant", selectedRestaurantId],
+    queryFn: async () => {
+      if (!selectedRestaurantId) return { payload: { data: [] } };
+      const response = await getAllArea({
+        restaurantId: selectedRestaurantId,
+        page: 1,
+        limit: 100, // Get all areas
+        search: ""
+      });
+      return response;
+    },
+    enabled: !!selectedRestaurantId, // Only run if we have a restaurant ID
+  });
 
+  // Handle side effects when areas data is loaded
+  useEffect(() => {
+    if (getAreas && mode === 'edit' && defaultValues?.areaId) {
+      if (getAreas.payload?.data?.some((area) => area._id === defaultValues.areaId)) {
+        setValue('areaId', defaultValues.areaId, { shouldValidate: true });
+      }
+    }
+  }, [getAreas, mode, defaultValues]);
+
+  const allAreaOptions = useMemo(() => {
+    if (!getAreas?.payload?.data) return [];
+    return getAreas.payload.data.map((area) => ({
+      id: area._id,
+      name: area.areaName || area.name || 'Unnamed Area'
+    }));
+  }, [getAreas]);
+
+  // Set initial restaurant and area when defaultValues change (edit mode)
+  useEffect(() => {
+    if (mode === 'edit' && defaultValues) {
+      // Set restaurant ID if not already set
+      if (defaultValues.restaurantId && !selectedRestaurantId) {
+        setSelectedRestaurantId(defaultValues.restaurantId);
+      }
+      // Set area ID if not already set
+      if (defaultValues.areaId && !watch('areaId')) {
+        setValue('areaId', defaultValues.areaId, { shouldValidate: true });
+      }
+    }
+  }, [defaultValues, mode, selectedRestaurantId]);
+
+  console.log("Area options:", allAreaOptions);
+
+  
+  const handleRestaurantChange = async (restaurantId: string) => {
+    setSelectedRestaurantId(restaurantId);
+    // Always reset area when restaurant changes
+    setValue("restaurantId", restaurantId, { shouldValidate: true });
+    setValue("areaId", "", { shouldValidate: false, shouldDirty: true });
+    
+    // Only validate if the field was previously touched
+    if (touchedFields.areaId) {
+      await trigger("areaId");
+    }
+  };
   useEffect(() => {
     if (getAllRestaurants?.payload?.data) {
       setRestaurantsOptions(
@@ -73,13 +162,51 @@ export function StaffManagerForm({
     );
   };
 
+// Parse timing values from defaultValues if in edit mode
+const parseTimingValues = (values: any) => {
+  if (!values) return {};
+
+  const parsed = { ...values };
+
+  // Handle shift timing from shift object
+  if (values.shift) {
+    parsed.shiftStart = values.shift.startTime || "";
+    parsed.shiftEnd = values.shift.endTime || "";
+  } else if (values.timingShift) {
+    // Backward compatibility with old format
+    const [shiftStart, shiftEnd] = values.timingShift.split(" - ").map((t: string) => t.trim());
+    parsed.shiftStart = shiftStart && shiftStart.includes(":") ? shiftStart : "";
+    parsed.shiftEnd = shiftEnd && shiftEnd.includes(":") ? shiftEnd : "";
+  } else {
+    parsed.shiftStart = values.shiftStart || "";
+    parsed.shiftEnd = values.shiftEnd || "";
+  }
+
+  // Handle lunch timing from lunch object
+  if (values.lunch) {
+    parsed.lunchStart = values.lunch.startTime || "";
+    parsed.lunchEnd = values.lunch.endTime || "";
+  } else if (values.lunchTime) {
+    // Backward compatibility with old format
+    const [lunchStart, lunchEnd] = values.lunchTime.split(" - ").map((t: string) => t.trim());
+    parsed.lunchStart = lunchStart && lunchStart.includes(":") ? lunchStart : "";
+    parsed.lunchEnd = lunchEnd && lunchEnd.includes(":") ? lunchEnd : "";
+  } else {
+    parsed.lunchStart = values.lunchStart || "";
+    parsed.lunchEnd = values.lunchEnd || "";
+  }
+
+  return parsed;
+};
   const {
     register,
     handleSubmit,
     watch,
     setValue,
     control,
-    formState: { errors },
+    formState: { errors, touchedFields },
+    reset,
+    trigger,
   } = useForm({
     defaultValues: {
       email: "",
@@ -90,32 +217,94 @@ export function StaffManagerForm({
       restaurantId: "",
       salary: "",
       joiningDate: "",
-      position: type,
+      position: "",
       isUserType: type,
       shiftStart: "",
       shiftEnd: "",
       lunchStart: "",
       lunchEnd: "",
       description: "",
+      areaId: "",
       passport: null as File | null,
       visaId: null as File | null,
       otherDoc: null as File | null,
       file: null as File | null,
-      ...defaultValues,
+      ...(defaultValues ? parseTimingValues(defaultValues) : {}),
     },
     mode: "onSubmit",
   });
 
-
+  // Register required fields with validation
   useEffect(() => {
+    register("description", { required: "Description is required" });
+    register("passport", { required: "Passport is required" });
+    register("visaId", { required: "Visa ID is required" });
+    register("shiftStart", { 
+      required: "Shift start time is required",
+      validate: value => value && value.includes(':') || "Invalid time format (HH:MM)"
+    });
+    register("shiftEnd", { 
+      required: "Shift end time is required",
+      validate: value => value && value.includes(':') || "Invalid time format (HH:MM)"
+    });
+    register("lunchStart", { 
+      required: "Lunch start time is required",
+      validate: value => value && value.includes(':') || "Invalid time format (HH:MM)"
+    });
+    register("lunchEnd", { 
+      required: "Lunch end time is required",
+      validate: value => value && value.includes(':') || "Invalid time format (HH:MM)"
+    });
     register("restaurantId", {
       required: isManager ? false : "Select restaurant is required",
     });
     register("file", { required: "Profile Picture is required" });
-    register("passport", { required: "Passport is required" });
-    register("visaId", { required: "Visa ID is required" });
-    register("otherDoc", { required: "Additional document is required" });
-  }, [register, isManager]);
+    register("areaId", {
+      required: isManager ? false : "Select area is required",
+    });
+    }, [register, isManager]);
+  
+  useEffect(() => {
+    if (defaultValues) {
+      reset(parseTimingValues(defaultValues));
+    }
+  }, [defaultValues, reset]);
+  // Reset form when defaultValues change (for edit mode)
+  useEffect(() => {
+    if (defaultValues) {
+      // First parse all timing values
+      const parsedValues = parseTimingValues(defaultValues);
+      
+      // Set each field individually to ensure they're properly registered
+      Object.entries(parsedValues).forEach(([key, value]) => {
+        if (value !== undefined) {
+          // For time fields, ensure they're in the correct format (HH:MM)
+          if (['shiftStart', 'shiftEnd', 'lunchStart', 'lunchEnd'].includes(key)) {
+            if (value && typeof value === 'string' && value.includes(':')) {
+              // Ensure time is in 24-hour format (HH:MM)
+              const [hours, minutes] = value.split(':');
+              const formattedTime = `${hours.padStart(2, '0')}:${minutes || '00'}`;
+              setValue(key as any, formattedTime, { shouldValidate: true });
+            } else if (value) {
+              setValue(key as any, value, { shouldValidate: true });
+            }
+          } else {
+            setValue(key as any, value, { shouldValidate: true });
+          }
+        }
+      });
+      
+      // Force UI update
+      reset(parsedValues);
+    }
+  }, [defaultValues, reset, setValue]);
+
+
+
+  // Other document is optional
+  useEffect(() => {
+    register("otherDoc");
+  }, [register]);
 
   useEffect(() => {
     if (isManager && user?.restaurantId && !defaultValues?.restaurantId) {
@@ -138,50 +327,48 @@ export function StaffManagerForm({
 
     try {
       setIsImagePending(true);
-      // Upload files sequentially
-      let passportUrl = null;
-      let visaIdUrl = null;
-      let otherDocUrl = null;
+      
+      // Helper function to upload file if it's a File object
+      const uploadIfFile = async (file: any) => {
+        return file instanceof File ? await uploadImage(file) : file;
+      };
 
+      // Upload files only if they are File objects (new uploads)
+      const [passportUrl, visaIdUrl, otherDocUrl] = await Promise.all([
+        data.passport && data.passport instanceof File ? uploadIfFile(data.passport) : data.passport,
+        data.visaId && data.visaId instanceof File ? uploadIfFile(data.visaId) : data.visaId,
+        data.otherDoc && data.otherDoc instanceof File ? uploadIfFile(data.otherDoc) : data.otherDoc,
+      ]);
 
-      // Upload passport if it exists
-      if (data.passport) {
-        passportUrl = await uploadImage(data.passport);
-      }
-
-      // Upload visa ID if it exists
-      if (data.visaId) {
-        visaIdUrl = await uploadImage(data.visaId);
-      }
-
-      // Upload other document if it exists
-      if (data.otherDoc) {
-        otherDocUrl = await uploadImage(data.otherDoc);
-      }
-
+      // Prepare the data to submit
       const formattedData = {
-        email: data.email,
-        name: data.name,
-        password: data.password,
+        ...data,
         phone: data.phone,
         address: data.address,
         restaurantId: data.restaurantId,
         salary: data.salary,
         joiningDate: data.joiningDate,
-        position: type,
+        position: data.position,
         isUserType: type,
         description: data.description,
-        passport: passportUrl.payload,
-        visaId: visaIdUrl.payload,
-        otherDoc: otherDocUrl.payload,
-        file: data.file,
-        timingShift: `${data.shiftStart} - ${data.shiftEnd}`,
-        lunchTime: `${data.lunchStart} - ${data.lunchEnd}`,
+        areaId: data.areaId,
+        passport: passportUrl?.payload || passportUrl,
+        visaId: visaIdUrl?.payload || visaIdUrl,
+        otherDoc: otherDocUrl?.payload || otherDocUrl,
+        file:  data.file,
+        shift: {
+          startTime: data.shiftStart,
+          endTime: data.shiftEnd,
+        },
+        lunch: {
+          startTime: data.lunchStart,
+          endTime: data.lunchEnd,
+        },
       };
 
       console.log("Formatted Data:", formattedData);
       onSubmit(formattedData);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading files:", error);
       toast({
         variant: "destructive",
@@ -190,7 +377,7 @@ export function StaffManagerForm({
       });
     } finally {
       setIsImagePending(false);
-      }
+    }
   };
 
   return (
@@ -297,6 +484,28 @@ export function StaffManagerForm({
 
           {/* Salary */}
           <div className="grid grid-cols-2 gap-4">
+            {/* Restaurant Selection (Only for Admin) */}
+            {user?.role === 'admin' && (
+              <div className="space-y-2">
+                <div className="flex gap-3 items-baseline">
+                  <Label htmlFor="restaurantId">Restaurant *</Label>
+                  {errors.restaurantId && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors.restaurantId.message as string}
+                    </p>
+                  )}
+                </div>
+                <SearchableDropDown
+                  options={[
+                    { id: "", name: "Select a restaurant" },
+                    ...(restaurantsOptions || [])
+                  ]}
+                  value={watch("restaurantId")}
+                  onChange={handleRestaurantChange}
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <div className="flex gap-3 items-baseline">
                 <Label htmlFor="salary">Salary *</Label>
@@ -315,28 +524,55 @@ export function StaffManagerForm({
               />
             </div>
 
-
             <div className="space-y-2">
               <div className="flex gap-3 items-baseline">
-                <Label htmlFor="restaurantId">Restaurant *</Label>
-                {errors.restaurantId && (
+                <Label htmlFor="areaId">Area *</Label>
+                {errors.areaId && (
                   <p className="mt-1 text-xs text-red-500">
-                    {errors.restaurantId.message as string}
+                    {errors.areaId.message as string}
                   </p>
                 )}
               </div>
-              {isManager && user?.restaurantId ? (
-                // Show disabled input with manager's restaurant
-                <Input
-                  value={user.restaurantId.name}
-                  disabled
-                  className="bg-gray-100"
-                />
-              ) : (
-                // Show dropdown for non-managers
+              <SearchableDropDown
+                options={[
+                  { id: "", name: selectedRestaurantId ? "Select an area" : "Select a restaurant first" },
+                  ...allAreaOptions
+                ]}
+                value={watch("areaId")}
+                onChange={(value) => {
+                  setValue("areaId", value, { 
+                    shouldValidate: true,
+                    shouldDirty: true 
+                  });
+                }}
+                disabled={!selectedRestaurantId || isLoadingAreas}
+                placeholder={
+                  mode === 'edit' && defaultValues?.areaId && !watch('areaId')
+                    ? allAreaOptions.find(a => a.id === defaultValues.areaId)?.name || 'Loading area...'
+                    : 'Select an area'
+                }
+              />
+              {isLoadingAreas && selectedRestaurantId ? (
+                <p className="text-xs text-gray-500 mt-1">Loading areas...</p>
+              ) : errors.areaId && touchedFields.areaId ? (
+                <p className="text-xs text-red-500 mt-1">{errors.areaId.message as string}</p>
+              ) : null}
+            </div>
+
+            {/* Restaurant selection for non-admin, non-manager users */}
+            {user?.role !== 'admin' && user?.role !== 'manager' && (
+              <div className="space-y-2">
+                <div className="flex gap-3 items-baseline">
+                  <Label htmlFor="restaurantId">Restaurant *</Label>
+                  {errors.restaurantId && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors.restaurantId.message as string}
+                    </p>
+                  )}
+                </div>
                 <SearchableDropDown
                   options={[
-                    { id: "all", name: "All Restaurants" },
+                    { id: "", name: "Select a restaurant" },
                     ...(restaurantsOptions.map((restaurant) => ({
                       id: restaurant.id,
                       name: restaurant.name,
@@ -350,109 +586,114 @@ export function StaffManagerForm({
                     });
                   }}
                 />
-              )}
-            </div>
+              </div>
+            )}
 
           </div>
 
 
 
           {/* Timing Shift */}
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             {/* Joining Date */}
-            <div className="space-y-2">
-              {/* <div className="flex gap-3 items-baseline"> */}
-              <Label htmlFor="restaurantId">Joining Date *</Label>
-              {errors.joiningDate && (
-                <p className="mt-1 text-xs text-red-500">
-                  {errors.joiningDate.message as string}
-                </p>
-              )}
-              {/* </div> */}
-              <Input
-                type="date"
-                id="joiningDate"
-                max={new Date().toISOString().split("T")[0]}
-                {...register("joiningDate", {
-                  required: "Joining date is required",
-                })}
-              />
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                {/* <div className="flex gap-3 items-baseline"> */}
+                <Label htmlFor="restaurantId">Joining Date *</Label>
+                {errors.joiningDate && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.joiningDate.message as string}
+                  </p>
+                )}
+                {/* </div> */}
+                <Input
+                  type="date"
+                  id="joiningDate"
+                  max={new Date().toISOString().split("T")[0]}
+                  {...register("joiningDate", {
+                    required: "Joining date is required",
+                  })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="position">Position *</Label>
+                <Input
+                  id="position"
+                  placeholder="Enter position"
+                  {...register("position", { required: "Position is required" })}
+                  />
+                  {errors.position && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors.position.message as string}
+                    </p>
+                  )}
+              </div>
             </div>
-            {/* Shift Timing */}
-            <div className="space-y-2">
-            <Controller
-            control={control}
-            name="shiftStart"
-            rules={{ required: "Shift start is required" }}
-            render={({ field }) => (
-              <DatePicker
-                selected={field.value}
-                onChange={field.onChange}
-                showTimeSelect
-                showTimeSelectOnly
-                timeIntervals={15} // 15 min step
-                timeFormat="HH:mm" // force 24h format
-                dateFormat="HH:mm"
-                placeholderText="Start Time"
-                className="border rounded-md px-3 py-2 w-[140px]"
-              />
-            )}
-          />
-
-          <span className="text-muted-foreground">to</span>
-
-          {/* Shift End */}
-          <Controller
-            control={control}
-            name="shiftEnd"
-            rules={{
-              required: "Shift end is required",
-              validate: (value) =>
-                !watch("shiftStart") ||
-                value > watch("shiftStart") ||
-                "End must be after start",
-            }}
-            render={({ field }) => (
-              <DatePicker
-                selected={field.value}
-                onChange={field.onChange}
-                showTimeSelect
-                showTimeSelectOnly
-                timeIntervals={15}
-                timeFormat="HH:mm"
-                dateFormat="HH:mm"
-                placeholderText="End Time"
-                className="border rounded-md px-3 py-2 w-[140px]"
-              />
-            )}
-          />
-            </div>
-
-            {/* Lunch Time */}
-            <div className="space-y-2">
-              <Label>Lunch Time *</Label>
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                {/* Shift Timing */}
+                <div className="space-y-2">
+              <Label>Shift Time *</Label>
               <div className="flex items-center gap-2">
                 <Input
                   type="time"
-                  {...register("lunchStart", { required: "Lunch start is required" })}
+                  {...register("shiftStart", { required: "Shift start is required" })}
                 />
                 <span className="text-muted-foreground">to</span>
                 <Input
                   type="time"
-                  {...register("lunchEnd", {
-                    required: "Lunch end is required",
-                    validate: (value) =>
-                      !watch("lunchStart") || value > watch("lunchStart") || "End must be after start",
-                  })}
+                  {...register("shiftEnd", 
+                  //   {
+                  //   required: "Shift end is required",
+                  //   validate: (value) =>
+                  //     !watch("shiftStart") || value < watch("shiftStart") || "End must be after start",
+                  // }
+                )}
                 />
               </div>
-              {(errors.lunchStart || errors.lunchEnd) && (
+              {(errors.shiftStart || errors.shiftEnd) && (
                 <p className="mt-1 text-xs text-red-500">
-                  {(errors.lunchStart?.message as string) || (errors.lunchEnd?.message as string)}
+                  {(errors.shiftStart?.message as string) || (errors.shiftEnd?.message as string)}
                 </p>
               )}
             </div>
-          </div>
+              </div>
+                {/* Lunch Time */}
+                <div className="space-y-2">
+                  <Label>Lunch Time *</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="time"
+                      {...register("lunchStart", {
+                        required: "Lunch start is required",
+                        validate: (value) =>
+                          !watch("lunchEnd") || value < watch("lunchEnd") || "Start must be before end",
+                      })}
+                    />
+                    <span className="text-muted-foreground">to</span>
+                    <Input
+                      type="time"
+                      {...register("lunchEnd", { 
+                        required: "Lunch end is required",
+                        validate: (value) =>
+                          !watch("lunchStart") || value > watch("lunchStart") || "End must be after start",
+                      })}
+                    />
+                  </div>
+                  {(errors.lunchStart || errors.lunchEnd) && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {(errors.lunchStart?.message as string) || (errors.lunchEnd?.message as string)}
+                    </p>
+                  )}
+                </div>
+                {(errors.shiftStart || errors.shiftEnd) && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {(errors.shiftStart?.message as string) || (errors.shiftEnd?.message as string)}
+                  </p>
+                )}
+              </div>
+            </div>
+          
 
 
           {/* Address */}
@@ -645,6 +886,6 @@ export function StaffManagerForm({
           </div>
         </CardContent>
       </Card>
-    </form>
+    </form >
   );
 }

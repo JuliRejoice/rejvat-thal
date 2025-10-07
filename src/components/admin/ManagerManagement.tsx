@@ -115,6 +115,7 @@ const ManagerManagement = () => {
     mutationFn: signUp,
     onSuccess: () => {
       toast({
+        
         variant: "default",
         title: "Manger created",
         description: "Manger created successfully.",
@@ -578,6 +579,12 @@ const ManagerManagement = () => {
                       .toISOString()
                       .split("T")[0]
                   : "",
+                description: selectedEditManager?.description,
+                passport: selectedEditManager?.passport,
+                visaId: selectedEditManager?.visaId,
+                otherDoc: selectedEditManager?.otherDoc,
+                timingShift: selectedEditManager?.timingShift,
+                lunchTime: selectedEditManager?.lunchTime,
                 file: selectedEditManager.profileImage || null,
               }}
               onSubmit={(data: any) =>

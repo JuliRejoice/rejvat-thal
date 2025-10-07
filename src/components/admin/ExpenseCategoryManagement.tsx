@@ -83,9 +83,10 @@ const ExpenseCategoryManagement = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [page, setPage] = useState(1);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [selectedRestaurant, setSelectedRestaurant] = useState("all");
   const { toast } = useToast();
   const { user } = useAuth();
-const isManager = user?.role === "manager";
+  const isManager = user?.role === "manager";
 
 // Fetch restaurants
 const { data: restaurantsData } = useQuery({
@@ -128,7 +129,7 @@ const restaurantsOptions = restaurantsData?.payload?.data?.map((r: any) => ({
     search: searchTerm,
     page: page,
     limit: itemsPerPage,
-    restaurantId: user?.restaurantId?._id,
+    restaurantId: selectedRestaurant === "all" ? undefined : selectedRestaurant,
     ...(filterStatus !== "all" && { status: filterStatus === "active" }),
   };
 
@@ -360,6 +361,7 @@ const restaurantsOptions = restaurantsData?.payload?.data?.map((r: any) => ({
                 className="pl-10"
               />
             </div>
+           
             <div className="flex gap-2">
               <Button
                 variant={filterStatus === "all" ? "default" : "outline"}
@@ -433,7 +435,25 @@ const restaurantsOptions = restaurantsData?.payload?.data?.map((r: any) => ({
       {/* Categories Table */}
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Categories List</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Categories List</CardTitle>
+            {user?.role === 'admin' && (
+              <div className="w-full sm:w-64">
+                <SearchableDropDown
+                  options={[
+                    { id: "all", name: "All Restaurants" },
+                    ...(restaurantsOptions || []),
+                  ]}
+                  value={selectedRestaurant}
+                  onChange={(value) => {
+                    setSelectedRestaurant(value);
+                    setPage(1); // Reset to first page when changing restaurant filter
+                  }}
+                />
+              </div>
+            )}
+          </div>
+
         </CardHeader>
         <CardContent className='p-0'>
           <div className="overflow-x-auto">

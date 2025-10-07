@@ -148,7 +148,7 @@ const ManagerDashboard = () => {
                   <div className={`font-semibold ${
                     transaction.type === 'income' ? 'text-metrics-income' : 'text-metrics-expense'
                   }`}>
-                    {transaction.type === 'income' ? '+' : '-'}₹{transaction.amount.toLocaleString()}
+                    {transaction.type === 'income' ? '+' : '-'}<Dirham className="pt-px mr-1" />{transaction.amount.toLocaleString()}
                   </div>
                 </div>
               ))}

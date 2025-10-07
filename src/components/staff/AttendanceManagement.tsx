@@ -1235,8 +1235,8 @@ const AttendanceManagement = () => {
                       <p className="text-sm text-muted-foreground">
                         <b className="text-gray-800">Check-In Time</b>:{" "}
                         {record.status === "present" &&
-                          record.checkInAt &&
-                          new Date(record.checkInAt).toLocaleTimeString(
+                          record.createdAt &&
+                          new Date(record.createdAt).toLocaleTimeString(
                             "en-US",
                             {
                               hour: "numeric",
