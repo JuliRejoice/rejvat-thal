@@ -15,7 +15,9 @@ import { useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "./../../store";
 import { setRestaurants } from "./../../store/slices/restaurentSlice";
 import { getUser } from "@/lib/utils";
-import { EnhancedCustomerForm } from "./EnhancedCustomerForm";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { getAllArea } from "@/api/area.api";
 
 export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFormProps) {
   const userRole = getUser();
@@ -28,11 +30,13 @@ export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFor
     email: "",
     address: "",
     restaurantId: "",
+    areaId: "",
   };
   const [formData, setFormData] = useState<Customer>(initialFormData);
   const [isOpen, setIsOpen] = useState(false);
   const [errors, setErrors] = useState<CustomerErrors>();
   const fetchedRef = useRef(false);
+  const {user}= useAuth()
 
   const handleChange = (e: InputOrCustomEvent) => {
     const { name, value } = e.target;
@@ -47,7 +51,7 @@ export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFor
     }));
   };
 
-  // npm install date-fns @hookform/resolvers zod
+
 
 
   const validate = (formData: Customer): CustomerErrors => {
@@ -68,6 +72,9 @@ export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFor
     if (!formData.restaurantId) {
       errors.restaurantId = "Restaurant is required.";
     }
+    if (!formData.areaId) {
+      errors.areaId = "Area is required.";
+    }
     return errors;
   };
 
@@ -80,7 +87,7 @@ export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFor
       setErrors(errors);
       return;
     }
-    console.log(userRole, "-----------------111111111111");
+
 
     const response = await createNewCustomer(formData);
     if (response.success) {
@@ -89,6 +96,8 @@ export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFor
         title: "Created",
         description: "Customer created successfully.",
       });
+
+      onClose();
 
       if (setRefetch) {
         setRefetch(!refetch);
@@ -123,8 +132,27 @@ export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFor
     setFormData(initialFormData);
   };
 
+   const { data: areasData, isLoading } = useQuery({
+      queryKey: ["get-all-area", { 
+        restaurantId: user?.restaurantId?._id,
+        page: 1,
+        limit: 10,
+        search: ""
+      }],
+      queryFn: () =>
+        getAllArea({
+          restaurantId: user?.restaurantId?._id,
+          page: 1,
+          limit: 10,
+          search: ""
+        }),
+    });
+  
+    
+    const areas = areasData?.payload?.data || [];
+
   //   const handleDialogChange = (open: boolean) => {
-  //     console.log(open,'------------open')
+
   //     if (!open) {
   //       // Dialog is closing
   //       setFormData(initialFormData);
@@ -149,7 +177,7 @@ export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFor
             handleCreateCustomer(formData);
           }}
         >
-          {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name *</Label>
               <span className="mt-1 pl-3 text-xs text-red-500">{errors?.name ?? ""}</span>
@@ -170,7 +198,7 @@ export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFor
               <Input id="reference" name="referenceName" placeholder="Referred by" onChange={handleChange} />
             </div>
 
-       
+
             {userRole?.role === "admin" && (
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="restaurant">Select Restaurant *</Label>
@@ -191,19 +219,39 @@ export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFor
               </div>
             )}
 
+
+            <div className="space-y-2">
+              <Label htmlFor="areaId">Area *</Label>
+              <Select
+                onValueChange={(value) => handleChange({ target: { name: "areaId", value } })}
+                value={formData.areaId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select area" />
+                </SelectTrigger>
+                <SelectContent>
+                  {areas.map(area => (
+                    <SelectItem key={area._id} value={area._id}>
+                      {area.name} ({area.deliveryType === 'free' ? 'Free' : `₹${area.deliveryAmount} delivery`})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {/* {errors.areaId && <p className="text-sm text-red-500">{errors.areaId.message}</p>} */}
+            </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="address">Address *</Label>
               <span className="mt-1 pl-3 text-xs text-red-500">{errors?.address ?? ""}</span>
               <Textarea id="address" name="address" placeholder="Complete delivery address" onChange={handleChange} />
             </div>
-          </div> */}
+          </div>
 
-          <EnhancedCustomerForm
+          {/* <EnhancedCustomerForm
             open={isOpen}
             onClose={() => setIsOpen(false)}
             refetch={refetch}
             setRefetch={setRefetch}
-          />
+          /> */}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel

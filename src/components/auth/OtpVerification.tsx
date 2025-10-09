@@ -29,7 +29,7 @@ export const OTPVerificationForm = () => {
         ? (rawEmail as any).email
         : "");
 
-  console.log("🚀 ~ OTPVerificationForm ~ email:", email)
+
 
   // Timer countdown effect
   useEffect(() => {

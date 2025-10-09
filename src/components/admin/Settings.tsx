@@ -94,7 +94,7 @@ const [totalItems, setTotalItems] = useState(0);
     queryFn: () => getRestaurants({}),
   });
 
-  console.log(restaurantsData);
+ 
 
   const restaurants = restaurantsData?.payload?.data;
 

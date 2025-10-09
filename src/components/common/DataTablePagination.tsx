@@ -39,18 +39,7 @@ export const DataTablePagination: React.FC<DataTablePaginationProps> = ({
   onPreviousPage,
   onItemsPerPageChange
 }) => {
-  console.log("🚀 ~ DataTablePagination ~ totalPages:", totalPages)
-  console.log("🚀 ~ DataTablePagination ~ currentPage:", currentPage)
-  console.log("🚀 ~ DataTablePagination ~ totalItems:", totalItems)
-  console.log("🚀 ~ DataTablePagination ~ itemsPerPage:", itemsPerPage)
-  console.log("🚀 ~ DataTablePagination ~ startIndex:", startIndex)
-  console.log("🚀 ~ DataTablePagination ~ endIndex:", endIndex)
-  console.log("🚀 ~ DataTablePagination ~ hasNextPage:", hasNextPage)
-  console.log("🚀 ~ DataTablePagination ~ hasPreviousPage:", hasPreviousPage)
-  console.log("🚀 ~ DataTablePagination ~ onPageChange:", onPageChange)
-  console.log("🚀 ~ DataTablePagination ~ onNextPage:", onNextPage)
-  console.log("🚀 ~ DataTablePagination ~ onPreviousPage:", onPreviousPage)
-  console.log("🚀 ~ DataTablePagination ~ onItemsPerPageChange:", onItemsPerPageChange)
+
   
   const renderPageNumbers = () => {
     const pages = [];

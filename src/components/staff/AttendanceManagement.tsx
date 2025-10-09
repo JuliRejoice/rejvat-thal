@@ -346,7 +346,7 @@ const AttendanceManagement = () => {
           payload.append("file", file);
 
           const res = await checkInAttendance(payload);
-          console.log(res);
+       
 
           const id = res.data?._id || null;
           setAttendanceId(id);
@@ -429,7 +429,7 @@ const AttendanceManagement = () => {
       }
     };
 
-    console.log("Saved attendance state:", user?._id);
+
     return (
       <DialogContent
         className="max-w-2xl"

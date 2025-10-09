@@ -25,7 +25,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 const CustomerDetails = ({ customer }: { customer: any }) => {
-  console.log(customer.name, "------------------------------@");
+
   const [customerDetails, setCustomerDetails] = useState<any>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 

@@ -26,6 +26,7 @@ type NotificationItem = {
   createdAt?: string;
   restaurantId?: string;
   approved?: boolean;
+  leaveId?: any;
 };
 
 const Notifications = () => {

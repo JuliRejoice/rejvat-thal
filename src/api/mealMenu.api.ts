@@ -60,6 +60,7 @@ export interface GetMealMenusParams {
   endDate?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  restaurantId?: string;
 }
 
 export const mealMenuApi = {

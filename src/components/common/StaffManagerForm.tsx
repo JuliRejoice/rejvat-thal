@@ -67,8 +67,7 @@ export function StaffManagerForm({
     user?.role === 'admin' ? '' : user?.restaurantId?._id || ''
   );
 
-  console.log('Current user:', user);
-  console.log(defaultValues,'defaultValues')
+
   
   // Fetch all restaurants (only used for admin users)
   const { data: getAllRestaurants } = useQuery({
@@ -126,7 +125,7 @@ export function StaffManagerForm({
     }
   }, [defaultValues, mode, selectedRestaurantId]);
 
-  console.log("Area options:", allAreaOptions);
+
 
   
   const handleRestaurantChange = async (restaurantId: string) => {
@@ -366,7 +365,7 @@ const parseTimingValues = (values: any) => {
         },
       };
 
-      console.log("Formatted Data:", formattedData);
+
       onSubmit(formattedData);
     } catch (error: any) {
       console.error("Error uploading files:", error);

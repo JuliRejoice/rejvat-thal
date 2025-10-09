@@ -505,7 +505,7 @@ const AreaFormModal = ({
     deliveryType: 'free' | 'paid';
     deliveryAmount: number;
   }>();
-  console.log(defaultValues);
+ 
   const deliveryType = watch('deliveryType');
 
   useEffect(() => {
@@ -532,7 +532,7 @@ const AreaFormModal = ({
       deliveryType: data.deliveryType,
       deliveryAmount: Number(data.deliveryType === 'free' ? '0' : data.deliveryAmount),
     };
-    console.log(submitData);
+  
     onSubmit(submitData);
     reset();
     onClose();

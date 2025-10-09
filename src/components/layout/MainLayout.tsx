@@ -23,10 +23,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    console.log("🚀 ~ MainLayout ~ socket:", socket)
+
     if (socket) {
       const handleConnect = () => {
-        console.log("🚀 ~ MainLayout ~ handleConnect ~ socket:", socket)
         socket.emit("check-notification", {});
       };
       

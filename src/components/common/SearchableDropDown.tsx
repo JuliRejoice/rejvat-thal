@@ -67,7 +67,7 @@ export function SearchableDropDown({
     }
   }, [open]);
 
-  console.log(searchQuery,'-------------------');
+
 
   const displayValue = selectedValue
     ? options.find((opt) => opt.id === selectedValue)?.name

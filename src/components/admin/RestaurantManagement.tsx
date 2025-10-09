@@ -112,7 +112,7 @@ const RestaurantManagement = () => {
     select: (data) => data.payload
   });
 
-  console.log("restaurantOverview:", restaurantOverview);
+
 
   const queryData = {
     search: searchTerm,
@@ -128,7 +128,7 @@ const RestaurantManagement = () => {
     queryKey: ["get-all-restaurant", queryData],
     queryFn: () => getRestaurants(queryData),
   });
-console.log(getAllRestaurants,'---------------------------kkkkkkkkkkkkk');
+
   // useEffect(() => {
   //   dispatch(setRestaurants(getAllRestaurants?.payload));
   // }, [refetch]);

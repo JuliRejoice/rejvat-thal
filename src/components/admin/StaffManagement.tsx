@@ -450,7 +450,7 @@ const StaffManagement = () => {
                   </TableRow>
                 ) : (
                   filteredStaff.map((member) =>{ 
-                    console.log(member)
+                  
                     return (
                     <TableRow key={member._id}>
                       <TableCell>
@@ -960,7 +960,6 @@ const StaffManagement = () => {
                 areaId: selectedEditStaff.areaId || "",
               }}
               onSubmit={(data: any) =>{
-                console.log("🚀 ~ StaffManagement ~ data:", data)
                 updateStaff({ userData: data, id: selectedEditStaff._id })
               }}
               isPending={isUpdatePending}

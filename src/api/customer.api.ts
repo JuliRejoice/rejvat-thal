@@ -65,3 +65,12 @@ export const getCustomerOverview = async (data: getCustomerOverviewPayload | nul
     handleError(error);
   }
 };
+
+export const updateCustomer = async (id: string, customerData: Customer) => {
+  try {
+    const response = await axiosInstance.put(`/customer/${id}`, customerData);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};

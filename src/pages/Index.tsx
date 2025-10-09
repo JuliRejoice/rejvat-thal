@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { MainLayout } from '@/components/layout/MainLayout';
@@ -28,6 +28,7 @@ import { ForgetPassForm } from '@/components/auth/ForgetPass';
 import { OTPVerificationForm } from '@/components/auth/OtpVerification';
 import { ResetPasswordForm } from '@/components/auth/ResetPass';
 import AreaManagement from '@/components/manager/AreaManagement';
+import AddTiffin from '@/components/common/AddTiffin';
 
 // Placeholder components for other routes
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -39,36 +40,61 @@ const PlaceholderPage = ({ title }: { title: string }) => (
   </div>
 );
 
+// Layout wrapper component that conditionally applies MainLayout
+const RouteLayout = ({ children, useLayout = true }: { children: React.ReactNode; useLayout?: boolean }) => {
+  if (!useLayout) {
+    return <>{children}</>;
+  }
+  return <MainLayout>{children}</MainLayout>;
+};
+
 const Index = () => {
   const { isAuthenticated, user } = useAuth();
-  // console.log("🚀 ~ Index ~ user:", user, isAuthenticated)
 
   if (!isAuthenticated) {
     return (
       <Routes>
         <Route path="/login" element={<LoginForm />} />
-        <Route path="/forgot-password" element={<ForgetPassForm />} />
-        <Route path="/reset-password" element={<ResetPasswordForm />} />
+        <Route path="/forget-password" element={<ForgetPassForm />} />
         <Route path="/otp-verification" element={<OTPVerificationForm />} />
-        
-        {/* Redirect all other routes to login when not authenticated */}
+        <Route path="/reset-password" element={<ResetPasswordForm />} />
+        <Route
+          path="/add-tiffin"
+          element={
+            <RouteLayout useLayout={false}>
+              <AddTiffin />
+            </RouteLayout>
+          }
+        />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
   }
 
+  // Authenticated routes
   return (
-    <MainLayout>
-      <Routes>
+    <Routes>
+      {/* Public routes that are still accessible when authenticated */}
+      <Route
+        path="/add-tiffin"
+        element={
+          <RouteLayout useLayout={false}>
+            <AddTiffin />
+          </RouteLayout>
+        }
+      />
+
+      {/* Protected routes with MainLayout */}
+      <Route element={<MainLayout><Outlet /></MainLayout>}>
         {/* Dashboard Route */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route 
-          path="/dashboard" 
-          element={
-            user?.role === 'admin' ? <AdminDashboard /> :
-            user?.role === 'manager' ? <ManagerDashboard /> :
-            <AttendanceManagement />
-          } 
+        <Route path="/" element={
+          user?.role === 'admin' ? (
+            <AdminDashboard />
+          ) : user?.role === 'manager' ? (
+            <ManagerDashboard />
+          ) : (
+            <StaffDashboard />
+          )}
         />
 
         {/* Admin Routes */}
@@ -92,6 +118,7 @@ const Index = () => {
         {/* Manager Routes */}
         {user?.role === 'manager' && (
           <>
+
             <Route path="/finance" element={<ManagerIncomeExpense />} />
             <Route path="/staff" element={<StaffManagement />} />
             <Route path="/customers" element={<CustomerManagement />} />
@@ -110,15 +137,17 @@ const Index = () => {
         {/* Staff Routes */}
         {user?.role === 'staff' && (
           <>
-            {/* <Route path="/attendance" element={<AttendanceManagement />} /> */}
+            <Route path="/attendance" element={<AttendanceManagement />} />
             <Route path="/leave-requests" element={<LeaveRequestHistory />} />
           </>
         )}
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </MainLayout>
+     
+
+        {/* Fallback route for authenticated users */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
   );
 };
 

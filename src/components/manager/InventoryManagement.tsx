@@ -304,7 +304,7 @@ const InventoryManagement = () => {
   ) || [];
 
 
-  console.log("🚀 ~ payments:", paymentData)
+  
 
   return (
     <div className="space-y-6">

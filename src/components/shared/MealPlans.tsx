@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/command"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useAuth } from '@/contexts/AuthContext';
 
 const MealPlans = () => {
   const { toast } = useToast();
@@ -46,6 +47,7 @@ const MealPlans = () => {
   const [selectedRestaurant, setSelectedRestaurant] = useState('');
   const [stats, setStats] = useState<MealMenuStatistics | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const {user}=useAuth();
 
   const [formData, setFormData] = useState<{
     name: string;
@@ -75,6 +77,7 @@ const MealPlans = () => {
         if (filterStatus !== 'all') {
           params.isActive = filterStatus;
         }
+        
         const [restaurantsResponse, mealMenusResponse] = await Promise.all([
           getRestaurants({}),
           mealMenuApi.getMealMenus(params)
@@ -84,8 +87,19 @@ const MealPlans = () => {
         if (restaurantsResponse?.payload?.data) {
           setRestaurants(restaurantsResponse.payload.data);
 
-          // Set the first restaurant as default if available
-          if (restaurantsResponse.payload.data.length > 0 && !selectedRestaurant) {
+          // Set restaurant based on user role
+          if (user?.role === 'manager' && user?.restaurantId?._id) {
+            // For managers, use their assigned restaurant
+            const managerRestaurantId = user.restaurantId._id;
+            setSelectedRestaurant(managerRestaurantId);
+            setFormData(prev => ({
+              ...prev,
+              restaurantId: managerRestaurantId
+            }));
+            // Fetch menu items for the manager's restaurant
+            fetchMenuItems(managerRestaurantId);
+          } else if (user?.role === 'admin' && !selectedRestaurant) {
+            // For admins, use the first restaurant if none selected
             const firstRestaurant = restaurantsResponse.payload.data[0]._id;
             setSelectedRestaurant(firstRestaurant);
             setFormData(prev => ({
@@ -128,7 +142,7 @@ const MealPlans = () => {
 
   // Function to fetch menu items for a restaurant
   const fetchMenuItems = React.useCallback(async (restaurantId: string) => {
-    console.log('Fetching menu items for restaurant:', restaurantId);
+
     if (!restaurantId) {
       setMenuItems([]);
       return;
@@ -138,16 +152,14 @@ const MealPlans = () => {
 
     try {
       setIsLoadingMenuItems(true);
-      console.log('Fetching menu items for restaurant:', restaurantId);
+
       const response = await menuApi.getMenuItems({
         restaurantId: restaurantId.trim(),
         limit: 100,
         isActive: 'active' // Only fetch active items
       });
 
-      console.log("response",response);
-      console.log("response.items",response.items);
-      console.log("isMounted",isMounted)
+   
       if (isMounted) {
         setMenuItems(response.items || []);
       }
@@ -404,13 +416,13 @@ const MealPlans = () => {
 
       const items : { itemId: string; qty: number }[] = mealToUpdate.items.map(item => {         
         return { itemId: item.itemId._id, qty: item.qty } });
-      console.log(items, 'items');
+
       const updatedMeal = await mealMenuApi.updateMealMenu({
         id: meal._id,
         isActive: !mealToUpdate.isActive,
         items : items,
       });
-      console.log(updatedMeal, 'updatedMeal');
+
       // Update the meals state with the updated meal
       setMeals(meals.map(mea =>
         mea._id === meal._id ? {

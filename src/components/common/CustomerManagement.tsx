@@ -6,12 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, Search, Eye, Edit, MapPin, Phone, Mail, Calendar, DollarSign, Package, Clock, CheckCircle, XCircle, Pause, Play, User, Loader2 } from "lucide-react";
-import { getCustomer, getCustomerOverview } from "@/api/customer.api";
+import { getCustomer, getCustomerOverview, updateCustomer as updateCustomerApi } from "@/api/customer.api";
 import { Customer, CustomerResponse, GetCustomerParams, InputOrCustomEvent } from "@/types/customer.types";
-// import { CustomerForm } from "../admin/CustomerForm";
 import { CustomerForm } from "@/components/common/CustomerForm";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
@@ -19,24 +18,19 @@ import { RestaurantData } from "@/api/restaurant.api";
 import { DataTablePagination } from "@/components/common/DataTablePagination";
 import lodash from "lodash";
 import { NoData } from "../common/NoData";
-import { Dirham } from "../Svg";
 import { getUser } from "@/lib/utils";
 import CustomerDetails from "./CustomerDetails";
+import { Label } from "../ui/label";
+import { getAllArea } from "@/api/area.api";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router";
 
 const CustomerManagement = () => {
   const userRole = getUser();
-  const initialFormData = {
-    name: "",
-    phone: "",
-    email: "",
-    address: "",
-    referenceName: "",
-    restaurantId: "",
-  };
   const restaurants = useSelector((state: RootState) => state.restaurant);
-  const [formData, setFormData] = useState<Customer>(initialFormData);
-  const [errors, setErrors] = useState<Customer>(initialFormData);
-  // const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [selectedRestaurent, setSelectedRestaurent] = useState<any>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -46,7 +40,14 @@ const CustomerManagement = () => {
   const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
   const [customers, setCustomers] = useState<{ totalRecords: number; customer: CustomerResponse[] }>({ totalRecords: 0, customer: [] });
   const [customerOverview, setCustomerOverview] = useState<{ totalRecords: number; activeCount: number; pendingDues: number }>({ totalRecords: 0, activeCount: 0, pendingDues: 0 });
-  const [isLoadingCustomer, setIsLoadingCustomer] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [isPending, setIsPending] = useState(false);
+  const navigate = useNavigate();
+  const {user} = useAuth();
+  const {toast} = useToast();
+  const queryClient = useQueryClient();
+
   const [refetch, setRefetch] = useState(false);
   const didMount = useRef(false);
   const didMountOverview = useRef(false);
@@ -76,59 +77,98 @@ const CustomerManagement = () => {
     };
   }, [searchTerm]);
 
-  useEffect(() => {
-    if (!didMount.current) {
-      didMount.current = true;
-      return;
-    }
-
-    const fetchCustomers = async () => {
-      setIsLoadingCustomer(true);
-      let restaurantId = "";
-      restaurantId = selectedRestaurent?.restaurantId || "";
-      if (userRole?.role === "manager") {
-        restaurantId = userRole?.restaurantId?._id;
-      }
-      const queryObj = {
-        restaurantId,
+  // Fetch customers with TanStack Query
+  const { data: customersData, isLoading: isLoadingCustomer } = useQuery({
+    queryKey: ["customers", { 
+      restaurantId: userRole?.role === "manager" ? userRole?.restaurantId?._id : selectedRestaurent?.restaurantId,
+      page,
+      limit,
+      searchTerm: debouncedSearch,
+      isActive
+    }],
+    queryFn: async () => {
+      const queryObj: GetCustomerParams = {
+        restaurantId: userRole?.role === "manager" ? userRole?.restaurantId?._id : selectedRestaurent?.restaurantId,
         page,
         limit,
         searchTerm: debouncedSearch,
-        isActive,
+        isActive: isActive === "all" ? "all" : isActive === "true" ? "true" : "false",
       };
-      const response = await getCustomer(queryObj as GetCustomerParams);
-      if (response?.success) {
-        setCustomers(response?.payload);
-      }
-      setIsLoadingCustomer(false);
-    };
+      const response = await getCustomer(queryObj);
+      return response?.payload;
+    },
+    enabled: didMount.current,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-    fetchCustomers();
-  }, [selectedRestaurent, page, limit, debouncedSearch, isActive, refetch]);
+  // Update local state when query data changes
+  useEffect(() => {
+    if (customersData) {
+      setCustomers(customersData);
+    }
+  }, [customersData]);
 
+  // Set initial mount after first render
+  useEffect(() => {
+    if (!didMount.current) {
+      didMount.current = true;
+    }
+  }, []);
+
+  // Fetch customer overview with TanStack Query
+  const { data: overviewData } = useQuery({
+    queryKey: ["customer-overview", { 
+      restaurantId: userRole?.role === "manager" ? userRole?.restaurantId?._id : selectedRestaurent?.restaurantId 
+    }],
+    queryFn: async () => {
+      const restaurantId = userRole?.role === "manager" 
+        ? userRole?.restaurantId?._id 
+        : selectedRestaurent?.restaurantId;
+      
+      const response = await getCustomerOverview(restaurantId ? { restaurantId } : {});
+      return response?.payload;
+    },
+    enabled: didMountOverview.current,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Update local state when overview data changes
+  useEffect(() => {
+    if (overviewData) {
+      setCustomerOverview(overviewData);
+    }
+  }, [overviewData]);
+
+  // Set initial mount for overview after first render
   useEffect(() => {
     if (!didMountOverview.current) {
       didMountOverview.current = true;
-      return;
     }
-
-    let restaurantId = "";
-    restaurantId = selectedRestaurent?.restaurantId || "";
-    if (userRole?.role === "manager") {
-      restaurantId = userRole?.restaurantId?._id;
-    }
-    const getCustomerOverviewData = async () => {
-      const response = await getCustomerOverview(restaurantId ? { restaurantId } : {});
-      if (response?.success) {
-        setCustomerOverview(response?.payload);
-      }
-    };
-
-    getCustomerOverviewData();
   }, []);
 
   const totalItems = customers?.totalRecords || 0;
   const totalPages = Math.ceil(totalItems / limit);
+
+
+  const { data: areasData, isLoading } = useQuery({
+    queryKey: ["get-all-area", { 
+      restaurantId: user?.restaurantId?._id,
+      page: 1,
+      limit: 10,
+      search: ""
+    }],
+    queryFn: () =>
+      getAllArea({
+        restaurantId: user?.restaurantId?._id,
+        page: 1,
+        limit: 10,
+        search: ""
+      }),
+  });
+
+  
+  const areas = areasData?.payload?.data || [];
+
 
   const paymentHistory = [
     { date: "2024-11-25", amount: 2500, type: "credit", method: "UPI", description: "Monthly plan payment" },
@@ -146,209 +186,53 @@ const CustomerManagement = () => {
   const handleDialogOpen = () => {
     setIsCreateModalOpen(true);
   };
-  const handleDialogClosed = () => {
-    // setFormData(initialFormData);
-    // setErrors(initialFormData);
-    setIsCreateModalOpen(false);
+
+
+  const handleEditCustomer = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setIsEditModalOpen(true);
   };
 
-  // const CustomerDetailsModal = ({ customer }: { customer: any }) => (
-  //   <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-  //     <DialogHeader>
-  //       <DialogTitle className="flex items-center gap-2">
-  //         <UserPlus className="h-5 w-5" />
-  //         {customer.name} - Customer Details
-  //       </DialogTitle>
-  //       <DialogDescription>Complete customer information, tiffin details, and payment history</DialogDescription>
-  //     </DialogHeader>
+  const handleDialogClosed = () => {
+    setEditingCustomer(null);
+    setIsCreateModalOpen(false);
+    setIsEditModalOpen(false);
+  };
 
-  //     <Tabs defaultValue="info" className="w-full">
-  //       <TabsList className="grid w-full grid-cols-4">
-  //         <TabsTrigger value="info">Customer Info</TabsTrigger>
-  //         <TabsTrigger value="tiffin">Tiffin Info</TabsTrigger>
-  //         <TabsTrigger value="payment">Payment History</TabsTrigger>
-  //         <TabsTrigger value="actions">Actions</TabsTrigger>
-  //       </TabsList>
+  
+  const updateCustomerMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Customer }) => 
+      updateCustomerApi(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["customers"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["customer-overview"],
+      });
+      setIsEditModalOpen(false);
+      setIsPending(false);
+      toast({
+        variant: "default",
+        title: "Customer updated",
+        description: "Customer updated successfully.",
+      })
+    },
+    onError: (error) => {
+      console.error('Error updating customer:', error);
+      setIsPending(false);
+    },
+  });
 
-  //       <TabsContent value="info" className="space-y-4">
-  //         <Card>
-  //           <CardHeader>
-  //             <CardTitle className="text-lg">Personal Information</CardTitle>
-  //           </CardHeader>
-  //           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  //             <div className="space-y-3">
-  //               <div className="flex items-center space-x-2">
-  //                 <Phone className="h-4 w-4 text-muted-foreground" />
-  //                 <span>{customer.phone}</span>
-  //               </div>
-  //               <div className="flex items-center space-x-2">
-  //                 <Mail className="h-4 w-4 text-muted-foreground" />
-  //                 <span>{customer.email}</span>
-  //               </div>
-  //               <div className="flex items-center space-x-2">
-  //                 <MapPin className="h-4 w-4 text-muted-foreground" />
-  //                 <span>{customer.address}</span>
-  //               </div>
-  //             </div>
-  //             <div className="space-y-3">
-  //               <p>
-  //                 <span className="font-medium">Reference:</span> {customer.reference}
-  //               </p>
-  //               <p>
-  //                 <span className="font-medium">Joined:</span> {customer.joinedDate}
-  //               </p>
-  //               <p>
-  //                 <span className="font-medium">Total Orders:</span> {customer.totalOrders}
-  //               </p>
-  //               <p>
-  //                 <span className="font-medium">Status:</span>
-  //                 <Badge variant={customer.status === "active" ? "default" : "secondary"} className="ml-2">
-  //                   {customer.status}
-  //                 </Badge>
-  //               </p>
-  //             </div>
-  //           </CardContent>
-  //         </Card>
-  //       </TabsContent>
+  const editCustomer = () => {
+    if (!editingCustomer?._id) return;
+    setIsPending(true);
+    updateCustomerMutation.mutate({
+      id: editingCustomer._id,
+      data: editingCustomer
+    });
+  };
 
-  //       <TabsContent value="tiffin" className="space-y-4">
-  //         <Card>
-  //           <CardHeader>
-  //             <CardTitle className="text-lg">Current Tiffin Plan</CardTitle>
-  //           </CardHeader>
-  //           <CardContent>
-  //             <Table>
-  //               <TableHeader>
-  //                 <TableRow>
-  //                   <TableHead>Meal</TableHead>
-  //                   <TableHead>Items</TableHead>
-  //                   <TableHead>Price</TableHead>
-  //                   <TableHead>Days</TableHead>
-  //                 </TableRow>
-  //               </TableHeader>
-  //               <TableBody>
-  //                 {tiffinInfo.map((meal, index) => (
-  //                   <TableRow key={index}>
-  //                     <TableCell className="font-medium">{meal.meal}</TableCell>
-  //                     <TableCell>{meal.items}</TableCell>
-  //                     <TableCell>₹{meal.price}</TableCell>
-  //                     <TableCell>{meal.days}</TableCell>
-  //                   </TableRow>
-  //                 ))}
-  //               </TableBody>
-  //             </Table>
-  //             <div className="mt-4 p-4 bg-muted/30 rounded-lg">
-  //               <p>
-  //                 <span className="font-medium">Plan Type:</span> {customer.planType}
-  //               </p>
-  //               <p>
-  //                 <span className="font-medium">Delivery Charges:</span> {customer.deliveryCharges ? "Yes (₹20/day)" : "No"}
-  //               </p>
-  //               <p>
-  //                 <span className="font-medium">Next Delivery:</span> {customer.nextDelivery}
-  //               </p>
-  //             </div>
-  //           </CardContent>
-  //         </Card>
-  //       </TabsContent>
-
-  //       <TabsContent value="payment" className="space-y-4">
-  //         <Card>
-  //           <CardHeader>
-  //             <div className="flex justify-between items-center">
-  //               <CardTitle className="text-lg">Payment History</CardTitle>
-  //               <div className="text-right">
-  //                 <p className="text-sm text-muted-foreground">Total Paid: ₹{customer.totalPaid}</p>
-  //                 <p className="text-sm font-medium text-danger">Pending Due: ₹{customer.pendingDue}</p>
-  //               </div>
-  //             </div>
-  //           </CardHeader>
-  //           <CardContent>
-  //             <div className="space-y-3">
-  //               {paymentHistory.map((payment, index) => (
-  //                 <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-  //                   <div className="flex items-center space-x-3">
-  //                     <div className={`p-2 rounded-lg ${payment.type === "credit" ? "bg-metrics-income/10 text-metrics-income" : "bg-metrics-expense/10 text-metrics-expense"}`}>
-  //                       <DollarSign className="h-4 w-4" />
-  //                     </div>
-  //                     <div>
-  //                       <p className="font-medium">{payment.description}</p>
-  //                       <p className="text-sm text-muted-foreground">
-  //                         {payment.date} • {payment.method}
-  //                       </p>
-  //                     </div>
-  //                   </div>
-  //                   <div className={`font-semibold ${payment.type === "credit" ? "text-metrics-income" : "text-metrics-expense"}`}>
-  //                     {payment.type === "credit" ? "+" : "-"}₹{payment.amount}
-  //                   </div>
-  //                 </div>
-  //               ))}
-  //             </div>
-  //             {customer.pendingDue > 0 && (
-  //               <div className="mt-4">
-  //                 <Button className="w-full bg-gradient-primary">
-  //                   <DollarSign className="mr-2 h-4 w-4" />
-  //                   Receive Due Payment - ₹{customer.pendingDue}
-  //                 </Button>
-  //               </div>
-  //             )}
-  //           </CardContent>
-  //         </Card>
-  //       </TabsContent>
-
-  //       <TabsContent value="actions" className="space-y-4">
-  //         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  //           <Card>
-  //             <CardHeader>
-  //               <CardTitle className="text-lg">Quick Actions</CardTitle>
-  //             </CardHeader>
-  //             <CardContent className="space-y-3">
-  //               <Button className="w-full justify-start" variant="outline">
-  //                 <Calendar className="mr-2 h-4 w-4" />
-  //                 Mark Pause Dates
-  //               </Button>
-  //               <Button className="w-full justify-start" variant="outline">
-  //                 <Package className="mr-2 h-4 w-4" />
-  //                 Add/Edit Tiffin Plan
-  //               </Button>
-  //               <Button className="w-full justify-start" variant="outline">
-  //                 <DollarSign className="mr-2 h-4 w-4" />
-  //                 Update Payment
-  //               </Button>
-  //               <Button className="w-full justify-start" variant="outline">
-  //                 <Edit className="mr-2 h-4 w-4" />
-  //                 Edit Customer Info
-  //               </Button>
-  //             </CardContent>
-  //           </Card>
-
-  //           <Card>
-  //             <CardHeader>
-  //               <CardTitle className="text-lg">Status Control</CardTitle>
-  //             </CardHeader>
-  //             <CardContent className="space-y-3">
-  //               {customer.status === "active" ? (
-  //                 <Button variant="destructive" className="w-full">
-  //                   <Pause className="mr-2 h-4 w-4" />
-  //                   Pause Service
-  //                 </Button>
-  //               ) : (
-  //                 <Button variant="success" className="w-full">
-  //                   <Play className="mr-2 h-4 w-4" />
-  //                   Resume Service
-  //                 </Button>
-  //               )}
-  //               <Button variant="outline" className="w-full">
-  //                 <XCircle className="mr-2 h-4 w-4" />
-  //                 Deactivate Customer
-  //               </Button>
-  //             </CardContent>
-  //           </Card>
-  //         </div>
-  //       </TabsContent>
-  //     </Tabs>
-  //   </DialogContent>
-  // );
 
   return (
     <div className="space-y-6">
@@ -358,18 +242,12 @@ const CustomerManagement = () => {
           <h1 className="text-3xl font-bold text-foreground">Customer Management</h1>
           <p className="text-muted-foreground">Manage customer information, tiffin plans, and payments</p>
         </div>
-        <Dialog open={isCreateModalOpen} onOpenChange={handleDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-primary" onClick={() => setIsCreateModalOpen(true)}>
+        
+            <Button className="bg-gradient-primary" onClick={() => navigate("/add-tiffin")}>
               <UserPlus className="mr-2 h-4 w-4" />
               Add Customer
             </Button>
-          </DialogTrigger>
-          {/* Render form only when modal is open */}
-          <Suspense fallback={<div className="p-4">Loading form...</div>}>
-            <CustomerForm open={isCreateModalOpen} onClose={handleDialogClosed} refetch={refetch} setRefetch={setRefetch} />
-          </Suspense>
-        </Dialog>
+        
       </div>
 
       {/* Search and Filters */}
@@ -544,17 +422,17 @@ const CustomerManagement = () => {
                           <Dialog>
                             <DialogTrigger asChild>
                               <Button variant="outline" size="sm">
-                                <Edit className="h-4 w-4" />
-                                {/* <Eye className="h-4 w-4" /> */}
+                                {/* <Edit className="h-4 w-4" /> */}
+                                <Eye className="h-4 w-4" />
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
                               <CustomerDetails customer={customer} />
                             </DialogContent>
                           </Dialog>
-                          {/* <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={() => handleEditCustomer(customer)}>
                             <Edit className="h-4 w-4" />
-                          </Button> */}
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -586,6 +464,123 @@ const CustomerManagement = () => {
           <DataTablePagination currentPage={page} totalPages={totalPages} totalItems={totalItems} itemsPerPage={limit} startIndex={(page - 1) * limit + 1} endIndex={Math.min(page * limit, totalItems)} hasNextPage={page < totalPages} hasPreviousPage={page > 1} onPageChange={setPage} onNextPage={() => setPage((p) => p + 1)} onPreviousPage={() => setPage((p) => p - 1)} onItemsPerPageChange={setLimit} />
         </CardContent>
       </Card>
+
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle>Edit Customer</DialogTitle>
+            <DialogDescription>
+              Update customer details below and click "Save" to update.
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingCustomer && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name">Full Name *</Label>
+                  <Input
+                    id="edit-name"
+                    value={editingCustomer.name || ''}
+                    onChange={(e) =>
+                      setEditingCustomer({ ...editingCustomer, name: e.target.value })
+                    }
+                    placeholder="John Doe"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-phone">Phone *</Label>
+                  <Input
+                    id="edit-phone"
+                    value={editingCustomer.phone || ''}
+                    onChange={(e) =>
+                      setEditingCustomer({ ...editingCustomer, phone: e.target.value })
+                    }
+                    placeholder="9876543210"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email">Email</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={editingCustomer.email || ''}
+                    onChange={(e) =>
+                      setEditingCustomer({ ...editingCustomer, email: e.target.value })
+                    }
+                    placeholder="john@example.com"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-reference">Reference Name</Label>
+                  <Input
+                    id="edit-reference"
+                    value={editingCustomer.referenceName || ''}
+                    onChange={(e) =>
+                      setEditingCustomer({ ...editingCustomer, referenceName: e.target.value })
+                    }
+                    placeholder="Referred by"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-area">Area *</Label>
+                  <Select
+                    value={editingCustomer.areaId || ''}
+                    onValueChange={(value) =>
+                      setEditingCustomer({ ...editingCustomer, areaId: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select area" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {areas?.map(area => (
+                        <SelectItem key={area._id} value={area._id}>
+                          {area.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-address">Address *</Label>
+                <textarea
+                  id="edit-address"
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={editingCustomer.address || ''}
+                  onChange={(e) =>
+                    setEditingCustomer({ ...editingCustomer, address: e.target.value })
+                  }
+                  placeholder="Full address with landmark"
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={async () => {editCustomer()}}
+            >
+              {isPending ? 'Saving...' : 'Save changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

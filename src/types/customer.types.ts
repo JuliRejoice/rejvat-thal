@@ -5,6 +5,8 @@ export type Customer = {
   address: string;
   restaurantId: string;
   referenceName?: string;
+  _id?: string;
+  areaId?: string;
 };
 
 export type CustomerResponse = {
