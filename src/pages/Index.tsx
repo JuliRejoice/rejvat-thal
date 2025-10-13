@@ -29,13 +29,16 @@ import { OTPVerificationForm } from '@/components/auth/OtpVerification';
 import { ResetPasswordForm } from '@/components/auth/ResetPass';
 import AreaManagement from '@/components/manager/AreaManagement';
 import AddTiffin from '@/components/common/AddTiffin';
+import Invoice from '@/components/manager/InvoiceManagement';
 
 // Placeholder components for other routes
 const PlaceholderPage = ({ title }: { title: string }) => (
   <div className="flex items-center justify-center min-h-96">
     <div className="text-center">
       <h1 className="text-2xl font-bold text-foreground mb-2">{title}</h1>
-      <p className="text-muted-foreground">This page will be implemented with backend integration</p>
+      <p className="text-muted-foreground">
+        This page will be implemented with backend integration
+      </p>
     </div>
   </div>
 );
@@ -98,7 +101,7 @@ const Index = () => {
         />
 
         {/* Admin Routes */}
-        {user?.role === 'admin' && (
+        {user?.role === "admin" && (
           <>
             <Route path="/restaurants" element={<RestaurantManagement />} />
             <Route path="/finance" element={<IncomeExpenseManagement />} />
@@ -109,14 +112,17 @@ const Index = () => {
             <Route path="/meals" element={<MealPlans />} />
             <Route path="/daily-summary" element={<DailyTiffinSummary />} />
             <Route path="/vendors" element={<VendorManagement />} />
-            <Route path="/expense-categories" element={<ExpenseCategoryManagement />} />
+            <Route
+              path="/expense-categories"
+              element={<ExpenseCategoryManagement />}
+            />
             <Route path="/settings" element={<Settings />} />
             <Route path="/notifications" element={<Notifications />} />
           </>
         )}
 
         {/* Manager Routes */}
-        {user?.role === 'manager' && (
+        {user?.role === "manager" && (
           <>
 
             <Route path="/finance" element={<ManagerIncomeExpense />} />
@@ -128,14 +134,18 @@ const Index = () => {
             <Route path="/vendors" element={<VendorManagement />} />
             <Route path="/inventory" element={<InventoryManagement />} />
             <Route path="/menu-plan" element={<MonthlyMenuPlan />} />
-            <Route path="/expense-categories" element={<ExpenseCategoryManagement />} />
+            <Route
+              path="/expense-categories"
+              element={<ExpenseCategoryManagement />}
+            />
             <Route path="/manage-area" element={<AreaManagement />} />
             <Route path="/notifications" element={<Notifications />} />
+            <Route path="/invoice" element={<Invoice />} />
           </>
         )}
 
         {/* Staff Routes */}
-        {user?.role === 'staff' && (
+        {user?.role === "staff" && (
           <>
             <Route path="/attendance" element={<AttendanceManagement />} />
             <Route path="/leave-requests" element={<LeaveRequestHistory />} />

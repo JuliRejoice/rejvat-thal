@@ -129,7 +129,7 @@ export const DataTablePagination: React.FC<DataTablePaginationProps> = ({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-3 py-4 rounded-lg border bg-card m-3">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-3 py-4 rounded-lg border bg-card ">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span>
           Showing {startIndex} to {endIndex} of {totalItems} entries

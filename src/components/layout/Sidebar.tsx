@@ -35,11 +35,11 @@ import {
   Clipboard,
   UserRoundCog,
   LocateIcon,
-  MapPin
-} from 'lucide-react';
-import smallLogo from '../../asset/img/smallLogo.png'
+  MapPin,
+  SquareChartGantt,
+} from "lucide-react";
+import smallLogo from "../../asset/img/smallLogo.png";
 import logo from "../../asset/img/logo.png";
-
 
 // Navigation items based on role
 const getNavigationItems = (role: string) => {
@@ -76,13 +76,14 @@ const getNavigationItems = (role: string) => {
       { title: "Meal Plans", url: "/meals", icon: ShoppingBag },
       // { title: 'Meal Plans', url: '/meals', icon: ShoppingBag },
       // { title: 'Daily Tiffin Summary', url: '/daily-summary', icon: Calendar },
-      { title: 'Vendor Management', url: '/vendors', icon: Truck },
-      { title: 'Inventory', url: '/inventory', icon: ClipboardList },
-      { title: 'Monthly Menu Plan', url: '/menu-plan', icon: FileText },
-      { title: 'Customer Management', url: '/customers', icon: UserRoundCog },,
-      { title: 'Expense Categories', url: '/expense-categories', icon: Tags },
-      { title: 'Manage Area', url: '/manage-area', icon: MapPin },
-      { title: 'Notifications', url: '/notifications', icon: Bell }
+      { title: "Vendor Management", url: "/vendors", icon: Truck },
+      { title: "Inventory", url: "/inventory", icon: ClipboardList },
+      { title: "Monthly Menu Plan", url: "/menu-plan", icon: FileText },
+      { title: "Customer Management", url: "/customers", icon: UserRoundCog },
+      { title: "Expense Categories", url: "/expense-categories", icon: Tags },
+      { title: "Invoice", url: "/invoice", icon: SquareChartGantt },
+      { title: "Manage Area", url: "/manage-area", icon: MapPin },
+      { title: "Notifications", url: "/notifications", icon: Bell },
     ];
   }
 
@@ -186,7 +187,11 @@ export const AppSidebar = () => {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-4">
-        <div className="flex items-center space-x-3">
+        <div
+          className={`flex ${
+            collapsed ? "flex-col gap-3" : "flex-row space-x-3"
+          } items-center `}
+        >
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-primary text-primary-foreground text-sm">
               {user.name?.charAt(0) || "U"}

@@ -42,7 +42,7 @@ export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFor
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: value, 
     }));
 
     setErrors((prev) => ({

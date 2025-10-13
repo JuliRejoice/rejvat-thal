@@ -312,7 +312,7 @@ export const checkInAttendance = async (payload: FormData) => {
 export const getLastAttendance = async (userId: string) => {
   try {
     const response = await axiosInstance.get(
-      `attendance/get-last-attendance?uid=${userId}`
+      `/attendance/get-last-attendance?uid=${userId}`
     );
 
     console.log("Get Last Attendance Response:", response.data);
@@ -343,7 +343,7 @@ export const checkOutAttendance = async (
 ) => {
   try {
     const response = await axiosInstance.put(
-      `attendance/check-out/${attendanceId}`,
+      `/attendance/check-out/${attendanceId}`,
       payload,
       {
         headers: {

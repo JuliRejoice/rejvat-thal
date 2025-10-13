@@ -139,12 +139,10 @@ const MenuItems = () => {
       setIsLoading(false);
     }
   };
-  // Effect to reset to first page when filters or itemsPerPage change
   useEffect(() => {
     setCurrentPage(1);
   }, [filterCategory, filterStatus, searchTerm, itemsPerPage]);
 
-  // Fetch restaurants when component mounts
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
@@ -161,7 +159,6 @@ const MenuItems = () => {
     fetchRestaurants();
   }, []);
 
-  // Main effect that handles data fetching
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
