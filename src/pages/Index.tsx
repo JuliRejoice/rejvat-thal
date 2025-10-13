@@ -96,7 +96,7 @@ const Index = () => {
           ) : user?.role === 'manager' ? (
             <ManagerDashboard />
           ) : (
-            <StaffDashboard />
+            <AttendanceManagement />
           )}
         />
 
