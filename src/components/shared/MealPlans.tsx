@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { MealMenu, mealMenuApi, MealType, type CreateMealMenuPayload, type MealMenuStatistics } from '@/api/mealMenu.api';
 import { getRestaurants } from '@/api/restaurant.api';
-import { Plus, Search, Filter, Edit2, ToggleLeft, ToggleRight, IndianRupee, Eye, Loader2 } from 'lucide-react';
+import { Plus, Search, Filter, Edit2, ToggleLeft, ToggleRight, Eye, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,11 +29,13 @@ import {
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from '@/contexts/AuthContext';
+import { Dirham } from '@/components/Svg';
 
 const MealPlans = () => {
   const { toast } = useToast();
   const [meals, setMeals] = useState<MealMenu[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+    const [searchMeal, setSearchMeal] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -560,60 +562,94 @@ const MealPlans = () => {
               </div>
 
               <div className="space-y-4">
-                <Label>Select Menu Items</Label>
+                <div className="space-y-2">
+                  <Label>Select Menu Items</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search menu items..."
+                      value={searchMeal}
+                      onChange={(e) => setSearchMeal(e.target.value)}
+                      className="pl-10 mb-2"
+                    />
+                  </div>
+                </div>
                 <div className="border rounded-lg p-4 max-h-60 overflow-y-auto">
                   <div className="space-y-3">
-                    {menuItems.map((item) => {
-                      const selectedItem = selectedItems.find(si => si._id === item._id);
-                      return (
-                        <div key={item._id} className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <Checkbox
-                              checked={!!selectedItem}
-                              onCheckedChange={() => handleItemToggle(item._id)}
-                            />
-                            <div>
-                              <p className="font-medium">{item.name}</p>
-                              <p className="text-sm text-muted-foreground">₹{item.price}</p>
+                    {menuItems
+                      .filter(item =>
+                        item.name.toLowerCase().includes(searchMeal.toLowerCase())
+                      ).length === 0 ? (
+                      <p className="text-center text-muted-foreground py-4">
+                        No menu items found.
+                      </p>
+                    ) : (
+                      menuItems
+                        .filter(item =>
+                          item.name.toLowerCase().includes(searchMeal.toLowerCase())
+                        )
+                        .map((item) => {
+                          const selectedItem = selectedItems.find(si => si._id === item._id);
+                          return (
+                            <div key={item._id} className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <Checkbox
+                                  checked={!!selectedItem}
+                                  onCheckedChange={() => handleItemToggle(item._id)}
+                                />
+                                <div>
+                                  <p className="font-medium">{item.name}</p>
+                                  <div className="flex items-center text-sm text-muted-foreground">
+                                    <Dirham size={12} className="mr-0.5" />
+                                    <span>{item.price}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <Label htmlFor={`qty-${item._id}`} className="text-sm">Qty:</Label>
+                                <Input
+                                  id={`qty-${item._id}`}
+                                  type="number"
+                                  min="1"
+                                  value={selectedItem?.quantity}
+                                  onChange={(e) => handleQuantityChange(item._id, parseInt(e.target.value) || 1)}
+                                  className="w-16"
+                                />
+                              </div>
                             </div>
-                          </div>
-                     
-                            <div className="flex items-center gap-2">
-                              <Label htmlFor={`qty-${item._id}`} className="text-sm">Qty:</Label>
-                              <Input
-                                id={`qty-${item._id}`}
-                                type="number"
-                                min="1"
-                                value={selectedItem?.quantity}
-                                onChange={(e) => handleQuantityChange(item._id, parseInt(e.target.value) || 1)}
-                                className="w-16"
-                              />
-                            </div>
-                        
-                        </div>
-                      );
-                    })}
+                          );
+                        })
+                    )
+                    }
+
                   </div>
                 </div>
               </div>
 
               <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
                 <span className="font-medium">Calculated Total:</span>
-                <span className="text-lg font-bold">₹{calculateTotalPrice()}</span>
+                <div className="flex items-center gap-1">
+                  <Dirham size={16} className="mt-0.5" />
+                  <span className="text-lg font-bold">{calculateTotalPrice()}</span>
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="price">Final Price (₹) *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  placeholder="Enter final price"
-                  value={formData.price}
-                  onChange={handleInputChange}
-                  min="0"
-                  step="0.01"
-                  required
-                />
+                <Label htmlFor="price">Final Price (AED) *</Label>
+                <div className="flex items-center gap-1">
+                  <Dirham size={16} className="mt-0.5" />
+                  <Input
+                    id="price"
+                    type="number"
+                    placeholder="Enter final price"
+                    value={formData.price}
+                    onChange={handleInputChange}
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
               </div>
 
               <div className="flex gap-2 pt-2">
@@ -673,12 +709,15 @@ const MealPlans = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Avg Price</p>
-                <p className="text-2xl font-bold text-foreground">
-                  ₹{Math.round((stats?.averagePrice ?? (meals.length ? meals.reduce((sum, meal) => sum + meal.price, 0) / meals.length : 0)))}
-                </p>
+                <div className="flex items-center">
+                  <Dirham size={20} className="mr-1" />
+                  <span className="text-2xl font-bold text-foreground">
+                    {Math.round((stats?.averagePrice ?? (meals.length ? meals.reduce((sum, meal) => sum + meal.price, 0) / meals.length : 0)))}
+                  </span>
+                </div>
               </div>
               <div className="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <IndianRupee className="h-4 w-4 text-green-600" />
+                <Dirham className="h-4 w-4 text-green-600" />
               </div>
             </div>
           </CardContent>
@@ -757,17 +796,27 @@ const MealPlans = () => {
                       <div className="text-sm text-muted-foreground max-w-xs truncate">
                         {meal.description}
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{meal.type}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{meal.items.length} items</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <IndianRupee className="h-3 w-3" />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {Array.isArray(meal.type) ? (
+                          meal.type.map((type, index) => (
+                            <Badge key={index} variant="outline" className="whitespace-nowrap">
+                              {type}
+                            </Badge>
+                          ))
+                        ) : (
+                          <Badge variant="outline">{meal.type}</Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{meal.items.length} items</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                      <Dirham className="h-3 w-3" />
                       <span className="font-medium">{meal.price}</span>
                     </div>
                   </TableCell>
@@ -819,11 +868,24 @@ const MealPlans = () => {
             <div className="space-y-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-lg font-semibold">{selectedMeal.name}</h3>
-                  <Badge variant="outline">{selectedMeal.type}</Badge>
+                  <h3 className="text-lg font-semibold mb-2">{selectedMeal.name}</h3>
+                  <div className="flex flex-wrap gap-1">
+                    {Array.isArray(selectedMeal.type) ? (
+                      selectedMeal.type.map((type, index) => (
+                        <Badge key={index} variant="outline" className="whitespace-nowrap">
+                          {type}
+                        </Badge>
+                      ))
+                    ) : (
+                      <Badge variant="outline">{selectedMeal.type}</Badge>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold">₹{selectedMeal.price}</p>
+                  <div className="flex items-center justify-end gap-1">
+                    <Dirham size={18} className="text-2xl font-bold mt-1" />
+                    <span className="text-2xl font-bold">{selectedMeal.price}</span>
+                  </div>
                   <Badge variant={selectedMeal.isActive ? 'default' : 'destructive'}>
                     {selectedMeal.isActive ? 'Active' : 'Inactive'}
                   </Badge>
@@ -843,7 +905,10 @@ const MealPlans = () => {
                         <span className="font-medium">{item.itemId.name}</span>
                         <span className="text-muted-foreground"> x{item.qty}</span>
                       </div>
-                      <span className="font-medium">₹{item.itemId.price * item.qty}</span>
+                      <div className="flex items-center gap-0.5">
+                        <Dirham size={12} className="mt-0.5" />
+                        <span className="font-medium">{item.itemId.price * item.qty}</span>
+                      </div>
                     </div>
                   ))}
                 </div>

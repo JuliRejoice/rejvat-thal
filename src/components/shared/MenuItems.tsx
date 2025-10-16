@@ -3,7 +3,7 @@ import { useEffect, useState, useContext } from 'react';
 import type { MenuItem, MenuStatistics } from '@/api/menu.api';
 import { menuApi, type GetMenuItemsParams } from '@/api/menu.api';
 import { getRestaurants } from '@/api/restaurant.api';
-import { Plus, Search, Filter, Edit2, ToggleLeft, ToggleRight, IndianRupee, Loader2 } from 'lucide-react';
+import { Plus, Search, Filter, Edit2, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { createMenuCategory, getAllMenuCategory } from '@/api/menuCategory.api';
-import { Dirham } from '../Svg';
+import { Dirham } from '@/components/Svg';
 
 const MenuItems = () => {
   const { user } = useAuth();
@@ -44,7 +44,7 @@ const MenuItems = () => {
   }>({
     name: '',
     categoryId: '',
-    restaurantId: '',
+    restaurantId: user?.role === 'manager' ? user.restaurantId?._id || '' : '',
     price: '',
     description: ''
   });
@@ -97,6 +97,7 @@ const MenuItems = () => {
 
     fetchCategories();
   }, []);
+  
   const fetchMenuItems = async (page: number = currentPage, limit: number = itemsPerPage) => {
     try {
       setIsLoading(true);
@@ -198,14 +199,14 @@ const MenuItems = () => {
     }
   };
 
-  const handleItemsPerPageChange = (value: string) => {
-    const newItemsPerPage = parseInt(value, 10);
-    if (!isNaN(newItemsPerPage) && newItemsPerPage > 0) {
-      setItemsPerPage(newItemsPerPage);
-      // Reset to first page when changing items per page
-      setCurrentPage(1);
-    }
-  };
+  // const handleItemsPerPageChange = (value: string) => {
+  //   const newItemsPerPage = parseInt(value, 10);
+  //   if (!isNaN(newItemsPerPage) && newItemsPerPage > 0) {
+  //     setItemsPerPage(newItemsPerPage);
+  //     // Reset to first page when changing items per page
+  //     setCurrentPage(1);
+  //   }
+  // };
 
   // Wrapper function to handle the number type expected by DataTablePagination
   const handleItemsPerPageNumberChange = (value: number) => {
@@ -517,7 +518,7 @@ const MenuItems = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className={`grid gap-4 ${user?.role == 'admin' ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     <div className="space-y-2">
                       <Label htmlFor="categoryId">Category *</Label>
                       <Select
@@ -537,29 +538,35 @@ const MenuItems = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="restaurantId">Restaurant *</Label>
-                      <Select
-                        value={formData.restaurantId}
-                        onValueChange={(value) => handleSelectChange(value, 'restaurantId')}
-                        required
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select restaurant" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {restaurants.map(restaurant => (
-                            <SelectItem key={restaurant._id} value={restaurant._id}>
-                              {restaurant.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {
+                      user?.role == 'admin' ?
+                        <div className="space-y-2">
+                          <Label htmlFor="restaurantId">Restaurant *</Label>
+                          <Select
+                            value={formData.restaurantId}
+                            onValueChange={(value) => handleSelectChange(value, 'restaurantId')}
+                            required
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select restaurant" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {restaurants.map(restaurant => (
+                                <SelectItem key={restaurant._id} value={restaurant._id}>
+                                  {restaurant.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        :
+                        <></>
+
+                    }
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="price">Price (₹) *</Label>
+                  <Label htmlFor="price">Price (AED) *</Label>
                   <Input
                     id="price"
                     type="number"
@@ -663,12 +670,15 @@ const MenuItems = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Avg Price</p>
-                <p className="text-2xl font-bold text-foreground">
-                  ₹{Math.round(statistics?.averagePrice)}
-                </p>
+                <div className="flex items-center">
+                  <Dirham size={18} className="mr-1" />
+                  <span className="text-2xl font-bold text-foreground">
+                    {Math.round(statistics?.averagePrice || 0)}
+                  </span>
+                </div>
               </div>
               <div className="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <IndianRupee className="h-4 w-4 text-green-600" />
+                <Dirham size={16} className="text-green-600" />
               </div>
             </div>
           </CardContent>
@@ -763,7 +773,12 @@ const MenuItems = () => {
                     <TableRow key={item._id}>
                       <TableCell className="font-medium">{item.name}</TableCell>
                       <TableCell>{item.categoryId?.name || 'N/A'}</TableCell>
-                      <TableCell>₹{item.price}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <Dirham size={12} className="mr-1" />
+                          <span>{item.price}</span>
+                        </div>
+                      </TableCell>
                       <TableCell className="max-w-[200px] truncate">{item.description || 'N/A'}</TableCell>
                       <TableCell>
                         <Badge variant={item.isActive ? 'default' : 'secondary'} className="capitalize">

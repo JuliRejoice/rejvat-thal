@@ -63,6 +63,8 @@ import { AttendanceRecordsSkeleton } from "../staff/AttendanceSkeleton";
 import { getRestaurants } from "@/api/restaurant.api";
 import { SearchableDropDown } from "@/components/common/SearchableDropDown";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatDateRange } from "@/lib/utils";
+
 
 const mockAttendance = [];
 const mockLeaveRequests = [];
@@ -802,17 +804,34 @@ const StaffManagement = () => {
                                     weekday: "short",
                                   })}
                                 </p>
-                                <p className="text-sm text-muted-foreground">
-                                  <b className="text-gray-800">Check-In Time</b>: {" "}
-                                  {record.status === "present" && record.createdAt &&
-                                    new Date(record.createdAt).toLocaleTimeString(
-                                      "en-US",
-                                      {
-                                        hour: "numeric",
-                                        minute: "numeric",
-                                        hour12: true,
-                                      }
-                                    )}
+                                <p className="text-sm text-muted-foreground flex gap-1">
+                                  <span><b className="text-gray-800">Check In</b>: {" "}
+                                  {record.status === "present" && record.checkInAt
+                                    ? new Date(record.checkInAt).toLocaleTimeString(
+                                        "en-US",
+                                        {
+                                          hour: "numeric",
+                                          minute: "2-digit",
+                                          hour12: true,
+                                        }
+                                      )
+                                    : "N/A"}
+                                  </span>
+                                  {record.checkOutAt && (
+                                    <>
+                                      <span className="text-gray-800">|</span>
+                                      <span><b className="text-gray-800">Check Out</b>: {" "}
+                                      {new Date(record.checkOutAt).toLocaleTimeString(
+                                        "en-US",
+                                        {
+                                          hour: "numeric",
+                                          minute: "2-digit",
+                                          hour12: true,
+                                        }
+                                      )}
+                                      </span>
+                                    </>
+                                  )}
                                 </p>
                               </div>
                             </div>
@@ -867,15 +886,7 @@ const StaffManagement = () => {
                             <div className="flex justify-between items-start">
                               <div>
                                 <p className="font-medium">
-                                  {new Date(request.fromDate).toLocaleDateString(
-                                    "en-IN",
-                                    { day: "numeric", month: "short", weekday: "short" }
-                                  )}
-                                  {" "}-{" "}
-                                  {new Date(request.toDate).toLocaleDateString(
-                                    "en-IN",
-                                    { day: "numeric", month: "short", weekday: "short" }
-                                  )}
+                                  {formatDateRange(request.fromDate, request.toDate)}
                                 </p>
                                 <p className="text-sm text-muted-foreground">{request.reason}</p>
                               </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Filter, Upload, IndianRupee, Package, Truck, Receipt, Calendar, User } from 'lucide-react';
+import { Plus, Search, Filter, Upload, Package, Truck, Receipt, Calendar, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ import { getAllVendors } from '@/api/vendor.api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Controller, useForm } from 'react-hook-form';
 import AddOrderDialog from './AddOrderDialog';
+import { Dirham } from '@/components/Svg';
 import { AddInventoryOrder, getInventoryList, getInventoryOverview } from '@/api/inventory.api';
 import { useAuth } from '@/contexts/AuthContext';
 import AddPaymentDialog from './AddPaymentDialog';
@@ -182,7 +183,8 @@ const InventoryManagement = () => {
       page: 1,
       limit: 100,
       search: '',
-      isActive: true
+      isActive: true,
+      restaurantId: user?.restaurantId._id,
     })
   });
 
@@ -304,8 +306,6 @@ const InventoryManagement = () => {
   ) || [];
 
 
-  
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -355,8 +355,11 @@ const InventoryManagement = () => {
                   <Textarea id="orderItems" placeholder="Enter order items (e.g., Onions 10kg, Tomatoes 5kg)" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="amount">Amount (₹)</Label>
-                  <Input id="amount" type="number" placeholder="Enter total amount" />
+                  <Label htmlFor="amount">Amount (AED)</Label>
+                  <div className="flex items-center gap-1">
+                    <Dirham size={16} className="mt-0.5" />
+                    <Input id="amount" type="number" placeholder="Enter total amount" className="flex-1" />
+                  </div>
                 </div>  
                 <div className="space-y-2">
                   <Label htmlFor="orderDate">Order Date</Label>
@@ -419,8 +422,11 @@ const InventoryManagement = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="paymentAmount">Amount (₹)</Label>
-                  <Input id="paymentAmount" type="number" placeholder="Enter payment amount" />
+                  <Label htmlFor="paymentAmount">Amount (AED)</Label>
+                  <div className="flex items-center gap-1">
+                    <Dirham size={16} className="mt-0.5" />
+                    <Input id="paymentAmount" type="number" placeholder="Enter payment amount" className="flex-1" />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="paymentDate">Payment Date</Label>
@@ -473,7 +479,10 @@ const InventoryManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Orders</p>
-                <p className="text-2xl font-bold text-foreground">₹{stats.totalOrders}</p>
+                <div className="flex items-center">
+                  <Dirham size={18} className="mr-1" />
+                  <span className="text-2xl font-bold text-foreground">{stats.totalOrders}</span>
+                </div>
               </div>
               <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center">
                 <Package className="h-4 w-4 text-primary" />
@@ -486,10 +495,13 @@ const InventoryManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Payments</p>
-                <p className="text-2xl font-bold text-green-600">₹{stats.totalPayments}</p>
+                <div className="flex items-center">
+                  <Dirham size={18} className="mr-1 text-green-600" />
+                  <span className="text-2xl font-bold text-green-600">{stats.totalPayments}</span>
+                </div>
               </div>
               <div className="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <IndianRupee className="h-4 w-4 text-green-600" />
+                <Dirham className="h-4 w-4 text-green-600" />
               </div>
             </div>
           </CardContent>
@@ -499,7 +511,10 @@ const InventoryManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Pending Amount</p>
-                <p className="text-2xl font-bold text-destructive">₹{stats.pendingAmount}</p>
+                <div className="flex items-center">
+                  <Dirham size={18} className="mr-1 text-destructive" />
+                  <span className="text-2xl font-bold text-destructive">{stats.pendingAmount}</span>
+                </div>
               </div>
               <div className="h-8 w-8 bg-destructive/10 rounded-lg flex items-center justify-center">
                 <Receipt className="h-4 w-4 text-destructive" />
@@ -542,7 +557,7 @@ const InventoryManagement = () => {
                       <Input placeholder="Search orders..." className="pl-10" />
                     </div>
                   </div>
-                  <Select defaultValue="all">
+                  {/* <Select defaultValue="all">
                     <SelectTrigger className="w-48">
                       <Filter className="h-4 w-4 mr-2" />
                       <SelectValue />
@@ -552,7 +567,7 @@ const InventoryManagement = () => {
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="received">Received</SelectItem>
                     </SelectContent>
-                  </Select>
+                  </Select> */}
                 </div>
                 {ordersLoading ? (
                   <TableSkeleton />
@@ -586,7 +601,7 @@ const InventoryManagement = () => {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1">
-                                <IndianRupee className="h-3 w-3" />
+                                <Dirham className="h-3 w-3" />
                                 <span className="font-medium">{order.amount.toLocaleString()}</span>
                               </div>
                             </TableCell>
@@ -726,7 +741,7 @@ const InventoryManagement = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1 text-green-600">
-                            <IndianRupee className="h-3 w-3" />
+                            <Dirham className="h-3 w-3" />
                             <span className="font-medium">{payment.amount.toLocaleString()}</span>
                           </div>
                         </TableCell>

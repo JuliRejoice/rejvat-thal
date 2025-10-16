@@ -1,9 +1,17 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, CalendarIcon, Loader2 } from "lucide-react";
+import { Plus, Trash2, CalendarIcon } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Popover,
   PopoverTrigger,
@@ -11,80 +19,57 @@ import {
 } from "@/components/ui/popover";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import CustomerSelect from "./InvoiceCustomerSelect";
 import DiscountPopup from "./InvoiceDiscount";
+import GSTInput from "./InvoiceAmountInput";
 import AmountInput from "./InvoiceAmountInput";
 import RoundingOff from "./InvoiceRoundingOff";
-import InvoiceAdvanceAmount from "./InvoiceAdvanceAmount";
 import { toast } from "sonner";
+import InvoiceAdvanceAmount from "./InvoiceAdvanceAmount";
 import { Dirham } from "@/components/Svg";
-import { useAuth } from "@/contexts/AuthContext";
-import { Config } from "@/utils/Config";
 
 interface InvoiceItem {
   id: string;
   name: string;
   price: number;
-  qty: string;
+  quantity: string;
 }
 
 interface InvoiceFormProps {
   selectedCustomer: {
     phone: any;
-    _id: string;
+    id: string;
     name: string;
-    address: string;
-    area: string;
-    areaId: string;
-    createdAt: string;
-    email: string;
-    isActive: boolean;
-    profileImage: string;
-    restaurantId: string;
-    updatedAt: string;
-    wallet: number;
   };
   onCreateInvoice: any;
-  paymentMethods: any;
-  incomeCategories: any;
-  isSubmitting: boolean;
-  thresholdAmount: any;
 }
 
 const InvoiceForm: React.FC<InvoiceFormProps> = ({
   selectedCustomer,
   onCreateInvoice,
-  paymentMethods,
-  incomeCategories,
-  isSubmitting,
-  thresholdAmount,
 }) => {
   const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>([
-    { id: Date.now().toString(), name: "", qty: "", price: null },
+    { id: Date.now().toString(), name: "", quantity: "", price: null },
   ]);
-
-  const { user } = useAuth();
-  const taxPercentage = useMemo(() => {
-    return thresholdAmount?.find(
-      (item: any) => item.restaurantId?._id === user?.restaurantId?._id
-    )?.taxPercentage;
-  }, [thresholdAmount]);
-
   const [discount, setDiscount] = useState(0);
-  const [discountType, setDiscountType] = useState<string>("percent");
-  const [discountValue, setDiscountValue] = useState(0);
-  const [taxRate, setTaxRate] = useState(taxPercentage);
+  const [taxRate, setTaxRate] = useState(9);
   const [additionalAmount, setAdditionalAmount] = useState(0);
   const [invoiceDate, setInvoiceDate] = useState<Date>(new Date());
+  const [paymentMethod, setPaymentMethod] = useState("cash");
   const [finalTotal, setFinalTotal] = useState(0);
   const [advanceAmount, setAdvanceAmount] = useState(0);
-  const [advancePaymentMethod, setAdvancePaymentMethod] = useState('');
-  const [roundingValue, setRoundingValue] = useState(0);
+  const [advancePaymentMethod, setAdvancePaymentMethod] = useState("cash");
+  
+  // Calculate due amount based on final total and advance amount
+  const dueAmount = useMemo(() => {
+    return Math.max(0, finalTotal - advanceAmount);
+  }, [finalTotal, advanceAmount]);
 
   // Add new item
   const handleAddItem = () => {
     setInvoiceItems([
       ...invoiceItems,
-      { id: Date.now().toString(), name: "", qty: "", price: null },
+      { id: Date.now().toString(), name: "", quantity: "", price: null },
     ]);
   };
 
@@ -105,25 +90,22 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
     () => invoiceItems.reduce((sum, item) => sum + (item.price || 0), 0),
     [invoiceItems]
   );
-
+  
   const taxAmount = useMemo(
     () => (subtotal * taxRate) / 100,
     [subtotal, taxRate]
   );
+  
+  const discountedPrice = subtotal - discount;
+  const totalBeforeRounding = discountedPrice + taxAmount + additionalAmount;
+  const roundingOff = Math.round(totalBeforeRounding) - totalBeforeRounding;
+  const total = Math.round(totalBeforeRounding);
 
-  const baseTotal = useMemo(
-    () => subtotal - discount + taxAmount + additionalAmount,
-    [subtotal, discount, taxAmount, additionalAmount]
-  );
-
-  useEffect(() => {
-    setFinalTotal(Math.round(baseTotal + roundingValue));
-  }, [baseTotal, roundingValue]);
-
-  const dueAmount = useMemo(
-    () => finalTotal - advanceAmount,
-    [finalTotal, advanceAmount]
-  );
+  // Update final total when any of the values change
+  useMemo(() => {
+    const calcTotal = subtotal - discount + (subtotal * taxRate) / 100 + additionalAmount;
+    setFinalTotal(Math.round(calcTotal));
+  }, [subtotal, discount, taxRate, additionalAmount]);
 
   const handleCreateInvoice = () => {
     if (!selectedCustomer) {
@@ -136,66 +118,65 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
       return;
     }
 
-    const newInvoice: any = {
+    // Determine invoice status based on payment
+    let status = "paid";
+    if (advanceAmount <= 0) {
+      status = "unpaid";
+    } else if (advanceAmount > 0 && advanceAmount < finalTotal) {
+      status = "partially_paid";
+    } else if (advanceAmount >= finalTotal) {
+      status = "paid";
+    }
+
+    const newInvoice = {
       id: Date.now().toString(),
       invoiceNumber: `INV-BSB-25-${String(Date.now()).slice(-4)}`,
+      customerName: selectedCustomer.name,
+      customerPhone: selectedCustomer.phone,
       date: invoiceDate,
       items: invoiceItems,
-      subTotal: subtotal,
+      subtotal,
       tax: taxAmount,
       discount,
       additionalAmount,
-      roundOffAmount: roundingValue,
-      finalAmmount: finalTotal,
+      roundingOff,
+      total: finalTotal,
+      advanceAmount,
+      advancePaymentMethod,
+      dueAmount,
+      paymentMethod,
+      status,
       notes: "",
-      restaurantId: user?.role === "manager" ? user.restaurantId?._id : null,
-      customerId: selectedCustomer._id,
-      advancePayment: advanceAmount,
-      incomeCategoryId: Config.CUSTOMER_PAYMENTS,
+      createdAt: new Date().toISOString(),
     };
-
-    if (advanceAmount === 0) {
-      newInvoice.invoiceStatus = "unpaid";
-    } else if (advanceAmount > 0 && advanceAmount < finalTotal) {
-      newInvoice.invoiceStatus = "part_paid";
-    } else if (advanceAmount >= finalTotal) {
-      newInvoice.invoiceStatus = "paid";
-    }
-
-    if (advanceAmount > 0) {
-      newInvoice.method = advancePaymentMethod;
-    }
 
     onCreateInvoice(newInvoice);
   };
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-2 gap-6 ">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Left Column: Customer & Items */}
-      <div className="space-y-4  p-4 shadow-xl">
-        {/* Selected Customer */}
+      <div className="space-y-4 p-4 shadow-xl">
         <div className="border p-4 rounded-lg">
           <div className="flex flex-col gap-3">
             <span className="font-semibold">Selected Customer</span>
-            <div className="flex  items-center gap-2">
+            <div className="flex items-center gap-2">
               <div className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-500 text-white font-bold text-lg">
                 {selectedCustomer.name.charAt(0).toUpperCase()}
               </div>
-
-              <div className="flex ">
-                <div className="flex flex-col">
-                  <span>{selectedCustomer.name}</span>
-                  <span>{selectedCustomer.phone}</span>
-                </div>
+              <div className="flex flex-col">
+                <span>{selectedCustomer.name}</span>
+                <span>{selectedCustomer.phone}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Items Card */}
         <Card>
           <CardHeader className="flex flex-row justify-between items-center">
-            <CardTitle className="text-lg">Items ({invoiceItems.length})</CardTitle>
+            <CardTitle className="text-lg">
+              Items ({invoiceItems.length})
+            </CardTitle>
             <Button
               onClick={handleAddItem}
               size="sm"
@@ -205,6 +186,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
               <Plus className="h-3 w-3" /> Add
             </Button>
           </CardHeader>
+
           <CardContent className="space-y-3 overflow-y-auto h-[500px] scrollbar-hide">
             {invoiceItems.map((item) => (
               <div
@@ -215,7 +197,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                   <Input
                     placeholder="Item Name"
                     value={item.name}
-                    onChange={(e) => handleItemChange(item.id, "name", e.target.value)}
+                    onChange={(e) =>
+                      handleItemChange(item.id, "name", e.target.value)
+                    }
                   />
                   {invoiceItems.length > 1 && (
                     <Button
@@ -233,16 +217,30 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                   <Input
                     type="text"
                     placeholder="Quantity"
-                    value={item.qty || ""}
-                    onChange={(e) => handleItemChange(item.id, "qty", e.target.value)}
+                    value={item.quantity}
+                    onChange={(e) =>
+                      handleItemChange(item.id, "quantity", e.target.value)
+                    }
                   />
                   <Input
                     type="number"
                     placeholder="Price"
                     value={item.price === 0 ? "" : item.price}
+                    onFocus={(e) => {
+                      if (e.target.value === "0") {
+                        handleItemChange(item.id, "price", 0);
+                      }
+                    }}
                     onChange={(e) => {
-                      const cleanedValue = e.target.value.replace(/^0+(?=\d)/, "");
-                      handleItemChange(item.id, "price", parseFloat(cleanedValue) || 0);
+                      const cleanedValue = e.target.value.replace(
+                        /^0+(?=\d)/,
+                        ""
+                      );
+                      handleItemChange(
+                        item.id,
+                        "price",
+                        parseFloat(cleanedValue) || 0
+                      );
                     }}
                   />
                 </div>
@@ -260,7 +258,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
               <CardTitle className="text-lg m-0">Checkout Summary</CardTitle>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="text-left font-normal">
+                  <Button
+                    variant="outline"
+                    className="text-left font-normal"
+                  >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {invoiceDate.toDateString()}
                   </Button>
@@ -290,15 +291,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 subtotal={subtotal}
                 discount={discount}
                 setDiscount={setDiscount}
-                discountType={discountType}
-                setDiscountType={setDiscountType}
-                discountValue={discountValue}
-                setDiscountValue={setDiscountValue}
-                onSave={(discount, type, value) => {
-                  setDiscount(discount);
-                  setDiscountType(type);
-                  setDiscountValue(value);
-                }}
               />
               {discount > 0 && (
                 <div className="flex items-center gap-1 font-semibold text-red-600 text-md">
@@ -308,49 +300,37 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 </div>
               )}
             </div>
-
             <div className="flex justify-between text-md font-semibold">
-              <span>Tax Rate (%)</span>
+              <span>Tax Rate ({taxRate}%)</span>
               <div className="flex items-center gap-1">
                 <Dirham size={12} />
                 <span>{taxAmount.toFixed(2)}</span>
               </div>
             </div>
-
             <AmountInput
               label="Additional Amount"
               value={additionalAmount}
               setValue={setAdditionalAmount}
-              onSave={(amount) => setAdditionalAmount(amount)}
             />
 
-            <RoundingOff
-              baseTotal={baseTotal}
-              roundingValue={roundingValue}
-              setRoundingValue={setRoundingValue}
-              total={finalTotal}
-            />
+            <RoundingOff total={finalTotal} setTotal={setFinalTotal} />
 
-
-            <Separator />
-            <div className="flex justify-between font-bold text-lg">
-              <span>Total</span>
-              <div className="flex items-center gap-1">
-                <Dirham size={14} />
-                <span>{finalTotal}</span>
-              </div>
+            <div className="flex items-center justify-between gap-2">
+              <InvoiceAdvanceAmount
+                total={finalTotal}
+                advanceAmount={advanceAmount}
+                onSave={(amount, status, paymentMethod) => {
+                  setAdvanceAmount(amount);
+                  setAdvancePaymentMethod(paymentMethod);
+                }}
+              />
+              {advanceAmount > 0 && (
+                <div className="flex items-center gap-1 font-semibold text-green-600">
+                  <Dirham size={12} />
+                  <span>{advanceAmount.toFixed(2)}</span>
+                </div>
+              )}
             </div>
-            <InvoiceAdvanceAmount
-              total={finalTotal}
-              advanceAmount={advanceAmount}
-              advancePaymentMethod={advancePaymentMethod}
-              onSave={(amount, status, paymentMethod) => {
-                setAdvanceAmount(amount);
-                setAdvancePaymentMethod(paymentMethod);
-              }}
-              paymentMethods={paymentMethods}
-              incomeCategories={incomeCategories}
-            />
 
             {dueAmount > 0 && (
               <div className="flex justify-between text-md font-semibold text-red-600">
@@ -361,25 +341,22 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 </div>
               </div>
             )}
+            <Separator />
+
+            <div className="flex justify-between font-bold text-lg">
+              <span>Total</span>
+              <div className="flex items-center gap-1">
+                <Dirham size={14} />
+                <span>{finalTotal.toFixed(2)}</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
-
         <Card className="border-none">
           <CardContent className="space-y-4">
             <Separator />
-            <Button
-              onClick={handleCreateInvoice}
-              className="w-full"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                "Create Invoice"
-              )}
+            <Button onClick={handleCreateInvoice} className="w-full">
+              Create Invoice
             </Button>
           </CardContent>
         </Card>

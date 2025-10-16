@@ -116,7 +116,7 @@ export default function AddPaymentDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount (₹)</Label>
+            <Label htmlFor="amount">Amount (AED)</Label>
             <Controller
               control={control}
               name="amount"

@@ -105,7 +105,7 @@ export default function AddOrderDialog({ vendors, isOpen, setIsOpen ,onSubmit}: 
 
           {/* ✅ Amount */}
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount (₹)</Label>
+            <Label htmlFor="amount">Amount (AED)</Label>
             <Input
               id="amount"
               type="number"

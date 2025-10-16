@@ -456,7 +456,7 @@ const VendorManagement = () => {
                         </div>
                       </TableCell>
                       {user?.role === 'admin' && <TableCell>
-                       {vendor?.restaurant?.name}
+                        {vendor?.restaurant?.name}
                       </TableCell>}
                       {!isMobile && (
                         <TableCell className="max-w-[200px] truncate">
@@ -480,24 +480,20 @@ const VendorManagement = () => {
                       {!isMobile && (
                         <TableCell>
                           <div className="flex items-center gap-1 text-green-600">
-                            <IndianRupee className="h-3 w-3" />
-                            <span className="font-medium">
-                              {vendor.totalAmount}
-                            </span>
+                            <span className="flex items-center"><Dirham size={12} className="mr-0.5" /> {vendor.totalAmount}</span>
                           </div>
                         </TableCell>
                       )}
                       <TableCell>
                         <div className="flex items-center gap-1 text-destructive">
-                          <IndianRupee className="h-3 w-3" />
-                          <span className="font-medium">{vendor.wallet}</span>
+                          <span className="flex items-center"><Dirham size={12} className="mr-0.5" /> {vendor.wallet}</span>
                         </div>
                       </TableCell>
                       <TableCell>
                         <Badge
                           className={`${vendor?.isActive
-                              ? "bg-green-100 border border-green-300 text-green-400 hover:bg-green-200"
-                              : "bg-red-100 border border-red-300 text-red-400 hover:bg-red-200"
+                            ? "bg-green-100 border border-green-300 text-green-400 hover:bg-green-200"
+                            : "bg-red-100 border border-red-300 text-red-400 hover:bg-red-200"
                             }`}
                         >
                           {vendor?.isActive ? "Active" : "Deactive"}
@@ -522,8 +518,8 @@ const VendorManagement = () => {
                           <Button
                             variant="outline"
                             className={`${vendor?.isActive
-                                ? "bg-green-100 border border-green-300 hover:bg-green-200"
-                                : "bg-red-100 border border-red-300 hover:bg-red-200"
+                              ? "bg-green-100 border border-green-300 hover:bg-green-200"
+                              : "bg-red-100 border border-red-300 hover:bg-red-200"
                               }`}
                             onClick={() => handleConfirmToggle(vendor)}
                             size="sm"
@@ -566,13 +562,13 @@ const VendorManagement = () => {
             <DialogTitle>Vendor Details</DialogTitle>
           </DialogHeader>
           {selectedVendor && (
-            <Tabs defaultValue="info" className="w-full">
+            <Tabs defaultValue="info" className="w-full !ring-0 !outline-0 !ring-offset-0">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="info">Information</TabsTrigger>
-                <TabsTrigger value="payments">Payment History</TabsTrigger>
+                <TabsTrigger value="info" className="!ring-0 !outline-0 !ring-offset-0">Information</TabsTrigger>
+                <TabsTrigger value="payments" className="!ring-0 !outline-0 !ring-offset-0">Payment History</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="info" className="space-y-4">
+              <TabsContent value="info" className="space-y-4 !ring-0 !outline-0 !ring-offset-0">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16">
                     <AvatarFallback className="text-lg">
@@ -632,17 +628,21 @@ const VendorManagement = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-green-600">
-                      ₹{selectedVendor?.totalAmount}
-                    </p>
-                    <p className="text-sm text-muted-foreground">Total Paid</p>
+                  <div className="text-center p-2.5 border rounded-md">
+                    <div className="flex items-center justify-center gap-1">
+                      <p className="text-2xl font-bold text-green-600 flex items-center justify-center gap-1">
+                        <Dirham size={18} className="mt-1" /> {selectedVendor?.totalAmount}
+                      </p>
+                    </div>
+                    <p className="text-sm font-medium">Total Paid</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-destructive">
-                      ₹{selectedVendor?.wallet}
-                    </p>
-                    <p className="text-sm text-muted-foreground">Total Due</p>
+                  <div className="text-center p-2.5 border rounded-md">
+                    <div className="flex items-center justify-center gap-1">
+                      <p className="text-2xl font-bold text-destructive flex items-center justify-center gap-1">
+                        <Dirham size={18} className="mt-1" /> {selectedVendor?.wallet}
+                      </p>
+                    </div>
+                    <p className="text-sm font-medium">Total Due</p>
                   </div>
                 </div>
               </TabsContent>
@@ -672,8 +672,8 @@ const VendorManagement = () => {
                             <Badge
                               variant="outline"
                               className={`ms-4 ${transaction.type === "income"
-                                  ? "bg-green-100 border border-green-300 text-green-400 hover:bg-green-200"
-                                  : "bg-red-100 border border-red-300 text-red-400 hover:bg-red-200"
+                                ? "bg-green-100 border border-green-300 text-green-400 hover:bg-green-200"
+                                : "bg-red-100 border border-red-300 text-red-400 hover:bg-red-200"
                                 }`}
                             >
                               {transaction?.type?.charAt(0)?.toUpperCase() +
@@ -684,54 +684,58 @@ const VendorManagement = () => {
                         <div className="text-right">
                           <p
                             className={`font-medium ${transaction?.incomeCategoryId
-                                ? "text-green-600"
-                                : "text-destructive"
+                              ? "text-green-600"
+                              : "text-destructive"
                               }`}
                           >
-                            {transaction?.incomeCategoryId ? "+" : "-"}₹
-                            {transaction.amount.toLocaleString()}
+                            <span className="flex items-center">
+                              {transaction?.incomeCategoryId ? "+" : "-"}
+                              <Dirham size={14} className="mx-0.5" /> {transaction.amount.toLocaleString()}
+                            </span>
                           </p>
                           <Badge variant="outline">{transaction.type}</Badge>
                         </div>
                       </div>
                     ))}
-                    {selectedVendor?.inventoryData?.map((inventory) => (
-                      <div
-                        key={`inv-${inventory?._id}`}
-                        className="flex justify-between items-center p-3 border rounded-lg"
-                      >
-                        <div>
-                          <p className="font-medium">
-                            {inventory?.items}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {format(
-                              new Date(inventory.createdAt),
-                              "dd-MM-yy HH:mm"
-                            )}
-                            <Badge
-                              variant="outline"
-                              className={`ms-4 bg-green-100 border border-green-300 text-green-400 hover:bg-green-200`}
-                            >
-                              Order
-                            </Badge>
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p
-                            className={`font-medium`}
-                          >
-                           ₹{inventory.amount.toLocaleString()}
-                          </p>
+                  {selectedVendor?.inventoryData?.map((inventory) => (
+                    <div
+                      key={`inv-${inventory?._id}`}
+                      className="flex justify-between items-center p-3 border rounded-lg"
+                    >
+                      <div>
+                        <p className="font-medium">
+                          {inventory?.items}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {format(
+                            new Date(inventory.createdAt),
+                            "dd-MM-yy HH:mm"
+                          )}
                           <Badge
-                              variant="outline"
-                              className={`ms-4 bg-green-100 border border-green-300 text-green-400 hover:bg-green-200`}
-                            >
-                              Order
-                            </Badge>
-                        </div>
+                            variant="outline"
+                            className={`ms-4 bg-green-100 border border-green-300 text-green-400 hover:bg-green-200`}
+                          >
+                            Order
+                          </Badge>
+                        </p>
                       </div>
-                    ))}
+                      <div className="text-right">
+                        <p
+                          className={`font-medium`}
+                        >
+                          <span className="flex items-center">
+                            <Dirham size={14} className="mr-0.5" /> {inventory.amount.toLocaleString()}
+                          </span>
+                        </p>
+                        <Badge
+                          variant="outline"
+                          className={`ms-4 bg-green-100 border border-green-300 text-green-400 hover:bg-green-200`}
+                        >
+                          Order
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </TabsContent>
             </Tabs>

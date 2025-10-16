@@ -632,7 +632,7 @@ const AreaFormModal = ({
 
 
               <div className="space-y-2">
-                <Label htmlFor="deliveryAmount">Delivery Amount (₹)</Label>
+                <Label htmlFor="deliveryAmount">Delivery Amount (AED)</Label>
                 <Input
                   id="deliveryAmount"
                   type="text"

@@ -1,31 +1,25 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import { Dirham } from "@/components/Svg";
 
 interface RoundingOffProps {
-  total: number;
-  setTotal: (value: number) => void;
+  baseTotal: number; // total without rounding
+  roundingValue: number; // current rounding difference
+  setRoundingValue: (value: number) => void; // function to set rounding
+  total: number; // final total including rounding
 }
 
-const RoundingOff: React.FC<RoundingOffProps> = ({ total, setTotal }) => {
+const RoundingOff: React.FC<RoundingOffProps> = ({
+  baseTotal,
+  roundingValue,
+  setRoundingValue,
+  total,
+}) => {
   const [open, setOpen] = useState(false);
-  const [baseTotal, setBaseTotal] = useState(total);
-  const lastParentTotal = useRef(total);
   const modalRef = useRef<HTMLDivElement>(null);
-  const isRounding = useRef(false);
 
-  useEffect(() => {
-    // Only update baseTotal if the change came from outside (not rounding)
-    if (
-      !isRounding.current &&
-      Math.abs(total - lastParentTotal.current) > 0.009
-    ) {
-      setBaseTotal(total);
-      lastParentTotal.current = total;
-    }
-    isRounding.current = false; // reset after checking
-  }, [total]);
-
+  // Close modal on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
@@ -36,12 +30,13 @@ const RoundingOff: React.FC<RoundingOffProps> = ({ total, setTotal }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
+  // Calculate rounding options
   const lower = Math.floor(baseTotal / 10) * 10;
   const upper = Math.ceil(baseTotal / 10) * 10;
 
+  // Handle selecting a rounding option
   const handleSelect = (value: number) => {
-    isRounding.current = true; // mark that change came from rounding
-    setTotal(value);
+    setRoundingValue(value - baseTotal); // difference from base total
     setOpen(false);
   };
 
@@ -54,7 +49,11 @@ const RoundingOff: React.FC<RoundingOffProps> = ({ total, setTotal }) => {
       >
         Rounding Off
       </Button>
-      <span className="text-md font-semibold">₹ {total.toFixed(2)}</span>
+
+      <div className="flex items-center gap-1 text-md font-semibold">
+        <Dirham size={12} />
+        <span>{roundingValue.toFixed(2)}</span>
+      </div>
 
       {open && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
@@ -79,11 +78,14 @@ const RoundingOff: React.FC<RoundingOffProps> = ({ total, setTotal }) => {
                 variant="outline"
                 onClick={() => handleSelect(lower)}
               >
-                ₹ {lower} (
-                {lower - baseTotal >= 0
-                  ? `+${(lower - baseTotal).toFixed(2)}`
-                  : (lower - baseTotal).toFixed(2)}
-                )
+                <div className="flex items-center gap-1">
+                  <Dirham size={10} />
+                  <span>
+                    {lower} (
+                    {lower - baseTotal >= 0 ? "+" : ""}
+                    {(lower - baseTotal).toFixed(2)})
+                  </span>
+                </div>
               </Button>
 
               <Button
@@ -91,7 +93,10 @@ const RoundingOff: React.FC<RoundingOffProps> = ({ total, setTotal }) => {
                 variant="outline"
                 onClick={() => handleSelect(baseTotal)}
               >
-                ₹ {baseTotal.toFixed(2)} (0.00)
+                <div className="flex items-center gap-1">
+                  <Dirham size={12} />
+                  <span>{baseTotal.toFixed(2)} (0.00)</span>
+                </div>
               </Button>
 
               <Button
@@ -99,11 +104,14 @@ const RoundingOff: React.FC<RoundingOffProps> = ({ total, setTotal }) => {
                 variant="outline"
                 onClick={() => handleSelect(upper)}
               >
-                ₹ {upper} (
-                {upper - baseTotal >= 0
-                  ? `+${(upper - baseTotal).toFixed(2)}`
-                  : (upper - baseTotal).toFixed(2)}
-                )
+                <div className="flex items-center gap-1">
+                  <Dirham size={12} />
+                  <span>
+                    {upper} (
+                    {upper - baseTotal >= 0 ? "+" : ""}
+                    {(upper - baseTotal).toFixed(2)})
+                  </span>
+                </div>
               </Button>
             </div>
           </div>

@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { getRestaurants } from '@/api/restaurant.api';
+import { Dirham } from '../Svg';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
 interface ExpenseThreshold {
   _id: string;
@@ -250,7 +251,7 @@ const [totalItems, setTotalItems] = useState(0);
               <TableHeader>
                 <TableRow>
                   <TableHead>Restaurant</TableHead>
-                  <TableHead>Threshold Amount (₹)</TableHead>
+                  <TableHead>Threshold Amount (AED)</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -259,7 +260,10 @@ const [totalItems, setTotalItems] = useState(0);
                 {thresholds?.map((threshold) => (
                   <TableRow key={threshold._id}>
                     <TableCell>{threshold.restaurantId?.name || 'Default'}</TableCell>
-                    <TableCell>₹{threshold.expenseThresholdAmount.toLocaleString()}</TableCell>
+                    <TableCell className="flex items-center gap-1">
+                      <Dirham size={12} />
+                      <span>{threshold.expenseThresholdAmount.toLocaleString()}</span>
+                    </TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
@@ -497,7 +501,7 @@ const [totalItems, setTotalItems] = useState(0);
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Threshold Amount (₹)</Label>
+              <Label>Threshold Amount (AED)</Label>
               <Input
                 type="number"
                 value={thresholdAmount}

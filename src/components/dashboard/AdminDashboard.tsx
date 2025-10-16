@@ -28,8 +28,9 @@ const AdminDashboard = () => {
           <div className={`p-2 ${bg} rounded-lg`}>{icon}</div>
         </CardHeader>
         <CardContent>
-          <div className={`flex items-center text-2xl font-bold ${color}`}>
-            ₹ {value.toLocaleString()}
+          <div className={`flex items-center text-2xl font-bold ${color} gap-1`}>
+            <Dirham size={18} />
+            <span>{value.toLocaleString()}</span>
           </div>
           <p className="text-xs text-muted-foreground"></p>
         </CardContent>

@@ -18,10 +18,15 @@ interface InvoiceFilterProps {
     endDate: Date | null;
     preset: string;
   }) => void;
+  setSearchQuery: (query: string) => void;
+  searchQuery: string;
 }
 
-const InvoiceFilter: React.FC<InvoiceFilterProps> = ({ onFilterChange }) => {
-  const [searchQuery, setSearchQuery] = useState("");
+const InvoiceFilter: React.FC<InvoiceFilterProps> = ({
+  onFilterChange,
+  setSearchQuery,
+  searchQuery,
+}) => {
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([
     null,
     null,
@@ -29,10 +34,12 @@ const InvoiceFilter: React.FC<InvoiceFilterProps> = ({ onFilterChange }) => {
   const [preset, setPreset] = useState("All");
   const [startDate, endDate] = dateRange;
 
+  // ⏳ Whenever filters change, send them to parent
   useEffect(() => {
     onFilterChange({ searchQuery, startDate, endDate, preset });
-  }, [searchQuery, startDate, endDate, preset, onFilterChange]);
+  }, [searchQuery, startDate, endDate, preset]);
 
+  // 🧹 Clear all filters
   const handleClear = () => {
     setSearchQuery("");
     setDateRange([null, null]);
@@ -45,37 +52,62 @@ const InvoiceFilter: React.FC<InvoiceFilterProps> = ({ onFilterChange }) => {
     });
   };
 
+  //  Handle preset changes (Last7Days, LastMonth, etc.)
   const handlePresetChange = (value: string) => {
+  const today = new Date();
+  let newRange: [Date | null, Date | null] = [null, null];
+
+  if (value === "Last7Days") {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 6);
+    newRange = [start, end];
+  } 
+  else if (value === "LastMonth") {
     const today = new Date();
-    let newRange: [Date | null, Date | null] = [null, null];
+    const year = today.getFullYear();
+    const month = today.getMonth() - 1;
+    
+    // First day of last month
+    const firstDayLastMonth = new Date(year, month, 1);
+    
+    // Last day of last month (by setting day to 0 of current month)
+    const lastDayLastMonth = new Date(year, month + 1, 0);
+    
+    // Set time to end of day
+    lastDayLastMonth.setHours(23, 59, 59, 999);
+    
+    newRange = [firstDayLastMonth, lastDayLastMonth];
+  } 
+  else if (value === "All") {
+    newRange = [null, null];
+  }
 
-    if (value === "Last7Days") {
-      const last7 = new Date();
-      last7.setDate(today.getDate() - 6);
-      newRange = [last7, today];
-    } else if (value === "LastMonth") {
-      const firstDayLastMonth = new Date(
-        today.getFullYear(),
-        today.getMonth() - 1,
-        1
-      );
-      const lastDayLastMonth = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        0
-      );
-      newRange = [firstDayLastMonth, lastDayLastMonth];
-    } else if (value === "All") {
-      newRange = [null, null];
-    }
+  setPreset(value);
+  setDateRange(newRange);
+};
 
-    setPreset(value);
-    setDateRange(newRange);
-  };
+
+const handleDateChange = (update: [Date | null, Date | null]) => {
+  let [start, end] = update;
+
+  if (start) {
+    // Create date in local timezone
+    start = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  }
+  if (end) {
+    // Set to end of day in local timezone
+    end = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999);
+  }
+
+  setDateRange([start, end]);
+  setPreset("Custom");
+};
+
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      {/* Search */}
+      {/* 🔍 Search */}
       <div className="relative flex-1 sm:flex-initial">
         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
         <Input
@@ -86,7 +118,7 @@ const InvoiceFilter: React.FC<InvoiceFilterProps> = ({ onFilterChange }) => {
         />
       </div>
 
-      {/* Preset Dropdown */}
+      {/* ⏱ Preset Dropdown */}
       <Select value={preset} onValueChange={handlePresetChange}>
         <SelectTrigger className="w-40 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
           <SelectValue placeholder="Select period" />
@@ -98,25 +130,20 @@ const InvoiceFilter: React.FC<InvoiceFilterProps> = ({ onFilterChange }) => {
         </SelectContent>
       </Select>
 
-      {/* Date Picker */}
+      {/* 📅 Date Picker */}
       <div className="relative">
         <DatePicker
           selectsRange
           startDate={startDate}
           endDate={endDate}
-          onChange={(update: [Date | null, Date | null]) => {
-            setDateRange(update);
-            setPreset("Custom");
-          }}
+          onChange={handleDateChange}
           isClearable={false}
           placeholderText="Select date range"
           dateFormat="dd/MM/yyyy"
           className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={
             startDate && endDate
-              ? `${startDate.toLocaleDateString(
-                  "en-GB"
-                )} - ${endDate.toLocaleDateString("en-GB")}`
+              ? `${startDate.toLocaleDateString("en-GB")} - ${endDate.toLocaleDateString("en-GB")}`
               : startDate
               ? startDate.toLocaleDateString("en-GB")
               : ""
@@ -124,7 +151,7 @@ const InvoiceFilter: React.FC<InvoiceFilterProps> = ({ onFilterChange }) => {
         />
       </div>
 
-      {/* Clear Button */}
+      {/* 🧼 Clear Button */}
       <button
         onClick={handleClear}
         className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-all"

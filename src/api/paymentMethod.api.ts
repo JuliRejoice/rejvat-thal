@@ -1,4 +1,3 @@
-import { useSearchParams } from "react-router-dom";
 import axiosInstance from "./axiosInstace.config";
 
 export const getPaymentMethods = async () => {

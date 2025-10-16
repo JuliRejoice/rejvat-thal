@@ -37,6 +37,8 @@ import {
   ChevronDown,
   X,
 } from "lucide-react";
+import { ImagePreview } from '@/components/common/ImagePreview';
+import { Dirham } from "../Svg";
 import { useMutation, useQueries } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -77,6 +79,10 @@ const ManagerIncomeExpense = () => {
   const [selectedEndDate, setSelectedEndDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+  const [previewImage, setPreviewImage] = useState<{url: string; isOpen: boolean}>({
+  url: "",
+  isOpen: false
+});
   const [selectedBalanceOverviewDate, setSelectedBalanceOverviewDate] =
     useState(new Date().toISOString().split("T")[0]);
   const [type, setType] = useState("");
@@ -355,7 +361,7 @@ const ManagerIncomeExpense = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-yellow-500">
-                      ₹{balanceData.openingBalance?.toLocaleString?.() ?? "0"}
+                      <span className="flex items-center"><Dirham size={18} className="mr-0.5" /> {balanceData.openingBalance?.toLocaleString?.() ?? "0"}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -369,7 +375,7 @@ const ManagerIncomeExpense = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-metrics-income">
-                      ₹{balanceData.totalIncome?.toLocaleString?.() ?? "0"}
+                      <span className="flex items-center"><Dirham size={18} className="mr-0.5" /> {balanceData.totalIncome?.toLocaleString?.() ?? "0"}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -383,7 +389,7 @@ const ManagerIncomeExpense = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-metrics-expense">
-                      ₹{balanceData.totalExpense?.toLocaleString?.() ?? "0"}
+                      <span className="flex items-center"><Dirham size={18} className="mr-0.5" /> {balanceData.totalExpense?.toLocaleString?.() ?? "0"}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -397,7 +403,7 @@ const ManagerIncomeExpense = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-metrics-balance">
-                      ₹{balanceData.closingBalance?.toLocaleString?.() ?? "0"}
+                      <span className="flex items-center"><Dirham size={18} className="mr-0.5" /> {balanceData.closingBalance?.toLocaleString?.() ?? "0"}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -415,7 +421,7 @@ const ManagerIncomeExpense = () => {
                 <PaymentMethodEmpty />
               </div>
             ) : (
-              paymentMethodStats?.map((payment, index) => (
+              paymentMethodStats?.sort((a, b) => a.method.localeCompare(b.method))?.map((payment, index) => (
                 <div key={index} className="p-4 border rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <Badge variant="outline">{payment.method}</Badge>
@@ -424,25 +430,25 @@ const ManagerIncomeExpense = () => {
                     <div className="flex justify-between text-sm">
                       <span>Opening:</span>
                       <span className="font-medium text-yellow-500">
-                        ₹{payment.opening?.toLocaleString?.() ?? "0"}
+                        <span className="flex items-center"><Dirham size={12} className="mr-0.5" /> {payment.opening?.toLocaleString?.() ?? "0"}</span>
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Income:</span>
                       <span className="font-medium text-metrics-income">
-                        ₹{payment.income?.toLocaleString?.() ?? "0"}
+                        <span className="flex items-center"><Dirham size={12} className="mr-0.5" /> {payment.income?.toLocaleString?.() ?? "0"}</span>
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Expense:</span>
                       <span className="font-medium text-metrics-expense">
-                        ₹{payment.expense?.toLocaleString?.() ?? "0"}
+                        <span className="flex items-center"><Dirham size={12} className="mr-0.5" /> {payment.expense?.toLocaleString?.() ?? "0"}</span>
                       </span>
                     </div>
                     <div className="flex justify-between text-sm font-medium border-t pt-1">
                       <span>Balance:</span>
                       <span className="text-metrics-balance">
-                        ₹{payment.closing?.toLocaleString?.() ?? "0"}
+                        <span className="flex items-center"><Dirham size={12} className="mr-0.5" /> {payment.closing?.toLocaleString?.() ?? "0"}</span>
                       </span>
                     </div>
                   </div>
@@ -636,10 +642,25 @@ const ManagerIncomeExpense = () => {
                     </TableCell>
                     <TableCell>
                       {transaction.receiptUrl ? (
-                        <Badge variant="secondary" className="text-xs">
-                          <Receipt className="mr-1 h-3 w-3" />
-                          Attached
-                        </Badge>
+                        <>
+                          <Badge
+                            variant="secondary"
+                            className="text-xs cursor-pointer hover:bg-secondary/80"
+                            onClick={() => setPreviewImage({ url: transaction.receiptUrl, isOpen: true })}
+                          >
+                            <Receipt className="mr-1 h-3 w-3" />
+                            View Receipt
+                          </Badge>
+                          {
+                            previewImage.isOpen && (
+                              <ImagePreview
+                                imageUrl={previewImage.url}
+                                isOpen={previewImage.isOpen}
+                                onClose={() => setPreviewImage(prev => ({ ...prev, isOpen: false }))}
+                              />
+                            )
+                          }
+                        </>
                       ) : (
                         <span className="text-muted-foreground text-xs">
                           No attachment

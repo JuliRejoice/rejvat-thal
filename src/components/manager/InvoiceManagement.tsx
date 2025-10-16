@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,170 +9,96 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
+import { Skeleton } from "@/components/ui/skeleton";
 import { usePagination } from "@/hooks/use-pagination";
 import { DataTablePagination } from "@/components/common/DataTablePagination";
 import { format } from "date-fns";
-import { Plus, Eye } from "lucide-react";
+import { Plus, Eye, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import InvoiceFilter from "../common/InvoiceFilter";
-import { useNavigate } from "react-router-dom";
-import InvoiceDetailView from "../common/InvoiceDetailView";
+import { Dirham } from "../Svg";
+import { invoiceApi, InvoiceItem, GetInvoicesParams } from "@/api/invoice.api";
 import AddInvoice from "../common/AddInvoice";
-
-interface InvoiceItem {
-  id: string;
-  name: string;
-  price: number;
-  type: "service" | "product";
-  quantity?: number;
-  provider?: string;
-}
-
-interface Invoice {
-  id: string;
-  invoiceNumber: string;
-  customerName: string;
-  customerPhone: string;
-  date: Date;
-  items: InvoiceItem[];
-  subtotal: number;
-  tax: number;
-  discount: number;
-  additionalAmount: number;
-  roundingOff: number;
-  total: number;
-  paymentMethod: string;
-  status: "paid" | "pending" | "cancelled";
-  notes?: string;
-}
-
-interface Customer {
-  id: string;
-  name: string;
-  phone: string;
-  email?: string;
-  address?: string;
-}
+import { formatDateParam } from "@/lib/utils";
+import InvoiceDetailView from "../common/InvoiceDetailView";
+import { useAuth } from "@/contexts/AuthContext";
+import { getPaymentMethods } from "@/api/paymentMethod.api";
+import { useQueries } from "@tanstack/react-query";
+import { getAllIncomeCategory } from "@/api/incomeCategories.api";
+import { getThresholdAmont } from "@/api/settings.api";
 
 const InvoiceManagement = () => {
-  const [invoices, setInvoices] = useState<Invoice[]>([
-    {
-      id: "1",
-      invoiceNumber: "INV-BSB-25-001",
-      customerName: "John Doe",
-      customerPhone: "1234567890",
-      date: new Date("2024-01-15"),
-      items: [
-        {
-          id: "1",
-          name: "Hair Cut",
-          price: 500,
-          type: "service",
-          provider: "Stylist A",
-        },
-        {
-          id: "2",
-          name: "Shaving",
-          price: 300,
-          type: "service",
-          provider: "Barber B",
-        },
-      ],
-      subtotal: 800,
-      tax: 72,
-      discount: 100,
-      additionalAmount: 0,
-      roundingOff: -2,
-      total: 770,
-      paymentMethod: "UPI",
-      status: "paid",
-    },
-  ]);
-
-  const [customers, setCustomers] = useState<Customer[]>([
-    {
-      id: "1",
-      name: "John Doe",
-      phone: "1234567890",
-      email: "john@example.com",
-    },
-    {
-      id: "2",
-      name: "Jane Smith",
-      phone: "0987654321",
-      email: "jane@example.com",
-    },
-  ]);
+  const { user } = useAuth();
+  const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [showCustomerSelect, setShowCustomerSelect] = useState(true);
-  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
-  const [selectedInvoiceToView, setSelectedInvoiceToView] =
-    useState<Invoice | null>(null);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(5);
+  const [selectedInvoiceToView, setSelectedInvoiceToView] = useState<InvoiceItem | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-
-  // Customer selection state
-  const [customerSearch, setCustomerSearch] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-    null
-  );
-
-  // New customer form
-  const [newCustomer, setNewCustomer] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    address: "",
-  });
-
-  // Invoice form state
-  const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>([
-    { id: "1", name: "", price: 0, type: "service", provider: "" },
-  ]);
-  const [taxRate, setTaxRate] = useState(9); // 9% tax
-  const [discount, setDiscount] = useState(0);
-  const [additionalAmount, setAdditionalAmount] = useState(0);
-  const [invoiceNotes, setInvoiceNotes] = useState("");
-  const [sendSMS, setSendSMS] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [invoiceDate, setInvoiceDate] = useState<Date>(new Date());
   const [filters, setFilters] = useState({
     searchQuery: "",
     startDate: null as Date | null,
     endDate: null as Date | null,
+    preset: "All",
   });
-  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [totalItems, setTotalItems] = useState<number>(0);
+  
+   const queriesResults = useQueries({
+    queries: [
+      {
+        queryKey: ["get-payment-methods"],
+        queryFn: () => getPaymentMethods(),
+      },
+      {
+        queryKey: ["income-categories"],
+        queryFn: () => getAllIncomeCategory({}),
+      },
+      {
+        queryKey: ["get-threshold-amount"],
+        queryFn: () => getThresholdAmont({ }),
+      },
+    ],
+  });
 
-  const filteredInvoices = useMemo(() => {
-    return invoices.filter((invoice) => {
-      const matchesSearch =
-        invoice.invoiceNumber
-          .toLowerCase()
-          .includes(filters.searchQuery.toLowerCase()) ||
-        invoice.customerName
-          .toLowerCase()
-          .includes(filters.searchQuery.toLowerCase());
+    const [
+    getPaymentMethodsQuery,
+    getIncomeCategoriesQuery,
+    getThresholdAmountQuery,
+  ] = queriesResults;
 
-      if (filters.startDate && filters.endDate) {
-        return (
-          matchesSearch &&
-          invoice.date >= filters.startDate &&
-          invoice.date <= filters.endDate
-        );
-      } else if (filters.startDate) {
-        return (
-          matchesSearch &&
-          invoice.date.toDateString() === filters.startDate.toDateString()
-        );
-      }
+  const { data: paymentMethods } = getPaymentMethodsQuery;
+  const { data: incomeCategories } = getIncomeCategoriesQuery;
+  const { data: thresholdAmount } = getThresholdAmountQuery;
 
-      return matchesSearch;
-    });
-  }, [invoices, filters]);
+
+  // Form state for new invoice
+  const [formData, setFormData] = useState({
+    customerId: "",
+    items: [] as Array<{
+      id: string;
+      name: string;
+      price: number;
+      type: "service" | "product";
+      quantity?: number;
+      provider?: string;
+    }>,
+    subtotal: 0,
+    tax: 0,
+    discount: 0,
+    additionalAmount: 0,
+    roundingOff: 0,
+    total: 0,
+    paymentMethod: "cash",
+    status: "pending",
+    notes: "",
+    createdBy: user?._id || "",
+    restaurantId: user?.role === "manager" ? user.restaurantId?._id || "" : ""
+  });
+
+
   const {
     currentPage,
     totalPages,
@@ -184,79 +110,111 @@ const InvoiceManagement = () => {
     hasPreviousPage,
     startIndex,
     endIndex,
-    totalItems,
+    setCurrentPage,
   } = usePagination({
-    data: filteredInvoices,
-    itemsPerPage: 10,
+    data: invoices,
+    itemsPerPage: itemsPerPage,
+    totalItems: totalItems,
   });
 
-  // Filter customers based on search
-  const filteredCustomers = useMemo(() => {
-    return customers.filter(
-      (customer) =>
-        customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
-        customer.phone.includes(customerSearch)
-    );
-  }, [customers, customerSearch]);
+  console.log(totalItems, "totalItems");
+  const fetchInvoices = async (
+    page: number = currentPage,
+    limit: number = itemsPerPage
+  ) => {
+    setIsLoading(true);
 
-  // Calculate totals
-  const subtotal = useMemo(() => {
-    return invoiceItems.reduce((sum, item) => sum + (item.price || 0), 0);
-  }, [invoiceItems]);
+    const params: GetInvoicesParams = { page, limit };
+    params.restaurantId = user?.role === "manager" ? user.restaurantId?._id : null;
+    //  Send only filled filters, formatted as YYYY-MM-DD
+    if (filters.searchQuery?.trim()) {
+      params.search = filters.searchQuery.trim();
+    }
+    if (filters.startDate && filters.endDate) {
+      params.startDate = formatDateParam(filters.startDate);
+      params.endDate = formatDateParam(filters.endDate);  
+    }
 
-  const taxAmount = useMemo(() => {
-    return (subtotal * taxRate) / 100;
-  }, [subtotal, taxRate]);
-
-  const discountedPrice = useMemo(() => {
-    return subtotal - discount;
-  }, [subtotal, discount]);
-
-  const totalBeforeRounding = useMemo(() => {
-    return discountedPrice + taxAmount + additionalAmount;
-  }, [discountedPrice, taxAmount, additionalAmount]);
-
-  const roundingOff = useMemo(() => {
-    return Math.round(totalBeforeRounding) - totalBeforeRounding;
-  }, [totalBeforeRounding]);
-
-  const total = useMemo(() => {
-    return Math.round(totalBeforeRounding);
-  }, [totalBeforeRounding]);
-
-  const handleCloseDialog = () => {
-    setIsCreateDialogOpen(false);
-    setShowCustomerSelect(true);
-    setShowNewCustomerForm(false);
-    setSelectedCustomer(null);
-    setCustomerSearch("");
-    setInvoiceItems([
-      { id: "1", name: "", price: 0, type: "service", provider: "" },
-    ]);
-    setDiscount(0);
-    setAdditionalAmount(0);
-    setInvoiceNotes("");
-    setSendSMS(false);
-    setPaymentMethod("cash");
-    setInvoiceDate(new Date());
+    try {
+      const response = await invoiceApi.getInvoices(params);
+      const { items: fetchedItems = [], total = 0 } = response || {};
+      setInvoices(fetchedItems);
+      setTotalItems(Number(total) || 0);
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      await fetchInvoices(currentPage);
+    };
+    fetchData();
+  }, [currentPage, filters, itemsPerPage]);
+
+  const handleItemsPerPageNumberChange = (value: number) => {
+    setItemsPerPage(value);
+    setCurrentPage(1);
+  };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "paid":
         return "bg-success/10 text-success";
-      case "pending":
+      case "part_paid":
         return "bg-warning/10 text-warning";
-      case "cancelled":
+      case "unpaid":
         return "bg-destructive/10 text-destructive";
       default:
         return "bg-muted text-muted-foreground";
     }
   };
 
-  const handleViewInvoice = (invoice: Invoice) => {
+  const handleViewInvoice = (invoice: InvoiceItem) => {
     setSelectedInvoiceToView(invoice);
     setIsViewDialogOpen(true);
+  };
+
+  const handleCreateInvoice = async (invoiceData: any) => {
+
+    console.log(invoiceData, "invoiceData")
+    try {
+      setIsSubmitting(true);
+      // Add the current user and restaurant ID to the invoice data
+      const invoiceToCreate = {
+        ...invoiceData,
+        createdBy: user?._id,
+        restaurantId: user?.role === 'manager' ? user.restaurantId?._id : null
+      };
+
+      // Call the API to create the invoice
+      const createdInvoice = await invoiceApi.createInvoice(invoiceToCreate);
+      
+      // Show success message
+      toast.success('Invoice created successfully');
+      
+      // Close the add modal
+      setIsAddModalOpen(false);
+      
+      // Refresh the invoices list
+      await fetchInvoices(1);
+      
+      setSelectedInvoiceToView(createdInvoice);
+      
+      return createdInvoice;
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+      toast.error('Failed to create invoice. Please try again.');
+      throw error;
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handlePrintInvoice = () => {
@@ -338,7 +296,7 @@ const InvoiceManagement = () => {
     );
   };
 
-  const generatePrintHTML = (invoice: Invoice) => {
+  const generatePrintHTML = (invoice: InvoiceItem) => {
     const services = invoice.items.filter((item) => item.type === "service");
     const products = invoice.items.filter((item) => item.type === "product");
 
@@ -566,7 +524,11 @@ const InvoiceManagement = () => {
             <div className="flex flex-col sm:flex-row w-full gap-4 items-center justify-between">
               <CardTitle>All Invoices</CardTitle>
               <div className="flex-shrink-0 w-full sm:w-auto">
-                <InvoiceFilter onFilterChange={setFilters} />
+                <InvoiceFilter
+                  onFilterChange={setFilters}
+                  setSearchQuery={setSearchQuery}
+                  searchQuery={searchQuery}
+                />
               </div>
             </div>
           </CardHeader>
@@ -580,14 +542,37 @@ const InvoiceManagement = () => {
                     <TableHead>Customer</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Items</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Amount</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedData.length === 0 ? (
+                  {isLoading ? (
+                    Array.from({ length: 5 }).map((_, index) => (
+                      <TableRow key={`skeleton-${index}`}>
+                        <TableCell>
+                          <Skeleton className="h-4 w-24" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-20" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-16" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-32" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-6 w-16" />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Skeleton className="h-9 w-9 mx-auto" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : paginatedData.length === 0 ? (
                     <TableRow>
                       <TableCell
                         colSpan={8}
@@ -600,36 +585,39 @@ const InvoiceManagement = () => {
                     paginatedData.map((invoice) => (
                       <TableRow key={invoice.id}>
                         <TableCell className="font-medium">
-                          {invoice.invoiceNumber}
+                          {invoice.invoiceNo}
                         </TableCell>
                         <TableCell>
                           <div>
                             <div className="font-medium">
-                              {invoice.customerName}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {invoice.customerPhone}
+                              {invoice?.customerId?.name}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          {format(invoice.date, "dd MMM yyyy")}
+                          {format(invoice.createdAt, "dd MMM yyyy")}
                         </TableCell>
                         <TableCell>{invoice.items.length} items</TableCell>
                         <TableCell className="text-right font-medium">
-                          ₹{invoice.total.toFixed(2)}
+                          <div className="flex items-center gap-1">
+                            <Dirham size={12} />
+                            {invoice?.finalAmmount?.toFixed(2)}
+                          </div>
                         </TableCell>
-                        <TableCell className="capitalize">
-                          {invoice.paymentMethod}
+                        <TableCell className="text-right font-medium">
+                          <div className="flex items-center gap-1">
+                            <Dirham size={12} />
+                            {invoice?.advancePayment?.toFixed(2)}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <span
                             className={cn(
                               "px-2 py-1 rounded-full text-xs font-medium",
-                              getStatusColor(invoice.status)
+                              getStatusColor(invoice.invoiceStatus)
                             )}
                           >
-                            {invoice.status}
+                            {invoice.invoiceStatus == "part_paid" ? "Part Paid" : invoice.invoiceStatus == "unpaid" ? "Unpaid" : invoice.invoiceStatus == "paid" ? "Paid" : ""}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
@@ -656,7 +644,7 @@ const InvoiceManagement = () => {
                   currentPage={currentPage}
                   totalPages={totalPages}
                   totalItems={totalItems}
-                  itemsPerPage={10}
+                  itemsPerPage={itemsPerPage}
                   startIndex={startIndex}
                   endIndex={endIndex}
                   hasNextPage={hasNextPage}
@@ -664,29 +652,34 @@ const InvoiceManagement = () => {
                   onNextPage={nextPage}
                   onPreviousPage={previousPage}
                   onPageChange={goToPage}
+                  onItemsPerPageChange={handleItemsPerPageNumberChange}
                 />
               </div>
             )}
           </CardContent>
         </Card>
-        <InvoiceDetailView
+        {isViewDialogOpen && (
+         <InvoiceDetailView
           open={isViewDialogOpen}
           onOpenChange={setIsViewDialogOpen}
           invoice={selectedInvoiceToView}
+          thresholdAmount={thresholdAmount?.payload?.data}
           onPrint={handlePrintInvoice}
         />
+      )}
       </div>
+
       {isAddModalOpen && (
         <AddInvoice
           onClose={() => setIsAddModalOpen(false)}
-          onCreateInvoice={(newInvoice: any) => {
-            setInvoices((prev: any) => [...prev, newInvoice]);
-            toast.success("Invoice added successfully!");
-            setIsAddModalOpen(false);
-          }}
+          onCreateInvoice={handleCreateInvoice}
+          paymentMethods={paymentMethods?.payload?.data}
+          incomeCategories={incomeCategories?.payload?.data}
+          isSubmitting={isSubmitting}
+          thresholdAmount={thresholdAmount?.payload?.data}
         />
       )}
-    </> 
+    </>
   );
 };
 

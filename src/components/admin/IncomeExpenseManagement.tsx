@@ -55,6 +55,7 @@ import TransactionFilterDropdown from "../common/TransactionTypeSelector";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuGroup, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Button } from "../ui/button";
 import { getPaymentMethods } from "@/api/paymentMethod.api";
+import { Dirham } from "../Svg";
 
 const IncomeExpenseManagement = () => {
   const [paymentFilter, setPaymentFilter] = useState("");
@@ -253,8 +254,9 @@ const IncomeExpenseManagement = () => {
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-yellow-500">
-                      ₹{balanceData.openingBalance?.toLocaleString?.() ?? "0"}
+                    <div className="flex items-center text-2xl font-bold text-yellow-500 gap-1">
+                      <Dirham size={18} />
+                      <span>{balanceData.openingBalance?.toLocaleString?.() ?? "0"}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -267,8 +269,9 @@ const IncomeExpenseManagement = () => {
                     <TrendingUp className="h-4 w-4 text-metrics-income" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-metrics-income">
-                      ₹{balanceData.totalIncome?.toLocaleString?.() ?? "0"}
+                    <div className="flex items-center text-2xl font-bold text-metrics-income gap-1">
+                      <Dirham size={18} />
+                      <span>{balanceData.totalIncome?.toLocaleString?.() ?? "0"}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -281,8 +284,9 @@ const IncomeExpenseManagement = () => {
                     <TrendingDown className="h-4 w-4 text-metrics-expense" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-metrics-expense">
-                      ₹{balanceData.totalExpense?.toLocaleString?.() ?? "0"}
+                    <div className="flex items-center text-2xl font-bold text-metrics-expense gap-1">
+                      <Dirham size={18} />
+                      <span>{balanceData.totalExpense?.toLocaleString?.() ?? "0"}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -295,8 +299,9 @@ const IncomeExpenseManagement = () => {
                     <DollarSign className="h-4 w-4 text-metrics-balance" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-metrics-balance">
-                      ₹{balanceData.closingBalance?.toLocaleString?.() ?? "0"}
+                    <div className="flex items-center text-2xl font-bold text-metrics-balance gap-1">
+                      <Dirham size={18} />
+                      <span>{balanceData.closingBalance?.toLocaleString?.() ?? "0"}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -314,7 +319,7 @@ const IncomeExpenseManagement = () => {
                 <PaymentMethodEmpty />
               </div>
             ) : (
-              paymentMethodStats?.map((payment, index) => (
+              paymentMethodStats?.sort((a, b) => a.method.localeCompare(b.method))?.map((payment, index) => (
                 <div key={index} className="p-4 border rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <Badge variant="outline">{payment.method}</Badge>
@@ -322,26 +327,30 @@ const IncomeExpenseManagement = () => {
                   <div className="space-y-1">
                     <div className="flex justify-between text-sm">
                       <span>Opening:</span>
-                      <span className="font-medium text-yellow-500">
-                        ₹{payment.opening?.toLocaleString?.() ?? "0"}
+                      <span className="flex items-center gap-1 font-medium text-yellow-500">
+                        <Dirham size={12} />
+                        <span>{payment.opening?.toLocaleString?.() ?? "0"}</span>
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Income:</span>
-                      <span className="font-medium text-metrics-income">
-                        ₹{payment.income?.toLocaleString?.() ?? "0"}
+                      <span className="flex items-center gap-1 font-medium text-metrics-income">
+                        <Dirham size={12} />
+                        <span>{payment.income?.toLocaleString?.() ?? "0"}</span>
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Expense:</span>
-                      <span className="font-medium text-metrics-expense">
-                        ₹{payment.expense?.toLocaleString?.() ?? "0"}
+                      <span className="flex items-center gap-1 font-medium text-metrics-expense">
+                        <Dirham size={12} />
+                        <span>{payment.expense?.toLocaleString?.() ?? "0"}</span>
                       </span>
                     </div>
                     <div className="flex justify-between text-sm font-medium border-t pt-1">
                       <span>Balance:</span>
-                      <span className="text-metrics-balance">
-                        ₹{payment.closing?.toLocaleString?.() ?? "0"}
+                      <span className="flex items-center gap-1 text-metrics-balance">
+                        <Dirham size={12} />
+                        <span>{payment.closing?.toLocaleString?.() ?? "0"}</span>
                       </span>
                     </div>
                   </div>

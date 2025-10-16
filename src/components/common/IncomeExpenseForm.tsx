@@ -293,7 +293,7 @@ export function IncomeExpenseForm({
 
             <div className="space-y-2">
               <div className="flex gap-3 items-baseline">
-                <Label htmlFor="amount">Amount (₹) *</Label>
+                <Label htmlFor="amount">Amount (AED) *</Label>
                 {errors.amount && (
                   <p className="mt-1 text-xs text-red-500">
                     {errors.amount.message as string}

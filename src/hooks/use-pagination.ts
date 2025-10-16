@@ -3,47 +3,50 @@ import { useState, useMemo } from 'react';
 export interface UsePaginationProps<T> {
   data: T[];
   itemsPerPage?: number;
+  totalItems: number;
 }
 
-export const usePagination = <T>({ data, itemsPerPage = 10 }: UsePaginationProps<T>) => {
+export const usePagination = <T>({ 
+  data, 
+  itemsPerPage = 10, 
+  totalItems 
+}: UsePaginationProps<T>) => {
   const [currentPage, setCurrentPage] = useState(1);
-
-  const totalPages = Math.ceil(data.length / itemsPerPage);
-  
-  const paginatedData = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return data.slice(startIndex, startIndex + itemsPerPage);
-  }, [data, currentPage, itemsPerPage]);
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
   const goToPage = (page: number) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+    const newPage = Math.max(1, Math.min(page, totalPages));
+    setCurrentPage(newPage);
+    return newPage;
   };
 
   const nextPage = () => {
-    setCurrentPage(prev => Math.min(prev + 1, totalPages));
+    return goToPage(currentPage + 1);
   };
 
   const previousPage = () => {
-    setCurrentPage(prev => Math.max(prev - 1, 1));
+    return goToPage(currentPage - 1);
   };
 
   const reset = () => {
     setCurrentPage(1);
+    return 1;
   };
 
   return {
     currentPage,
     totalPages,
     itemsPerPage,
-    paginatedData,
+    paginatedData : data,
     goToPage,
     nextPage,
     previousPage,
     reset,
     hasNextPage: currentPage < totalPages,
     hasPreviousPage: currentPage > 1,
-    startIndex: (currentPage - 1) * itemsPerPage + 1,
-    endIndex: Math.min(currentPage * itemsPerPage, data.length),
-    totalItems: data.length
+    startIndex: totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0,
+    endIndex: totalItems > 0 ? Math.min(currentPage * itemsPerPage, totalItems) : 0,
+    totalItems,
+    setCurrentPage
   };
 };
