@@ -81,7 +81,7 @@ const getNavigationItems = (role: string) => {
       { title: "Monthly Menu Plan", url: "/menu-plan", icon: FileText },
       { title: "Customer Management", url: "/customers", icon: UserRoundCog },
       { title: "Expense Categories", url: "/expense-categories", icon: Tags },
-      { title: "Invoice", url: "/invoice", icon: SquareChartGantt },
+      // { title: "Invoice", url: "/invoice", icon: SquareChartGantt },
       { title: "Manage Area", url: "/manage-area", icon: MapPin },
       { title: "Notifications", url: "/notifications", icon: Bell },
     ];
