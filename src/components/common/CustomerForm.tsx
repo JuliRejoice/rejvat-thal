@@ -19,7 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { getAllArea } from "@/api/area.api";
 
-export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFormProps) {
+export function CustomerForm({ open, onClose, refetch, setRefetch, setBuildingState }: CustomerFormProps) {
   const userRole = getUser();
   const dispatch = useDispatch<AppDispatch>();
   const restaurants = useSelector((state: RootState) => state.restaurant);
@@ -105,6 +105,7 @@ export function CustomerForm({ open, onClose, refetch, setRefetch }: CustomerFor
 
       // refatch customer list
       handleClose();
+      setBuildingState('meal');
     } else {
       toast({
         variant: "destructive",

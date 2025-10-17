@@ -9,8 +9,46 @@ export type Customer = {
   areaId?: string;
 };
 
+export type TiffinItem = {
+  menuId: string;
+  quantity: number;
+  price: number;
+};
+
+type MealDetails = {
+  mealId?: {
+    _id: string;
+    name: string;
+  };
+  mealItems?: TiffinItem[];
+  mealQuantity?: number;
+  mealPrice?: number;
+  addOnItems?: TiffinItem[];
+  totalAddonPrice?: number;
+  deliveryCharge?: number;
+  mealFinalPrice?: number;
+};
+
+type Tiffin = {
+  _id: string;
+  customerId: string;
+  restaurantId: string;
+  lunch?: MealDetails;
+  dinner?: MealDetails;
+  breakfast?: MealDetails;
+  deliveryIncluded: boolean;
+  isServiceExpired: boolean;
+  startDate: string;
+  endDate: string | null;
+  pauseDates: string[];
+  tiffinTotalPrice: number;
+  remark?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type CustomerResponse = {
-  _id:string,
+  _id: string;
   name: string;
   phone: string;
   email: string;
@@ -18,6 +56,9 @@ export type CustomerResponse = {
   restaurantId: string;
   referenceName?: string;
   tiffinPauseToday?: boolean;
+  isActive?: boolean;
+  tiffin?: Tiffin;
+  areaId?: string;
 };
 
 export type CustomerErrors = Partial<Record<keyof Customer, string>>;
@@ -39,8 +80,10 @@ export interface CustomerFormProps {
   onClose?: () => void;
   refetch?: boolean;
   setRefetch?: (value: boolean) => void;
-  // customer?: Customer;
+  setBuildingState?: (value: string) => void;
+  initialData?: Customer;
+  onSubmit?: (data: Customer) => void;
+  isSubmitting?: boolean;
 }
-
 
 export type InputOrCustomEvent = React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { name: string; value: string } };

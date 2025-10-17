@@ -539,7 +539,7 @@ const MenuItems = () => {
                       </Select>
                     </div>
                     {
-                      user?.role == 'admin' ?
+                      user?.role === 'admin' ? (
                         <div className="space-y-2">
                           <Label htmlFor="restaurantId">Restaurant *</Label>
                           <Select
@@ -559,9 +559,16 @@ const MenuItems = () => {
                             </SelectContent>
                           </Select>
                         </div>
-                        :
-                        <></>
-
+                      ) : (
+                        <div className="space-y-2">
+                          <Label htmlFor="restaurantId">Restaurant</Label>
+                          <Input
+                            id="restaurantId"
+                            value={user?.restaurantId?.name || 'Restaurant not assigned'}
+                            disabled
+                          />
+                        </div>
+                      )
                     }
                   </div>
                 </div>

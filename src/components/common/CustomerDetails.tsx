@@ -12,7 +12,7 @@ import { UserPlus, Search, Eye, Edit, MapPin, Phone, Mail, Calendar, DollarSign,
 import { getCustomer, getCustomerDetails, getCustomerOverview } from "@/api/customer.api";
 import { Customer, CustomerResponse, GetCustomerParams, InputOrCustomEvent } from "@/types/customer.types";
 // import { CustomerForm } from "../admin/CustomerForm";
-import { CustomerForm } from "@/components/common/CustomerForm";
+import { CustomerEditForm } from "@/components/common/CustomerEditForm";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { RestaurantData } from "@/api/restaurant.api";
@@ -22,12 +22,35 @@ import { NoData } from "../common/NoData";
 import { Dirham } from "../Svg";
 import { dateFormate, getUser } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { updateCustomer } from "@/api/customer.api";
 import { toast } from "sonner";
 
 const CustomerDetails = ({ customer }: { customer: any }) => {
-
   const [customerDetails, setCustomerDetails] = useState<any>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isEditFormOpen, setIsEditFormOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { mutate: updateCustomerMutation, isPending: isUpdatingCustomer } = useMutation({
+    mutationFn: (data: { id: string; data: Partial<Customer> }) => 
+      updateCustomer(data.id, data.data as Customer),
+    onSuccess: () => {
+      toast.success("Customer updated successfully!");
+      setIsEditFormOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["get-customer-details", customer?._id] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update customer.");
+    },
+  });
+
+  const handleUpdateCustomer = (formData: any) => {
+    if (!customerDetails?._id) return;
+    updateCustomerMutation({ 
+      id: customerDetails._id, 
+      data: formData
+    });
+  };
 
   const paymentHistory = [
     { date: "2024-11-25", amount: 2500, type: "credit", method: "UPI", description: "Monthly plan payment" },
@@ -42,7 +65,7 @@ const CustomerDetails = ({ customer }: { customer: any }) => {
     { meal: "Dinner", items: "3 Roti, Sabji, Dal, Pickle", price: 120, days: "Mon-Sat" },
   ];
 
-  const queryClient = useQueryClient();
+
 
   // Fetch selected customer details
   const { data: customerDetailsData, isPending: isCustomerDetailsPending } = useQuery({
@@ -54,6 +77,8 @@ const CustomerDetails = ({ customer }: { customer: any }) => {
     queryFn: () => getCustomerDetails(customer._id),
     // enabled: Boolean(isViewModalOpen && customer && customer._id),
   });
+  console.log(customerDetailsData,"customerDetailsData----------------------"
+);
 
   // const { mutate: updateCustomerMutation, isPending: isUpdatingCustomer } = useMutation({
   //   mutationFn: updateCustomer,
@@ -159,46 +184,53 @@ const CustomerDetails = ({ customer }: { customer: any }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {/* {tiffinInfo.map((meal, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">{meal.meal}</TableCell>
-                      <TableCell>{meal.items}</TableCell>
-                      <TableCell>₹{meal.price}</TableCell>
-                      <TableCell>{meal.days}</TableCell>
-                    </TableRow>
-                  ))} */}
-                  {customerDetails?.tiffinData?.breakfast && (
-                    <TableRow>
-                      <TableCell className="font-medium">{customerDetails?.tiffinData?.breakfast?.mealMenu?.name ?? ""}</TableCell>
-                      <TableCell className="font-medium">{customerDetails?.tiffinData?.breakfast?.mealQuantity ?? ""} nos</TableCell>
-                      <TableCell>{customerDetails?.tiffinData?.breakfast?.mealMenu?.breakfastMealIteams?.map((item) => item?.name).join(", ")}</TableCell>
-                      <TableCell>{customerDetails?.tiffinData?.breakfast?.addOnItems?.map((item) => `${item?.menuDetail?.name} (x${item?.quantity})`).join(", ")}</TableCell>
-                      <TableCell>₹{(customerDetails?.tiffinData?.breakfast?.mealPrice ?? 0) + customerDetails?.tiffinData?.breakfast?.addOnItems?.reduce((total, item) => total + (item?.price ?? 0) * item?.quantity, 0)}</TableCell>
-                    </TableRow>
-                  )}
-                  {customerDetails?.tiffinData?.lunch && (
-                    <TableRow>
-                      <TableCell className="font-medium">{customerDetails?.tiffinData?.lunch?.mealMenu?.name ?? ""}</TableCell>
-                      <TableCell className="font-medium">{customerDetails?.tiffinData?.lunch?.mealQuantity ?? ""} nos</TableCell>
-                      <TableCell>{customerDetails?.tiffinData?.lunch?.mealMenu?.lunchMealIteams?.map((item) => item?.name).join(", ")}</TableCell>
-                      <TableCell>{customerDetails?.tiffinData?.lunch?.addOnItems?.map((item) => `${item?.menuDetail?.name} (${item?.quantity})`).join(", ")}</TableCell>
-                      <TableCell>₹{(customerDetails?.tiffinData?.lunch?.mealPrice ?? 0) + customerDetails?.tiffinData?.lunch?.addOnItems?.reduce((total, item) => total + (item?.price ?? 0) * item?.quantity, 0)}</TableCell>
-                    </TableRow>
-                  )}
-                  {customerDetails?.tiffinData?.dinner && (
-                    <TableRow>
-                      <TableCell className="font-medium">{customerDetails?.tiffinData?.dinner?.mealMenu?.name ?? ""}</TableCell>
-                      <TableCell className="font-medium">{customerDetails?.tiffinData?.dinner?.mealQuantity ?? ""} nos</TableCell>
-                      <TableCell>{customerDetails?.tiffinData?.dinner?.mealMenu?.dinnerMealIteams?.map((item) => item?.name).join(", ")}</TableCell>
-                      <TableCell>{customerDetails?.tiffinData?.dinner?.addOnItems?.map((item) => `${item?.menuDetail?.name} (${item?.quantity})`).join(", ")}</TableCell>
-                      <TableCell>₹{(customerDetails?.tiffinData?.dinner?.mealPrice ?? 0) + customerDetails?.tiffinData?.dinner?.addOnItems?.reduce((total, item) => total + (item?.price ?? 0) * item?.quantity, 0)}</TableCell>
-                    </TableRow>
-                  )}
+                  {['breakfast', 'lunch', 'dinner'].map((mealType) => {
+                    const meal = customerDetails?.tiffinData?.[mealType];
+                    if (!meal?.mealItems) return null;
+
+                    return (
+                      <TableRow key={mealType}>
+                        <TableCell className="font-medium capitalize">{mealType}</TableCell>
+                        <TableCell className="font-medium">{meal.mealQuantity || 1}</TableCell>
+                        <TableCell>
+                          {meal.mealItems?.map((item, i) => (
+                            <div key={i}>
+                              {item.quantity > 1 && `${item.quantity}x `}
+                              {item.menuDetail?.name} 
+                              {item.price > 0 && `(₹${item.price})`}
+                            </div>
+                          ))}
+                        </TableCell>
+                        <TableCell>
+                          {meal.addOnItems?.length > 0 ? (
+                            meal.addOnItems.map((addon, i) => (
+                              <div key={i}>
+                                {addon.quantity > 1 && `${addon.quantity}x `}
+                                {addon.menuDetail?.name}
+                                {addon.price > 0 && ` (₹${addon.price} each)`}
+                              </div>
+                            ))
+                          ) : (
+                            'None'
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          ₹{meal.mealFinalPrice || 0}
+                          {meal.deliveryCharge > 0 && (
+                            <div className="text-xs text-muted-foreground">
+                              (Includes delivery: ₹{meal.deliveryCharge})
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
               <div className="mt-4 p-4 bg-muted/30 rounded-lg">
                 <p>
-                  <span className="font-medium">Tiffin Price:</span> ₹{customerDetails?.tiffinData?.totalPrice}/-
+                  <span className="font-medium">Tiffin Price:</span> ₹{customerDetails?.tiffinData?.tiffinTotalPrice
+}/-
                 </p>
                 <p>
                   <span className="font-medium">Delivery Included: </span> <Badge variant={customerDetails?.tiffinData?.deliveryIncluded ? "default" : "outline"}>{customerDetails?.tiffinData?.deliveryIncluded ? "Yes" : "No"}</Badge>
@@ -276,7 +308,11 @@ const CustomerDetails = ({ customer }: { customer: any }) => {
                   <DollarSign className="mr-2 h-4 w-4" />
                   Update Payment
                 </Button>
-                <Button className="w-full justify-start" variant="outline">
+                <Button 
+                  className="w-full justify-start" 
+                  variant="outline"
+                  onClick={() => setIsEditFormOpen(true)}
+                >
                   <Edit className="mr-2 h-4 w-4" />
                   Edit Customer Info
                 </Button>
@@ -308,8 +344,33 @@ const CustomerDetails = ({ customer }: { customer: any }) => {
           </div>
         </TabsContent>
       </Tabs>
-      {/* </DialogContent> */}
+      
+      {/* Edit Customer Dialog */}
+      <Dialog open={isEditFormOpen} onOpenChange={setIsEditFormOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Customer</DialogTitle>
+            <DialogDescription>
+              Update the customer information below.
+            </DialogDescription>
+          </DialogHeader>
+          {customerDetails && (
+            <CustomerEditForm 
+              open={isEditFormOpen}
+              onClose={() => setIsEditFormOpen(false)}
+              initialData={customerDetails}
+              onSuccess={() => {
+                // Refresh the customer details after successful update
+                queryClient.invalidateQueries({ queryKey: ["get-customer-details", customer?._id] });
+                queryClient.invalidateQueries({ queryKey: ["customers"] });
+              }}
+              isSubmitting={isUpdatingCustomer}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
+
 export default memo(CustomerDetails);

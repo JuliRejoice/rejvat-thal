@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,7 +22,6 @@ import lodash from "lodash";
 import { NoData } from "../common/NoData";
 import { getUser } from "@/lib/utils";
 import CustomerDetails from "./CustomerDetails";
-import { Label } from "../ui/label";
 import { getAllArea } from "@/api/area.api";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -359,8 +360,8 @@ const CustomerManagement = () => {
                 <TableRow>
                   <TableHead>Customer</TableHead>
                   <TableHead>Contact</TableHead>
-                  {/* <TableHead>Plan</TableHead> */}
-                  {/* <TableHead>Revenue</TableHead> */}
+                  <TableHead>Plan</TableHead>
+                  <TableHead>Revenue</TableHead>
                   <TableHead>Due</TableHead>
                   <TableHead>Today’s Tiffin Status</TableHead>
                   <TableHead>Actions</TableHead>
@@ -394,18 +395,27 @@ const CustomerManagement = () => {
                           <p className="text-sm text-muted-foreground">{customer?.email}</p>
                         </div>
                       </TableCell>
-                      {/* <TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Switch 
+                            id="status-toggle"
+                            checked={customer?.isActive ?? false}
+                            onCheckedChange={(checked) => {
+                              // Handle status change here
+                              console.log(`Customer ${customer?._id} status changed to:`, checked);
+                              // You would typically call an API to update the status here
+                            }}
+                            className="cursor-pointer"
+                          />
+                         
+                        </div>
+                      </TableCell>
+                      <TableCell>
                       <div>
-                        <p className="font-medium">{customer?.currentPlan}</p>
-                        <p className="text-sm text-muted-foreground">{customer?.planType}</p>
+                        <p className="font-medium text-metrics-income">₹0</p>
+                        <p className="text-sm text-muted-foreground">0 orders</p>
                       </div>
-                    </TableCell> */}
-                      {/* <TableCell>
-                      <div>
-                        <p className="font-medium text-metrics-income">₹{customer?.totalPaid.toLocaleString()}</p>
-                        <p className="text-sm text-muted-foreground">{customer?.totalOrders} orders</p>
-                      </div>
-                    </TableCell> */}
+                    </TableCell>
                       <TableCell>
                         {/* <Badge variant={customer?.pendingDue > 0 ? "destructive" : "default"}>₹{customer?.pendingDue}</Badge> */}
                         <div>-</div>

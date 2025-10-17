@@ -217,24 +217,38 @@ const MealPlans = () => {
     }
     setFormData({
       name: meal.name,
-      type: meal.type  as unknown as MealType[],
+      type: meal.type as unknown as MealType[],
       description: meal.description,
       price: meal.price,
       restaurantId: meal.restaurantId || ''
     });
 
     // Map the meal items to the format expected by selectedItems
-    const items = meal.items.map(item => {
-      const menuItem = menuItems.find(mi => mi.name === item.itemId.name);
-      return {
-        _id: item.itemId?._id || '',
+    const items = meal.items
+      .filter(item => item.itemId?._id) // Filter out items with no _id
+      .map(item => ({
+        _id: item.itemId._id,
         name: item.itemId.name,
         price: item.itemId.price || 0,
-        quantity: item.qty
-      };
-    });
+        quantity: item.qty || 1 // Default to 1 if qty is not set
+      }));
 
-    setSelectedItems(items);
+    // Only set selected items if we have valid items
+    if (items.length > 0) {
+      setSelectedItems(items);
+    } else {
+      // If no valid items, clear the selection
+      setSelectedItems([]);
+      // Show a warning if we had items but they were all invalid
+      if (meal.items.length > 0) {
+        toast({
+          title: 'Warning',
+          description: 'Some menu items could not be loaded. Please reselect them.',
+          variant: 'destructive',
+        });
+      }
+    }
+    
     setIsAddModalOpen(true);
   };
 

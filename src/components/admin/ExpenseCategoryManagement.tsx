@@ -119,9 +119,10 @@ const restaurantsOptions = restaurantsData?.payload?.data?.map((r: any) => ({
       reset({
         name: currentCategory.name ?? "",
         description: currentCategory.description ?? "",
+        restaurantId: user?.restaurantId?._id ?? "",
       });
     } else {
-      reset({ name: "", description: "" });
+      reset({ name: "", description: "", restaurantId: user?.restaurantId?._id });
     }
   }, [currentCategory, reset]);
 
