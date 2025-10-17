@@ -45,8 +45,8 @@ const CustomerManagement = () => {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isPending, setIsPending] = useState(false);
   const navigate = useNavigate();
-  const {user} = useAuth();
-  const {toast} = useToast();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const [refetch, setRefetch] = useState(false);
@@ -80,7 +80,7 @@ const CustomerManagement = () => {
 
   // Fetch customers with TanStack Query
   const { data: customersData, isLoading: isLoadingCustomer } = useQuery({
-    queryKey: ["customers", { 
+    queryKey: ["customers", {
       restaurantId: userRole?.role === "manager" ? userRole?.restaurantId?._id : selectedRestaurent?.restaurantId,
       page,
       limit,
@@ -118,14 +118,14 @@ const CustomerManagement = () => {
 
   // Fetch customer overview with TanStack Query
   const { data: overviewData } = useQuery({
-    queryKey: ["customer-overview", { 
-      restaurantId: userRole?.role === "manager" ? userRole?.restaurantId?._id : selectedRestaurent?.restaurantId 
+    queryKey: ["customer-overview", {
+      restaurantId: userRole?.role === "manager" ? userRole?.restaurantId?._id : selectedRestaurent?.restaurantId
     }],
     queryFn: async () => {
-      const restaurantId = userRole?.role === "manager" 
-        ? userRole?.restaurantId?._id 
+      const restaurantId = userRole?.role === "manager"
+        ? userRole?.restaurantId?._id
         : selectedRestaurent?.restaurantId;
-      
+
       const response = await getCustomerOverview(restaurantId ? { restaurantId } : {});
       return response?.payload;
     },
@@ -152,7 +152,7 @@ const CustomerManagement = () => {
 
 
   const { data: areasData, isLoading } = useQuery({
-    queryKey: ["get-all-area", { 
+    queryKey: ["get-all-area", {
       restaurantId: user?.restaurantId?._id,
       page: 1,
       limit: 10,
@@ -167,7 +167,7 @@ const CustomerManagement = () => {
       }),
   });
 
-  
+
   const areas = areasData?.payload?.data || [];
 
 
@@ -200,9 +200,9 @@ const CustomerManagement = () => {
     setIsEditModalOpen(false);
   };
 
-  
+
   const updateCustomerMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Customer }) => 
+    mutationFn: ({ id, data }: { id: string; data: Customer }) =>
       updateCustomerApi(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -243,12 +243,12 @@ const CustomerManagement = () => {
           <h1 className="text-3xl font-bold text-foreground">Customer Management</h1>
           <p className="text-muted-foreground">Manage customer information, tiffin plans, and payments</p>
         </div>
-        
-            <Button className="bg-gradient-primary" onClick={() => navigate("/add-tiffin")}>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Add Customer
-            </Button>
-        
+
+        <Button className="bg-gradient-primary" onClick={() => navigate("/add-tiffin")}>
+          <UserPlus className="mr-2 h-4 w-4" />
+          Add Customer
+        </Button>
+
       </div>
 
       {/* Search and Filters */}
@@ -360,8 +360,8 @@ const CustomerManagement = () => {
                 <TableRow>
                   <TableHead>Customer</TableHead>
                   <TableHead>Contact</TableHead>
-                  <TableHead>Plan</TableHead>
-                  <TableHead>Revenue</TableHead>
+                  <TableHead>Tiffin Plan</TableHead>
+                  {/* <TableHead>Revenue</TableHead> */}
                   <TableHead>Due</TableHead>
                   <TableHead>Today’s Tiffin Status</TableHead>
                   <TableHead>Actions</TableHead>
@@ -397,28 +397,26 @@ const CustomerManagement = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <Switch 
+                          <Switch
                             id="status-toggle"
-                            checked={customer?.isActive ?? false}
+                             checked={Boolean(customer?.tiffin)}
                             onCheckedChange={(checked) => {
-                              // Handle status change here
-                              console.log(`Customer ${customer?._id} status changed to:`, checked);
-                              // You would typically call an API to update the status here
+
                             }}
                             className="cursor-pointer"
                           />
-                         
+
                         </div>
                       </TableCell>
-                      <TableCell>
+                      {/* <TableCell>
                       <div>
                         <p className="font-medium text-metrics-income">₹0</p>
                         <p className="text-sm text-muted-foreground">0 orders</p>
                       </div>
-                    </TableCell>
+                    </TableCell> */}
                       <TableCell>
                         {/* <Badge variant={customer?.pendingDue > 0 ? "destructive" : "default"}>₹{customer?.pendingDue}</Badge> */}
-                        <div>-</div>
+                        <div className="text-sm text-red-500 font-semibold">{customer?.wallet < 0 ? "₹" + customer?.wallet : "-"}</div>
                       </TableCell>
                       <TableCell>
                         <Badge variant={customer?.tiffinPauseToday == true ? "secondary" : "default"}>
@@ -584,7 +582,7 @@ const CustomerManagement = () => {
             </Button>
             <Button
               type="button"
-              onClick={async () => {editCustomer()}}
+              onClick={async () => { editCustomer() }}
             >
               {isPending ? 'Saving...' : 'Save changes'}
             </Button>

@@ -59,6 +59,7 @@ export type CustomerResponse = {
   isActive?: boolean;
   tiffin?: Tiffin;
   areaId?: string;
+  wallet?: number;
 };
 
 export type CustomerErrors = Partial<Record<keyof Customer, string>>;
