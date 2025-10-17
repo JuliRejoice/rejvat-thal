@@ -9,11 +9,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { SearchableDropDown } from "./SearchableDropDown";
 import { uploadImage } from "@/api/managerStaff.api";
-import DatePicker from "react-datepicker";
 import { getAllArea } from "@/api/area.api";
+import {formatDateParam} from '@/lib/utils'
 
 interface AreaData {
   _id: string;
@@ -215,7 +215,7 @@ const parseTimingValues = (values: any) => {
       address: "",
       restaurantId: "",
       salary: "",
-      joiningDate: "",
+      joiningDate: formatDateParam(new Date()),
       position: "",
       isUserType: type,
       shiftStart: "",

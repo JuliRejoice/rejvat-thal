@@ -233,68 +233,57 @@ const InvoiceManagement = () => {
   };
 
   const numberToWords = (num: number): string => {
-    const ones = [
-      "",
-      "One",
-      "Two",
-      "Three",
-      "Four",
-      "Five",
-      "Six",
-      "Seven",
-      "Eight",
-      "Nine",
-    ];
-    const tens = [
-      "",
-      "",
-      "Twenty",
-      "Thirty",
-      "Forty",
-      "Fifty",
-      "Sixty",
-      "Seventy",
-      "Eighty",
-      "Ninety",
-    ];
-    const teens = [
-      "Ten",
-      "Eleven",
-      "Twelve",
-      "Thirteen",
-      "Fourteen",
-      "Fifteen",
-      "Sixteen",
-      "Seventeen",
-      "Eighteen",
-      "Nineteen",
-    ];
+  if (num === 0) return "Zero";
 
-    if (num === 0) return "Zero";
-    if (num < 10) return ones[num];
-    if (num < 20) return teens[num - 10];
-    if (num < 100)
-      return (
-        tens[Math.floor(num / 10)] + (num % 10 ? " " + ones[num % 10] : "")
-      );
-    if (num < 1000)
-      return (
-        ones[Math.floor(num / 100)] +
-        " Hundred" +
-        (num % 100 ? " " + numberToWords(num % 100) : "")
-      );
-    if (num < 100000)
-      return (
-        numberToWords(Math.floor(num / 1000)) +
-        " Thousand" +
-        (num % 1000 ? " " + numberToWords(num % 1000) : "")
-      );
-    return (
-      numberToWords(Math.floor(num / 100000)) +
-      " Lakh" +
-      (num % 100000 ? " " + numberToWords(num % 100000) : "")
-    );
+  const ones = [
+    "", "One", "Two", "Three", "Four", "Five",
+    "Six", "Seven", "Eight", "Nine", "Ten", "Eleven",
+    "Twelve", "Thirteen", "Fourteen", "Fifteen",
+    "Sixteen", "Seventeen", "Eighteen", "Nineteen",
+  ];
+
+  const tens = [
+    "", "", "Twenty", "Thirty", "Forty", "Fifty",
+    "Sixty", "Seventy", "Eighty", "Ninety",
+  ];
+
+  const scales = ["", "Thousand", "Lakh", "Crore", "Arab"];
+
+  const toWordsBelowThousand = (n: number): string => {
+    let str = "";
+    if (n > 99) {
+      str += ones[Math.floor(n / 100)] + " Hundred ";
+      n %= 100;
+    }
+    if (n > 0) {
+      if (n < 20) str += ones[n];
+      else str += tens[Math.floor(n / 10)] + (n % 10 ? " " + ones[n % 10] : "");
+    }
+    return str.trim();
   };
+
+  const chunks: number[] = [];
+  chunks.push(num % 1000);
+  num = Math.floor(num / 1000);
+
+  while (num > 0) {
+    chunks.push(num % 100);
+    num = Math.floor(num / 100);
+  }
+
+  const words: string[] = [];
+  for (let i = 0; i < chunks.length; i++) {
+    if (chunks[i]) {
+      words.unshift(
+        toWordsBelowThousand(chunks[i]) +
+          (scales[i] ? " " + scales[i] : "")
+      );
+    }
+  }
+
+  return words.join(" ").trim();
+};
+
 
   const generatePrintHTML = (invoice: InvoiceItem) => {
     const services = invoice.items.filter((item) => item.type === "service");
@@ -356,14 +345,14 @@ const InvoiceManagement = () => {
           <div class="info-section">
             <div class="bill-to">
               <h3>Bill To</h3>
-              <p><strong>${invoice.customerName}</strong></p>
-              <p>${invoice.customerPhone}</p>
+              <p><strong>${invoice?.customerId?.name}</strong></p>
+              <p>${invoice?.customerId?.phone}</p>
             </div>
             <div class="invoice-details">
               <h3>Invoice Details</h3>
-              <p><strong>Invoice No.:</strong> ${invoice.invoiceNumber}</p>
-              <p><strong>Date:</strong> ${format(invoice.date, "dd/MM/yy")}</p>
-              <p><strong>Time:</strong> ${format(invoice.date, "h:mm a")}</p>
+              <p><strong>Invoice No.:</strong> ${invoice.invoiceNo}</p>
+              <p><strong>Date:</strong> ${format(invoice.createdAt, "dd/MM/yy")}</p>
+              <p><strong>Time:</strong> ${format(invoice.createdAt, "h:mm a")}</p>
             </div>
           </div>
 
@@ -437,18 +426,18 @@ const InvoiceManagement = () => {
           <div class="summary">
             <div class="summary-row">
               <span>Subtotal</span>
-              <span>₹ ${invoice.subtotal.toFixed(2)}</span>
+              <span>₹ ${invoice?.subTotal?.toFixed(2)}</span>
             </div>
             ${
-              invoice.discount > 0
+              invoice?.discount > 0
                 ? `
               <div class="summary-row">
                 <span>Total discount</span>
-                <span>- ₹ ${invoice.discount.toFixed(2)}</span>
+                <span>- ₹ ${invoice?.discount?.toFixed(2)}</span>
               </div>
               <div class="summary-row">
                 <span>Discounted Price</span>
-                <span>₹ ${(invoice.subtotal - invoice.discount).toFixed(
+                <span>₹ ${(invoice?.subTotal - invoice?.discount).toFixed(
                   2
                 )}</span>
               </div>
@@ -457,32 +446,32 @@ const InvoiceManagement = () => {
             }
             <div class="summary-row">
               <span>GST</span>
-              <span>+ ₹ ${invoice.tax.toFixed(2)}</span>
+              <span>+ ₹ ${invoice?.tax?.toFixed(2)}</span>
             </div>
             ${
-              invoice.additionalAmount > 0
+              invoice?.additionalAmount > 0
                 ? `
               <div class="summary-row">
                 <span>Additional Amount</span>
-                <span>+ ₹ ${invoice.additionalAmount.toFixed(0)}</span>
+                <span>+ ₹ ${invoice?.additionalAmount?.toFixed(0)}</span>
               </div>
             `
                 : ""
             }
             <div class="summary-row">
               <span>Rounding off</span>
-              <span>₹ ${invoice.roundingOff.toFixed(2)}</span>
+              <span>₹ ${invoice?.roundingOff?.toFixed(2)}</span>
             </div>
             <div class="summary-row total">
               <span>Bill Amount</span>
-              <span>₹ ${invoice.total}</span>
+              <span>₹ ${invoice?.total}</span>
             </div>
           </div>
 
           <div class="payment-info">
-            <h3>Payment by ${invoice.paymentMethod.toUpperCase()}</h3>
+            <h3>Payment by ${invoice?.paymentMethod?.toUpperCase()}</h3>
             <div class="amount-words">
-              Amount in words: ${numberToWords(invoice.total)} Only
+              Amount in words: ${numberToWords(invoice?.total)} Only
             </div>
           </div>
 

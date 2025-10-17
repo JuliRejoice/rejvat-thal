@@ -25,6 +25,8 @@ import AddPaymentDialog from './AddPaymentDialog';
 import { getPaymentMethods, getVendorPayment, vendorPayment } from '@/api/paymentMethod.api';
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ImagePreview } from '../common/ImagePreview';
+
 
 const TableSkeleton = () => (
   <div className="space-y-4 px-4">
@@ -140,7 +142,10 @@ const InventoryManagement = () => {
   const [isAddOrderModalOpen, setIsAddOrderModalOpen] = useState(false);
   const [isAddPaymentModalOpen, setIsAddPaymentModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<{url: string; isOpen: boolean}>({
+    url: "",
+    isOpen: false
+  });
   const [selectedMethod, setSelectedMethod] = useState('all');
   const [ordersPage, setOrdersPage] = useState(1);
   const [paymentsPage, setPaymentsPage] = useState(1);
@@ -624,14 +629,25 @@ const InventoryManagement = () => {
 
                             <TableCell>
                               {order.imageUrl ? (
-                                <Badge
-                                  variant="secondary"
-                                  className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
-                                  onClick={() => setImagePreview(order.imageUrl)}
-                                >
-                                  <Receipt className="mr-1 h-3 w-3" />
-                                  Attached
-                                </Badge>
+                                <>
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
+                                    onClick={() => setImagePreview({ url: order.imageUrl, isOpen: true })}
+                                  >
+                                    <Receipt className="mr-1 h-3 w-3" />
+                                    View Receipt
+                                  </Badge>
+                                  {
+                                    imagePreview.isOpen && (
+                                      <ImagePreview
+                                        imageUrl={imagePreview.url}
+                                        isOpen={imagePreview.isOpen}
+                                        onClose={() => setImagePreview(prev => ({ ...prev, isOpen: false }))}
+                                      />
+                                    )
+                                  }
+                                </>
                               ) : (
                                 <span className="text-xs text-muted-foreground">No receipt</span>
                               )}
@@ -796,24 +812,6 @@ const InventoryManagement = () => {
           </TabsContent>
         </Tabs>
       </Card>
-
-      {/* Image Preview Dialog */}
-      <Dialog open={!!imagePreview} onOpenChange={(open) => !open && setImagePreview(null)}>
-        <DialogContent className="max-w-3xl min-h-[300px]">
-          <DialogHeader>
-            <DialogTitle>Receipt Image</DialogTitle>
-          </DialogHeader>
-          <div className="flex justify-center">
-            {imagePreview && (
-              <img
-                src={imagePreview}
-                alt="Receipt"
-                className="max-h-[70vh] max-w-full object-contain"
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
