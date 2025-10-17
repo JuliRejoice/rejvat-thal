@@ -101,8 +101,8 @@ const InvoiceDetailView: React.FC<InvoiceDetailViewProps> = ({
                     )}
                   </div>
                   <div className="font-semibold text-foreground flex items-center gap-1">
-                    <Dirham size={13} className="mt-0.5"/>
-                    <span>{item.price?.toFixed(2)}</span>
+                    {/* <Dirham size={13} className="mt-0.5"/> */}
+                    <span>{item.qty}</span>
                   </div>
                 </div>
               ))}
@@ -145,19 +145,7 @@ const InvoiceDetailView: React.FC<InvoiceDetailViewProps> = ({
               <span className="text-muted-foreground">Rounding Off</span>
               <span className="font-medium text-foreground flex items-center gap-1">
                 <Dirham size={12} />
-                <span>{invoice?.roundOffAmount?.toFixed(2)}</span>
-              </span>
-            </div>
-            
-            <Separator />
-
-            <div className="flex justify-between items-center pt-2">
-              <span className="text-lg font-bold text-foreground">
-                Total Amount
-              </span>
-              <span className="text-2xl font-bold text-foreground flex items-center gap-1">
-                <Dirham size={16} className="mt-1" />
-                <span>{Math.round(invoice?.finalAmmount)}</span>
+                <span>{invoice?.roundOffAmount}</span>
               </span>
             </div>
             <div className="flex justify-between text-sm">
@@ -186,6 +174,17 @@ const InvoiceDetailView: React.FC<InvoiceDetailViewProps> = ({
               </span>
             </div>
 
+            <Separator />
+
+            <div className="flex justify-between items-center pt-2">
+              <span className="text-lg font-bold text-foreground">
+                Total Amount
+              </span>
+              <span className="text-2xl font-bold text-foreground flex items-center gap-1">
+                <Dirham size={16} className="mt-1" />
+                <span>{Math.round(invoice?.finalAmmount)}</span>
+              </span>
+            </div>
           </div>
         </div>
       </DialogContent>

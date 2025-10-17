@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useForm, Controller } from "react-hook-form"
 import {
   Dialog,
@@ -10,11 +11,12 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { IndianRupee } from "lucide-react"
+import { vendorPayment } from "@/api/paymentMethod.api"
 import { getAllExpenseCategory } from "@/api/expenseCategory.api"
 import { getPaymentMethods } from "@/api/paymentMethod.api"
 import { useToast } from "@/hooks/use-toast"
 import { useQuery } from "@tanstack/react-query"
-import {formatDateParam} from '@/lib/utils'
 
 interface FormValues {
   vendorId: string
@@ -67,7 +69,7 @@ export default function AddPaymentDialog({
     defaultValues: {
       vendorId: "",
       amount: undefined,
-      date: formatDateParam(new Date()),
+      date: "",
       method: "",
       image: undefined,
       description: "",

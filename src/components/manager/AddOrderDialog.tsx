@@ -1,17 +1,21 @@
-import { useForm, Controller } from "react-hook-form"
+import { useState } from "react"
+import { useForm, Controller, FormState } from "react-hook-form"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Package } from "lucide-react"
+import { AddInventoryOrder } from "@/api/inventory.api"
 import { useToast } from "@/hooks/use-toast";
-import {formatDateParam} from '@/lib/utils'
+
 
 interface FormValues {
   vendor: string
@@ -36,11 +40,12 @@ export default function AddOrderDialog({ vendors, isOpen, setIsOpen ,onSubmit}: 
       vendor: "",
       orderItems: "",
       amount: undefined,
-      orderDate: formatDateParam(new Date()),
+      orderDate: "",
       orderImage: undefined,
       orderNotes: "",
     },
   })
+
 
 
   return (
