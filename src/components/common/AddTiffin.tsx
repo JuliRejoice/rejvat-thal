@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +23,8 @@ import { menuApi } from '@/api/menu.api';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { createTiffin } from '@/api/tiffin.api';
 import { useNavigate } from 'react-router';
+import { useSearchParams } from 'react-router-dom';
+
 
 
 // Define types for better type safety
@@ -64,6 +66,45 @@ export default function NewOrderPage() {
     const debouncedSearchQuery = useDebounce(searchQuery, 300); // 300ms delay
     const [billingType, setBillingType] = useState<'fixed' | 'monthly'>('fixed');
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const customerId = searchParams.get('customerId');
+    const queryClient = useQueryClient()
+
+
+    useEffect(() => {
+        const customerId = searchParams.get('customerId');
+
+
+        if (customerId) {
+            setBuildingState('meal');
+            setActiveTab('meal-selection');
+            // Fetch customer details
+            getCustomer({
+                page: 1,
+                limit: 100,
+                isActive: "true",
+                restaurantId: user?.restaurantId?._id
+            })
+                .then(response => {
+                    if (response?.payload) {
+                        const foundCustomer = response.payload.customer.find(
+                            (cust: any) => cust._id === customerId
+                        )
+                        setSelectedCustomer(foundCustomer);
+
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching customer:', error);
+                    toast({
+                        title: 'Error',
+                        description: 'Failed to load customer details',
+                        variant: 'destructive'
+                    });
+                });
+        }
+    }, [searchParams]);
+
 
     const [dates, setDates] = useState({
         startDate: '',
@@ -209,54 +250,54 @@ export default function NewOrderPage() {
         });
     };
 
-const handleAddAddOn = (item: { id: string; _id: string; name: string; price: number; quantity?: number }) => {
-    const itemId = item._id || item.id;
-    const quantity = item.quantity || 1;
-    
-    setAddOns(prev => {
-        // Check if item already exists in the cart
-        const existingIndex = prev.findIndex(addOn => addOn._id === itemId);
-        
-        if (existingIndex >= 0) {
-            // If item exists, update its quantity and check if we should re-enable the button
-            const updatedAddOns = prev.map((addOn, index) => 
-                index === existingIndex
-                    ? { ...addOn, quantity }
-                    : addOn
-            );
-            
-            // If quantity changed from previous value, remove from addedItemIds to re-enable the button
-            if (prev[existingIndex].quantity !== quantity) {
-                setAddedItemIds(prev => {
-                    const newSet = new Set(prev);
-                    newSet.delete(itemId);
-                    return newSet;
-                });
-            }
-            
-            return updatedAddOns;
-        } else {
-            // If item doesn't exist, add it and mark as added
-            setAddedItemIds(prev => new Set(prev).add(itemId));
-            
-            return [
-                ...prev,
-                { 
-                    ...item,
-                    _id: itemId,
-                    id: item.id,
-                    quantity: quantity
+    const handleAddAddOn = (item: { id: string; _id: string; name: string; price: number; quantity?: number }) => {
+        const itemId = item._id || item.id;
+        const quantity = item.quantity || 1;
+
+        setAddOns(prev => {
+            // Check if item already exists in the cart
+            const existingIndex = prev.findIndex(addOn => addOn._id === itemId);
+
+            if (existingIndex >= 0) {
+                // If item exists, update its quantity and check if we should re-enable the button
+                const updatedAddOns = prev.map((addOn, index) =>
+                    index === existingIndex
+                        ? { ...addOn, quantity }
+                        : addOn
+                );
+
+                // If quantity changed from previous value, remove from addedItemIds to re-enable the button
+                if (prev[existingIndex].quantity !== quantity) {
+                    setAddedItemIds(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(itemId);
+                        return newSet;
+                    });
                 }
-            ];
-        }
-    });
-    
-    // Reset the quantity input
-    setAddOnQuantities(prev => ({
-        ...prev,
-        [itemId]: 1
-    }));
-};
+
+                return updatedAddOns;
+            } else {
+                // If item doesn't exist, add it and mark as added
+                setAddedItemIds(prev => new Set(prev).add(itemId));
+
+                return [
+                    ...prev,
+                    {
+                        ...item,
+                        _id: itemId,
+                        id: item.id,
+                        quantity: quantity
+                    }
+                ];
+            }
+        });
+
+        // Reset the quantity input
+        setAddOnQuantities(prev => ({
+            ...prev,
+            [itemId]: 1
+        }));
+    };
 
     const handleUpdateQuantity = (id: string, newQuantity: number) => {
         if (newQuantity < 0) return;
@@ -294,7 +335,7 @@ const handleAddAddOn = (item: { id: string; _id: string; name: string; price: nu
 
             // Create base order data
             // Validate dates
-            if (!dates.startDate ) {
+            if (!dates.startDate) {
                 toast({
                     variant: "destructive",
                     title: "Error",
@@ -303,7 +344,7 @@ const handleAddAddOn = (item: { id: string; _id: string; name: string; price: nu
                 return;
             }
 
-            if(!dates.endDate && billingType === 'fixed'){
+            if (!dates.endDate && billingType === 'fixed') {
                 toast({
                     variant: "destructive",
                     title: "Error",
@@ -393,23 +434,25 @@ const handleAddAddOn = (item: { id: string; _id: string; name: string; price: nu
                     mealFinalPrice: mealFinalPrice,
                 };
                 orderData.tiffinTotalPrice += mealFinalPrice;
-               
+
             }
 
             const response = await createTiffin(orderData);
-            console.log(response,'response')
-            if(response){
+            console.log(response, 'response')
+            if (response) {
                 console.log('Order Data:', JSON.stringify(orderData, null, 2));
-    
+                await queryClient.invalidateQueries({
+                    queryKey: ['customers']
+                });
                 // Call your API here
                 // await orderApi.createOrder(orderData);
-    
+
                 toast({
                     title: 'Success',
                     description: 'tiffin Created successfully!',
                 });
                 navigate('/customers');
-                
+
             }
 
 
@@ -708,7 +751,7 @@ const handleAddAddOn = (item: { id: string; _id: string; name: string; price: nu
                                                         defaultValue="1"
                                                         className="w-20"
                                                         onChange={(e) => {
-                                                            
+
                                                             setAddOnQuantities(prev => ({
                                                                 ...prev,
                                                                 [item.id]: parseInt(e.target.value) || 1
@@ -721,8 +764,8 @@ const handleAddAddOn = (item: { id: string; _id: string; name: string; price: nu
                                                             const quantity = addOnQuantities[item.id] || 1;
                                                             handleAddAddOn({ ...item, quantity });
                                                         }}
-                                                        disabled={addedItemIds.has(item._id || item.id) && 
-                                                               addOns.find(a => (a._id === item._id || a.id === item.id))?.quantity === (addOnQuantities[item.id] || 1)}
+                                                        disabled={addedItemIds.has(item._id || item.id) &&
+                                                            addOns.find(a => (a._id === item._id || a.id === item.id))?.quantity === (addOnQuantities[item.id] || 1)}
                                                     >
                                                         {addedItemIds.has(item._id || item.id) ? 'Added' : 'Add'}
                                                     </Button>

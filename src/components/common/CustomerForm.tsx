@@ -164,7 +164,7 @@ export function CustomerForm({ open, onClose, refetch, setRefetch, setBuildingSt
 
   return (
     <>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />

@@ -71,7 +71,7 @@ const InvoiceDetailView: React.FC<InvoiceDetailViewProps> = ({
                 </div>
               </div>
             </div>
-            <Button
+            {/* <Button
               variant="outline"
               size="sm"
               onClick={onPrint}
@@ -79,7 +79,7 @@ const InvoiceDetailView: React.FC<InvoiceDetailViewProps> = ({
             >
               <Printer className="h-4 w-4" />
               Print
-            </Button>
+            </Button> */}
           </div>
 
           <Separator />
@@ -101,8 +101,8 @@ const InvoiceDetailView: React.FC<InvoiceDetailViewProps> = ({
                     )}
                   </div>
                   <div className="font-semibold text-foreground flex items-center gap-1">
-                    {/* <Dirham size={13} className="mt-0.5"/> */}
-                    <span>{item.qty}</span>
+                    <Dirham size={13} className="mt-0.5"/>
+                    <span>{item.price}</span>
                   </div>
                 </div>
               ))}
@@ -145,7 +145,18 @@ const InvoiceDetailView: React.FC<InvoiceDetailViewProps> = ({
               <span className="text-muted-foreground">Rounding Off</span>
               <span className="font-medium text-foreground flex items-center gap-1">
                 <Dirham size={12} />
-                <span>{invoice?.roundOffAmount}</span>
+                <span>{(parseFloat(invoice?.roundOffAmount)?.toFixed(2))}</span>
+              </span>
+            </div>
+            
+            <Separator />
+            <div className="flex justify-between items-center pt-2">
+              <span className="text-lg font-bold text-foreground">
+                Total Amount
+              </span>
+              <span className="text-2xl font-bold text-foreground flex items-center gap-1">
+                <Dirham size={16} className="mt-1" />
+                <span>{Math.round(invoice?.finalAmmount)}</span>
               </span>
             </div>
             <div className="flex justify-between text-sm">

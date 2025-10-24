@@ -23,11 +23,14 @@ import { NoData } from "../common/NoData";
 import { getUser } from "@/lib/utils";
 import CustomerDetails from "./CustomerDetails";
 import { getAllArea } from "@/api/area.api";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation, useQueries } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router";
+import { getAllIncomeCategory } from "@/api/incomeCategories.api";
+import { Skeleton } from "../ui/skeleton";
+
 
 const CustomerManagement = () => {
   const userRole = getUser();
@@ -77,6 +80,20 @@ const CustomerManagement = () => {
       clearTimeout(handler);
     };
   }, [searchTerm]);
+
+  const queriesResults = useQueries({
+    queries: [
+      {
+        queryKey: ["income-categories"],
+        queryFn: () => getAllIncomeCategory({}),
+        enabled: didMount.current,
+      },
+    ],
+  });
+
+  const [getIncomeCategoriesQuery] = queriesResults;
+
+  const { data: incomeCategories } = getIncomeCategoriesQuery;
 
   // Fetch customers with TanStack Query
   const { data: customersData, isLoading: isLoadingCustomer } = useQuery({
@@ -368,103 +385,129 @@ const CustomerManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {customers &&
-                  customers?.customer.length > 0 &&
-                  customers?.customer?.map((customer) => (
-                    <TableRow key={customer?._id}>
-                      <TableCell>
-                        <div className="flex items-center space-x-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback>
-                              {customer?.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .toLocaleUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{lodash.capitalize(customer?.name ?? "")}</p>
-                            <p className="text-sm text-muted-foreground">Ref: {lodash.capitalize(customer?.referenceName ?? "")}</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <p className="text-sm">{customer?.phone}</p>
-                          <p className="text-sm text-muted-foreground">{customer?.email}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            id="status-toggle"
-                             checked={Boolean(customer?.tiffin)}
-                            onCheckedChange={(checked) => {
+               
 
-                            }}
-                            className="cursor-pointer"
-                          />
-
-                        </div>
+                {/* customer list loader */}
+                {isLoadingCustomer ? (
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <TableRow key={`skeleton-${index}`}>
+                      <TableCell>
+                        <Skeleton className="h-4 w-24" />
                       </TableCell>
-                      {/* <TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-20" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-16" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-32" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-6 w-16" />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Skeleton className="h-9 w-9 mx-auto" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )
+                  :
+                  (
+                    customers?.customer.length === 0 && isLoadingCustomer == false ? (
+                      <TableRow>
+                        <TableCell colSpan={7}>
+                          <NoData icon={User} title="No customer found" description="Add new customer to manage them here." />
+                        </TableCell>
+                      </TableRow>
+                    )
+                      :
+                      (
+                        customers &&
+                        customers?.customer.length > 0 &&
+                        customers?.customer?.map((customer) => (
+                          <TableRow key={customer?._id}>
+                            <TableCell>
+                              <div className="flex items-center space-x-3">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarFallback>
+                                    {customer?.name
+                                      .split(" ")
+                                      .map((n) => n[0])
+                                      .join("")
+                                      .toLocaleUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-medium">{lodash.capitalize(customer?.name ?? "")}</p>
+                                  <p className="text-sm text-muted-foreground">Ref: {lodash.capitalize(customer?.referenceName ?? "")}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                <p className="text-sm">{customer?.phone}</p>
+                                <p className="text-sm text-muted-foreground">{customer?.email}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Switch
+                                  id="status-toggle"
+                                  checked={Boolean(customer?.tiffin)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      navigate(`/add-tiffin?customerId=${customer._id}`);
+                                    }
+
+                                  }}
+                                  className="cursor-pointer"
+                                />
+
+                              </div>
+                            </TableCell>
+                            {/* <TableCell>
                       <div>
                         <p className="font-medium text-metrics-income">₹0</p>
                         <p className="text-sm text-muted-foreground">0 orders</p>
                       </div>
                     </TableCell> */}
-                      <TableCell>
-                        {/* <Badge variant={customer?.pendingDue > 0 ? "destructive" : "default"}>₹{customer?.pendingDue}</Badge> */}
-                        <div className="text-sm text-red-500 font-semibold">{customer?.wallet < 0 ? "₹" + customer?.wallet : "-"}</div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={customer?.tiffinPauseToday == true ? "secondary" : "default"}>
-                          {" "}
-                          {customer?.tiffinPauseToday == true ? <Pause className="mr-1 h-3 w-3" /> : <CheckCircle className="mr-1 h-3 w-3" />}
-                          {customer?.tiffinPauseToday == true ? "Paused" : "Active"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                {/* <Edit className="h-4 w-4" /> */}
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-                              <CustomerDetails customer={customer} />
-                            </DialogContent>
-                          </Dialog>
-                          <Button variant="outline" size="sm" onClick={() => handleEditCustomer(customer)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            <TableCell>
+                              {/* <Badge variant={customer?.pendingDue > 0 ? "destructive" : "default"}>₹{customer?.pendingDue}</Badge> */}
+                              <div className="text-sm text-red-500 font-semibold">{customer?.wallet < 0 ? "₹" + customer?.wallet : "-"}</div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={customer?.tiffinPauseToday == true ? "secondary" : "default"}>
+                                {" "}
+                                {customer?.tiffinPauseToday == true ? <Pause className="mr-1 h-3 w-3" /> : <CheckCircle className="mr-1 h-3 w-3" />}
+                                {customer?.tiffinPauseToday == true ? "Paused" : "Active"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm">
+                                      {/* <Edit className="h-4 w-4" /> */}
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                                    <CustomerDetails customer={customer} incomeCategories={incomeCategories?.payload?.data} />
+                                  </DialogContent>
+                                </Dialog>
+                                <Button variant="outline" size="sm" onClick={() => handleEditCustomer(customer)}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )
+                  )
+                }
 
-                {/* customer list loader */}
-                {isLoadingCustomer && (
-                  <TableRow>
-                    <TableCell colSpan={7}>
-                      <div className="flex items-center justify-center py-10">
-                        <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-
-                {/* no data found */}
-                {customers?.customer.length === 0 && isLoadingCustomer == false && (
-                  <TableRow>
-                    <TableCell colSpan={7}>
-                      <NoData icon={User} title="No customer found" description="Add new customer to manage them here." />
-                    </TableCell>
-                  </TableRow>
-                )}
+                
               </TableBody>
             </Table>
           </div>
@@ -582,6 +625,7 @@ const CustomerManagement = () => {
             </Button>
             <Button
               type="button"
+              disabled={isPending}
               onClick={async () => { editCustomer() }}
             >
               {isPending ? 'Saving...' : 'Save changes'}

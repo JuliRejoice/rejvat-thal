@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { usePagination } from "@/hooks/use-pagination";
 import { DataTablePagination } from "@/components/common/DataTablePagination";
 import { format } from "date-fns";
-import { Plus, Eye, Loader2 } from "lucide-react";
+import { Plus, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import InvoiceFilter from "../common/InvoiceFilter";
@@ -299,7 +299,8 @@ const InvoiceManagement = () => {
   const generatePrintHTML = (invoice: InvoiceItem) => {
     const services = invoice.items.filter((item) => item.type === "service");
     const products = invoice.items.filter((item) => item.type === "product");
-
+    const taxPercentage = thresholdAmount?.payload?.data?.find((item: any) => item.restaurantId?._id === invoice?.restaurantId?._id)?.taxPercentage;
+    const taxAmount = (invoice?.subTotal * taxPercentage) / 100;
     return `
       <!DOCTYPE html>
       <html>
@@ -457,7 +458,7 @@ const InvoiceManagement = () => {
             }
             <div class="summary-row">
               <span>GST</span>
-              <span>+ ₹ ${invoice.tax.toFixed(2)}</span>
+              <span>+ ₹ ${taxAmount?.toFixed(2)}</span>
             </div>
             ${
               invoice.additionalAmount > 0

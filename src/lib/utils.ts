@@ -92,4 +92,74 @@ export const formatDateParam = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
+// utils/formatDate.js
+
+// utils/formatDate.ts
+
+// utils/formatDate.ts
+
+export function formatDate(
+  dateInput: string | number | Date,
+  type: "date" | "time" | "datetime" | "short" | "iso" | "full" = "datetime"
+): string {
+  if (!dateInput) return "";
+
+  const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  if (isNaN(date.getTime())) return "";
+
+  switch (type) {
+    case "date":
+      // Example: 23 Oct 2025
+      return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+
+    case "time":
+      // Example: 10:45 AM
+      return date.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+
+    case "datetime":
+      // Example: 23 Oct 2025, 10:45 AM
+      return `${date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })}, ${date.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })}`;
+
+    case "short":
+      // Example: 23-10-25
+      return date.toLocaleDateString("en-GB").replace(/\//g, "-");
+
+    case "iso":
+      // Example: 2025-10-23
+      return date.toISOString().split("T")[0];
+
+    case "full":
+      // Example: Thursday, 23 October 2025, 10:45:00 AM
+      return date.toLocaleString("en-IN", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      });
+
+    default:
+      return date.toString();
+  }
+}
+
 

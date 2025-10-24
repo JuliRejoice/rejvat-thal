@@ -12,7 +12,7 @@ _id: string;
   additionalAmount: number;
   advancePayment: number;
   discount: number;
-  roundOffAmount: string; // string because example has "0"
+  roundOffAmount: number; // string because example has "0"
   finalAmmount: number;
   invoiceStatus: "unpaid" | "paid" | "pending" | string;
   createdAt: string; // ISO string
@@ -50,7 +50,7 @@ export interface Invoice {
   additionalAmount: number;
   advancePayment: number;
   discount: number;
-  roundOffAmount: string; // string because example has "0"
+  roundOffAmount: number; // string because example has "0"
   finalAmmount: number;
   invoiceStatus: "unpaid" | "paid" | "pending" | string;
   createdAt: string; // ISO string

@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { Input } from "../ui/input";
@@ -33,15 +33,31 @@ const InvoiceFilter: React.FC<InvoiceFilterProps> = ({
   ]);
   const [preset, setPreset] = useState("All");
   const [startDate, endDate] = dateRange;
+  const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+  const didMount = useRef(false);
 
-  // ⏳ Whenever filters change, send them to parent
+  // Debounce effect for searching
   useEffect(() => {
-    onFilterChange({ searchQuery, startDate, endDate, preset });
-  }, [searchQuery, startDate, endDate, preset]);
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
 
-  // 🧹 Clear all filters
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (!didMount.current) {
+      didMount.current = true;
+      return;
+    }
+    onFilterChange({ searchQuery: debouncedSearch, startDate, endDate, preset });
+  }, [debouncedSearch, startDate, endDate, preset]);
+
   const handleClear = () => {
     setSearchQuery("");
+    setDebouncedSearch("");
     setDateRange([null, null]);
     setPreset("All");
     onFilterChange({

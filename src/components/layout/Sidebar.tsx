@@ -34,9 +34,9 @@ import {
   ClipboardList,
   Clipboard,
   UserRoundCog,
-  LocateIcon,
   MapPin,
   SquareChartGantt,
+  Calendar
 } from "lucide-react";
 import smallLogo from "../../asset/img/smallLogo.png";
 import logo from "../../asset/img/logo.png";
@@ -57,7 +57,7 @@ const getNavigationItems = (role: string) => {
       // { title: 'Customers', url: '/customers', icon: UserPlus },
       { title: "Menu Items", url: "/items", icon: ClipboardList },
       { title: "Meal Plans", url: "/meals", icon: ShoppingBag },
-      // { title: 'Daily Summary', url: '/daily-summary', icon: Calendar },
+      { title: 'Daily Tiffin Summary', url: '/daily-summary', icon: Calendar },
       { title: "Vendors", url: "/vendors", icon: Truck },
       { title: "Expense Categories", url: "/expense-categories", icon: Tags },
       { title: "Settings", url: "/settings", icon: Settings },
@@ -74,14 +74,13 @@ const getNavigationItems = (role: string) => {
       // { title: 'Customer Management', url: '/customers', icon: UserPlus },
       { title: "Menu Items", url: "/items", icon: ClipboardList },
       { title: "Meal Plans", url: "/meals", icon: ShoppingBag },
-      // { title: 'Meal Plans', url: '/meals', icon: ShoppingBag },
-      // { title: 'Daily Tiffin Summary', url: '/daily-summary', icon: Calendar },
+      { title: 'Daily Tiffin Summary', url: '/daily-summary', icon: Calendar },
       { title: "Vendor Management", url: "/vendors", icon: Truck },
       { title: "Inventory", url: "/inventory", icon: ClipboardList },
       { title: "Monthly Menu Plan", url: "/menu-plan", icon: FileText },
       { title: "Customer Management", url: "/customers", icon: UserRoundCog },
       { title: "Expense Categories", url: "/expense-categories", icon: Tags },
-      // { title: "Invoice", url: "/invoice", icon: SquareChartGantt },
+      { title: "Invoice", url: "/invoice", icon: SquareChartGantt },
       { title: "Manage Area", url: "/manage-area", icon: MapPin },
       { title: "Notifications", url: "/notifications", icon: Bell },
     ];

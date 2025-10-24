@@ -24,7 +24,6 @@ interface CustomerEditFormProps {
   onClose: () => void;
   initialData: Customer | null;
   onSuccess?: () => void;
-  isSubmitting?: boolean;
 }
 
 export function CustomerEditForm({ 
@@ -32,12 +31,12 @@ export function CustomerEditForm({
   onClose, 
   initialData,
   onSuccess,
-  isSubmitting = false,
 }: CustomerEditFormProps) {
   const userRole = getUser();
   const dispatch = useDispatch<AppDispatch>();
   const restaurants = useSelector((state: RootState) => state.restaurant);
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [formData, setFormData] = useState<Customer>(initialData || {
     name: "",
@@ -110,7 +109,7 @@ export function CustomerEditForm({
       if (!initialData?._id) {
         throw new Error("Invalid customer ID");
       }
-      
+      setIsSubmitting(true);
       const response = await updateCustomer(initialData._id, formData);
       
       if (response.success) {
@@ -131,6 +130,7 @@ export function CustomerEditForm({
         description: error.message || "An error occurred while updating the customer.",
       });
     }
+    setIsSubmitting(false);
   };
 
   useEffect(() => {
