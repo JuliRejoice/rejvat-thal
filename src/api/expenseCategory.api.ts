@@ -1,4 +1,5 @@
 import axiosInstance from "./axiosInstace.config";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const createExpenseCategory = async (expenseCategoryData) => {
     try {
@@ -55,10 +56,15 @@ export const getAllExpenseCategory = async ({ search, page, limit, status, resta
         const queryParams = new URLSearchParams();
         if(search) queryParams.append("search", search);
         if(page !== undefined) queryParams.append("page", String(page));
-        if(limit !== undefined) queryParams.append("limit", String(limit));
-        if(status !== undefined) queryParams.append("isActive", String(status));
-        if(restaurantId) queryParams.append("restaurantId", restaurantId);
+        if (limit !== undefined) queryParams.append("limit", String(limit));
+        if (status !== undefined) queryParams.append("isActive", String(status));
+        if (restaurantId) queryParams.append("restaurantId", restaurantId);
 
+        const { user } = useAuth();
+        const finalRestaurantId = restaurantId || user?.restaurantId?._id;
+        if (finalRestaurantId) {
+            queryParams.append("restaurantId", finalRestaurantId);
+        }
         const url = `expenseCategory/getAllExpenseCate${queryParams.toString ? `?${queryParams.toString()}` : ""}`
 
         const response = await axiosInstance.get(url);
