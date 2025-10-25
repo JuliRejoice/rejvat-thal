@@ -151,7 +151,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
       restaurantId: user?.role === "manager" ? user.restaurantId?._id : null,
       customerId: selectedCustomer._id,
       advancePayment: advanceAmount,
-      incomeCategoryId: Config.CUSTOMER_PAYMENTS,
     };
 
     if (advanceAmount === 0) {
