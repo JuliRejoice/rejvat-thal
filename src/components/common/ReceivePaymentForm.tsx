@@ -43,12 +43,14 @@ export function ReceivePaymentForm({
     paymentMethodId: string;
     incomeCategoryId: string;
     customerId: string;
+    description?: string;
   }>({
     amount: "",
     date: new Date().toISOString().split('T')[0], // Format as YYYY-MM-DD for input[type="date"]
     paymentMethodId: "",
     incomeCategoryId: "",
     customerId: customerId,
+    description: "",
   });
 
   // Reset form data when modal opens
@@ -60,6 +62,7 @@ export function ReceivePaymentForm({
         paymentMethodId: "",
         incomeCategoryId: "",
         customerId: customerId,
+        description: "",
       });
       setErrors({});
     }
@@ -103,7 +106,8 @@ export function ReceivePaymentForm({
         amount: Number(formData.amount),
         date: formData.date,
         method: formData.paymentMethodId,
-        incomeCategoryId: Config.CUSTOMER_PAYMENTS
+        incomeCategoryId: Config.CUSTOMER_PAYMENTS,
+        description: formData.description || undefined
       };
       
       await receivePayment(paymentData);
@@ -131,6 +135,7 @@ export function ReceivePaymentForm({
         paymentMethodId: "",
         incomeCategoryId: "",
         customerId: customerId,
+        description: "",
       });
       
     } catch (error) {
@@ -258,10 +263,25 @@ export function ReceivePaymentForm({
                   </Select>
                 </div>
 
+              {/* Description */}
+              <div className="space-y-1">
+                <Label htmlFor="description" className="text-sm font-medium">
+                  Description
+                </Label>
+                <textarea
+                  id="description"
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Add any notes about this payment"
+                  value={formData.description || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  rows={3}
+                />
+              </div>
               </div>
 
-              {/* Buttons */}
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex justify-end space-x-2 pt-4">
                 <Button
                   type="button"
                   variant="outline"

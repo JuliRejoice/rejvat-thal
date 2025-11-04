@@ -85,6 +85,7 @@ export interface CustomerFormProps {
   initialData?: Customer;
   onSubmit?: (data: Customer) => void;
   isSubmitting?: boolean;
+  refetchCustomers?: () => void;
 }
 
 export type InputOrCustomEvent = React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { name: string; value: string } };

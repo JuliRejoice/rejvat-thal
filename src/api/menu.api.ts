@@ -12,6 +12,7 @@ export interface MenuItem {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  quantity?: number;
 }
 
 export interface CreateMenuItemPayload {

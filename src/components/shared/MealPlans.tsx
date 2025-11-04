@@ -56,33 +56,64 @@ const MealPlans = () => {
     type: MealType[];
     description: string;
     price: number;
+    singleMealPrice: number;
+    doubleMealPrice: number;
     restaurantId: string;
   }>({
     name: '',
     type: ['lunch'],
     description: '',  
     price: 0,
+    singleMealPrice: 0,
+    doubleMealPrice: 0,
     restaurantId: ''
   });
+
+  // Function to fetch meal plans
+  const fetchMealPlans = async () => {
+    try {
+      const params: any = {
+        page: 1,
+        limit: 50,
+      };
+
+      if (filterStatus !== 'all') {
+        params.isActive = filterStatus === 'active';
+      }
+      
+      const response = await mealMenuApi.getMealMenus(params);
+      if (response?.items) {
+        setMeals(response.items);
+      }
+      return response?.items || [];
+    } catch (error) {
+      console.error('Error fetching meal plans:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load meal plans',
+        variant: 'destructive',
+      });
+      return [];
+    }
+  };
 
   // Fetch restaurants and menu items when component mounts
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Fetch restaurants
-
         const params: any = {
           page: 1,
           limit: 50,
         };
 
         if (filterStatus !== 'all') {
-          params.isActive = filterStatus;
+          params.isActive = filterStatus === 'active';
         }
         
-        const [restaurantsResponse, mealMenusResponse] = await Promise.all([
+        const [restaurantsResponse] = await Promise.all([
           getRestaurants({}),
-          mealMenuApi.getMealMenus(params)
+          fetchMealPlans() // Fetch meal plans using the new function
         ]);
 
         // Handle restaurants response
@@ -111,11 +142,6 @@ const MealPlans = () => {
             // Fetch menu items for the first restaurant
             fetchMenuItems(firstRestaurant);
           }
-        }
-
-        // Handle meal menus response
-        if (mealMenusResponse?.items) {
-          setMeals(mealMenusResponse.items);
         }
 
         // Fetch meal menu statistics
@@ -197,11 +223,21 @@ const MealPlans = () => {
       setMenuItems([]);
     }
 
-    // Cleanup function
-    return () => {
-      console.log('Cleaning up restaurant change effect');
-    };
   }, [selectedRestaurant]); // Add fetchMenuItems to dependencies
+
+  useEffect(() => {
+    if (editingMeal) {
+      setFormData({
+        name: editingMeal.name,
+        type: editingMeal.type as unknown as MealType[],
+        description: editingMeal.description,
+        price: editingMeal.price,
+        singleMealPrice: editingMeal.singleMealPrice || 0,
+        doubleMealPrice: editingMeal.doubleMealPrice || 0,
+        restaurantId: editingMeal.restaurantId || ''
+      });
+    }
+  }, [editingMeal]);
 
   const filteredMeals = meals;
 
@@ -220,6 +256,8 @@ const MealPlans = () => {
       type: meal.type as unknown as MealType[],
       description: meal.description,
       price: meal.price,
+      singleMealPrice: meal.singleMealPrice || 0,
+      doubleMealPrice: meal.doubleMealPrice || 0,
       restaurantId: meal.restaurantId || ''
     });
 
@@ -261,6 +299,8 @@ const MealPlans = () => {
       type: [],
       description: '',
       price: 0,
+      singleMealPrice: 0,
+      doubleMealPrice: 0,
       restaurantId: selectedRestaurant || ''
     });
   };
@@ -269,9 +309,19 @@ const MealPlans = () => {
     const { id, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [id]: id === 'price' ? parseFloat(value) || 0 : value
+      [id]: ['price', 'singleMealPrice', 'doubleMealPrice'].includes(id) ? parseFloat(value) || 0 : value
     }));
   };
+
+  // Update doubleMealPrice when meal types change
+  useEffect(() => {
+    if (formData.type.length < 2 && formData.doubleMealPrice !== 0) {
+      setFormData(prev => ({
+        ...prev,
+        doubleMealPrice: 0
+      }));
+    }
+  }, [formData.type.length]);
 
   const handleSelectChange = (value: string, field: string) => {
     setFormData(prev => ({
@@ -282,6 +332,7 @@ const MealPlans = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     if (!formData.restaurantId) {
       toast({
@@ -289,37 +340,29 @@ const MealPlans = () => {
         description: 'Please select a restaurant',
         variant: 'destructive',
       });
+      setIsSubmitting(false);
       return;
     }
-
-    if (selectedItems.length === 0) {
-      toast({
-        title: 'Error',
-        description: 'Please select at least one menu item',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+    
     try {
-      setIsSubmitting(true);
-
       const payload: CreateMealMenuPayload = {
         name: formData.name,
-        type: formData.type as unknown as MealType[],
+        type: formData.type,
         description: formData.description,
         price: formData.price,
-        itemPrice: calculateTotalPrice(),
-        restaurantId: formData.restaurantId, // Replace with actual restaurant ID
+        singleMealPrice: formData.singleMealPrice,
+        doubleMealPrice: formData.doubleMealPrice,
+        restaurantId: formData.restaurantId,
         items: selectedItems.map(item => ({
           itemId: item._id,
           qty: item.quantity
-        }))
+        })),
+        itemPrice: calculateTotalPrice()
       };
 
       if (editingMeal) {
         // Update existing meal
-        const updatedMeal = await mealMenuApi.updateMealMenu({
+        await mealMenuApi.updateMealMenu({
           id: editingMeal._id,
           ...payload
         });
@@ -328,22 +371,20 @@ const MealPlans = () => {
           title: 'Success',
           description: 'Meal plan updated successfully',
         });
-
-        // Update local state
-        setMeals(meals.map(m => m._id === editingMeal._id ? updatedMeal : m));
       } else {
         // Create new meal
-        const newMeal = await mealMenuApi.createMealMenu(payload);
+        await mealMenuApi.createMealMenu(payload);
 
         toast({
           title: 'Success',
           description: 'Meal plan created successfully',
         });
-
-        // Update local state
-        setMeals([...meals, newMeal]);
       }
-
+      
+      // Refresh the meal plans data from the server
+      await fetchMealPlans();
+      
+      // Close the modal and reset the form
       handleCloseModal();
     } catch (error) {
       console.error('Error saving meal plan:', error);
@@ -525,7 +566,7 @@ const MealPlans = () => {
         <CommandInput placeholder="Search type..." />
         <CommandEmpty>No meal type found.</CommandEmpty>
         <CommandGroup>
-          {["breakfast", "lunch", "dinner", "complete meal"].map((type) => (
+          {["breakfast", "lunch", "dinner"].map((type) => (
             <CommandItem
               key={type}
               onSelect={() => {
@@ -649,8 +690,10 @@ const MealPlans = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="price">Final Price (AED) *</Label>
+             
+
+              {/* <div className="space-y-2">
+                <Label htmlFor="price">Final Price (AED / Month) *</Label>
                 <div className="flex items-center gap-1">
                   <Dirham size={16} className="mt-0.5" />
                   <Input
@@ -664,8 +707,46 @@ const MealPlans = () => {
                     required
                   />
                 </div>
+              </div> */}
+                   <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="singleMealPrice">One Time Final Price (AED / Month) *</Label>
+                  <div className="flex items-center gap-1">
+                    <Dirham size={16} className="mt-0.5" />
+                    <Input
+                      id="singleMealPrice"
+                      type="number"
+                      placeholder="Enter one time price"
+                      value={formData.singleMealPrice}
+                      onChange={handleInputChange}
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="doubleMealPrice">
+                    Two Time Final Price (AED / Month) *
+                  </Label>
+                  <div className="flex items-center gap-1">
+                    <Dirham size={16} className="mt-0.5" />
+                    <Input
+                      id="doubleMealPrice"
+                      type="number"
+                      placeholder={formData.type.length >= 2 ? "Enter two time price" : "Select 2+ meal types"}
+                      value={formData.doubleMealPrice}
+                      onChange={handleInputChange}
+                      min="0"
+                      step="0.01"
+                      required={formData.type.length >= 2}
+                      disabled={formData.type.length < 2}
+                      className={formData.type.length < 2 ? "opacity-70" : ""}
+                    />
+                  </div>
+                </div>
               </div>
-
+                  
               <div className="flex gap-2 pt-2">
                 <Button
                   type="submit"
@@ -796,7 +877,8 @@ const MealPlans = () => {
                 <TableHead>Meal Name</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Items Count</TableHead>
-                <TableHead>Price</TableHead>
+                <TableHead>One Time Price</TableHead>
+                <TableHead>Two Time Price</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -830,10 +912,16 @@ const MealPlans = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                      <Dirham className="h-3 w-3" />
-                      <span className="font-medium">{meal.price}</span>
-                    </div>
-                  </TableCell>
+                        <Dirham className="h-3 w-3" />
+                        <span className="font-medium">{meal.singleMealPrice || 0}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Dirham className="h-3 w-3" />
+                        <span className="font-medium">{meal.doubleMealPrice > 0 ? meal.doubleMealPrice : '-'}</span>
+                      </div>
+                    </TableCell>
                   <TableCell>
                     <Badge variant={meal.isActive ? 'default' : 'destructive'}>
                       {meal.isActive ? 'Active' : 'Inactive'}
@@ -896,9 +984,19 @@ const MealPlans = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <Dirham size={18} className="text-2xl font-bold mt-1" />
-                    <span className="text-2xl font-bold">{selectedMeal.price}</span>
+                  <div className="space-y-2 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <span className="text-sm text-muted-foreground">One Time:</span>
+                      <Dirham size={12} className="font-bold" />
+                      <span className="font-bold text-sm">{selectedMeal.singleMealPrice || 0}</span>
+                    </div>
+                    {selectedMeal.doubleMealPrice > 0 && (
+                      <div className="flex items-center justify-end gap-1">
+                        <span className="text-sm text-muted-foreground">Two Times:</span>
+                        <Dirham size={12} className="font-bold" />
+                        <span className="font-bold text-sm">{selectedMeal.doubleMealPrice}</span>
+                      </div>
+                    )}
                   </div>
                   <Badge variant={selectedMeal.isActive ? 'default' : 'destructive'}>
                     {selectedMeal.isActive ? 'Active' : 'Inactive'}

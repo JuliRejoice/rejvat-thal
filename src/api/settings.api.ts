@@ -1,4 +1,8 @@
 import axiosInstance from "./axiosInstace.config";
+import { useAuth } from "@/contexts/AuthContext";
+
+
+
 
 const handleError = (error) => {
     console.error('get utility setting thershold amount API error:', error);
@@ -13,20 +17,22 @@ const handleError = (error) => {
 }
 
 export const getThresholdAmont = async (params: { page?: number; limit?: number } = {}) => {
+    const { user } = useAuth();
     try {
-      const response = await axiosInstance.get('/utilitySetting/getUtilitySetting', {
-        params: {
-          page: params.page || 1,
-          limit: params.limit || 10,
-        }
-      });
-      return response.data;
+        const response = await axiosInstance.get('/utilitySetting/getUtilitySetting', {
+            params: {
+                page: params.page || 1,
+                limit: params.limit || 10,
+                restaurantId: user?.role === "manager" ? user.restaurantId?._id : "",
+            }
+        });
+        return response.data;
     } catch (error) {
-      handleError(error);
+        handleError(error);
     }
-  };
+};
 
-export const addSetting=  async (data) => {
+export const addSetting = async (data) => {
     try {
         const response = await axiosInstance.post(`/utilitySetting/addUtilitySetting`, data);
 
@@ -41,7 +47,7 @@ export const addSetting=  async (data) => {
 
 export const updateSetting = async (data) => {
     try {
-        const response = await axiosInstance.put(`/utilitySetting/updateUtilitySetting?id=${data.restaurantId}`, {expenseThresholdAmount:data.expenseThresholdAmount});
+        const response = await axiosInstance.put(`/utilitySetting/updateUtilitySetting?id=${data.restaurantId}`, { expenseThresholdAmount: data.expenseThresholdAmount });
 
         console.log("get utility setting thershold amount API Response:", response.data);
 

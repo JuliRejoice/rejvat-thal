@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus } from "lucide-react";
+import { Loader2, UserPlus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Customer, CustomerErrors, CustomerFormProps, InputOrCustomEvent } from "@/types/customer.types";
@@ -19,7 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { getAllArea } from "@/api/area.api";
 
-export function CustomerForm({ open, onClose, refetch, setRefetch, setBuildingState }: CustomerFormProps) {
+export function CustomerForm({ open, onClose, refetchCustomers }: CustomerFormProps) {
   const userRole = getUser();
   const dispatch = useDispatch<AppDispatch>();
   const restaurants = useSelector((state: RootState) => state.restaurant);
@@ -33,10 +33,10 @@ export function CustomerForm({ open, onClose, refetch, setRefetch, setBuildingSt
     areaId: "",
   };
   const [formData, setFormData] = useState<Customer>(initialFormData);
-  const [isOpen, setIsOpen] = useState(false);
   const [errors, setErrors] = useState<CustomerErrors>();
   const fetchedRef = useRef(false);
   const {user}= useAuth()
+  const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (e: InputOrCustomEvent) => {
     const { name, value } = e.target;
@@ -88,6 +88,7 @@ export function CustomerForm({ open, onClose, refetch, setRefetch, setBuildingSt
       return;
     }
 
+    setSubmitting(true);
 
     const response = await createNewCustomer(formData);
     if (response.success) {
@@ -99,13 +100,11 @@ export function CustomerForm({ open, onClose, refetch, setRefetch, setBuildingSt
 
       onClose();
 
-      if (setRefetch) {
-        setRefetch(!refetch);
-      }
+     refetchCustomers();
 
       // refatch customer list
       handleClose();
-      setBuildingState('meal');
+      // setBuildingState('meal');
     } else {
       toast({
         variant: "destructive",
@@ -113,6 +112,7 @@ export function CustomerForm({ open, onClose, refetch, setRefetch, setBuildingSt
         description: "Customer creation failed.",
       });
     }
+    setSubmitting(false);
   };
 
   useEffect(() => {
@@ -247,18 +247,17 @@ export function CustomerForm({ open, onClose, refetch, setRefetch, setBuildingSt
             </div>
           </div>
 
-          {/* <EnhancedCustomerForm
-            open={isOpen}
-            onClose={() => setIsOpen(false)}
-            refetch={refetch}
-            setRefetch={setRefetch}
-          /> */}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-gradient-primary">
-              Create Customer
+            <Button type="submit" className="bg-gradient-primary" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : 'Create Customer'}
             </Button>
           </DialogFooter>
         </form>

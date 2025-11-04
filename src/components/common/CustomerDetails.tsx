@@ -369,7 +369,7 @@ const CustomerDetails = ({ customer, incomeCategories }: { customer: any, income
                   ) :
                     paymentHistory.length > 0 ? (
                       paymentHistory.map((payment, index) => {
-                        const incomeCategory = incomeCategories.find((category: any) => category._id === payment.incomeCategoryId);
+                        const incomeCategory = incomeCategories?.find((category: any) => category._id === payment.incomeCategoryId);
                         return (
                           <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                             <div className="flex items-center space-x-3">

@@ -8,9 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserPlus, Search, Eye, Edit, MapPin, Phone, Mail, Calendar, DollarSign, Package, Clock, CheckCircle, XCircle, Pause, Play, User, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { UserPlus, Search, Eye, Edit, DollarSign, Package, Clock, CheckCircle, XCircle, Pause, Play, User, Loader2, Utensils, Plus } from "lucide-react";
 import { getCustomer, getCustomerOverview, updateCustomer as updateCustomerApi } from "@/api/customer.api";
 import { Customer, CustomerResponse, GetCustomerParams, InputOrCustomEvent } from "@/types/customer.types";
 import { CustomerForm } from "@/components/common/CustomerForm";
@@ -30,14 +29,17 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router";
 import { getAllIncomeCategory } from "@/api/incomeCategories.api";
 import { Skeleton } from "../ui/skeleton";
+import { DialogTrigger } from "@radix-ui/react-dialog";
+import AddTiffin from "./AddTiffin";
 
 
 const CustomerManagement = () => {
   const userRole = getUser();
   const restaurants = useSelector((state: RootState) => state.restaurant);
   const [selectedRestaurent, setSelectedRestaurent] = useState<any>(null);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
   const [page, setPage] = useState(1);
+  const [shouldRefetchCustomers, setShouldRefetchCustomers] = useState(false);
   const [limit, setLimit] = useState(5);
   const [isActive, setIsActive] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,6 +47,8 @@ const CustomerManagement = () => {
   const [customers, setCustomers] = useState<{ totalRecords: number; customer: CustomerResponse[] }>({ totalRecords: 0, customer: [] });
   const [customerOverview, setCustomerOverview] = useState<{ totalRecords: number; activeCount: number; pendingDues: number }>({ totalRecords: 0, activeCount: 0, pendingDues: 0 });
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddTiffinModalOpen, setIsAddTiffinModalOpen] = useState(false);
+  const [selectedCustomerForTiffin, setSelectedCustomerForTiffin] = useState<Customer | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isPending, setIsPending] = useState(false);
   const navigate = useNavigate();
@@ -52,7 +56,6 @@ const CustomerManagement = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [refetch, setRefetch] = useState(false);
   const didMount = useRef(false);
   const didMountOverview = useRef(false);
 
@@ -96,7 +99,11 @@ const CustomerManagement = () => {
   const { data: incomeCategories } = getIncomeCategoriesQuery;
 
   // Fetch customers with TanStack Query
-  const { data: customersData, isLoading: isLoadingCustomer } = useQuery({
+  const {
+    data: customersData,
+    isLoading: isLoadingCustomer,
+    refetch: refetchCustomers
+  } = useQuery({
     queryKey: ["customers", {
       restaurantId: userRole?.role === "manager" ? userRole?.restaurantId?._id : selectedRestaurent?.restaurantId,
       page,
@@ -172,14 +179,14 @@ const CustomerManagement = () => {
     queryKey: ["get-all-area", {
       restaurantId: user?.restaurantId?._id,
       page: 1,
-      limit: 10,
+      limit: Number.MAX_SAFE_INTEGER,
       search: ""
     }],
     queryFn: () =>
       getAllArea({
         restaurantId: user?.restaurantId?._id,
         page: 1,
-        limit: 10,
+        limit: Number.MAX_SAFE_INTEGER,
         search: ""
       }),
   });
@@ -202,7 +209,7 @@ const CustomerManagement = () => {
   ];
 
   const handleDialogOpen = () => {
-    setIsCreateModalOpen(true);
+    setIsCustomerDialogOpen(true);
   };
 
 
@@ -213,7 +220,7 @@ const CustomerManagement = () => {
 
   const handleDialogClosed = () => {
     setEditingCustomer(null);
-    setIsCreateModalOpen(false);
+    setIsCustomerDialogOpen(false);
     setIsEditModalOpen(false);
   };
 
@@ -261,8 +268,11 @@ const CustomerManagement = () => {
           <p className="text-muted-foreground">Manage customer information, tiffin plans, and payments</p>
         </div>
 
-        <Button className="bg-gradient-primary" onClick={() => navigate("/add-tiffin")}>
-          <UserPlus className="mr-2 h-4 w-4" />
+        <Button
+          className="gap-2"
+          onClick={() => setIsCustomerDialogOpen(true)}
+        >
+          <UserPlus className="h-4 w-4" />
           Add Customer
         </Button>
 
@@ -385,8 +395,6 @@ const CustomerManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-               
-
                 {/* customer list loader */}
                 {isLoadingCustomer ? (
                   Array.from({ length: 5 }).map((_, index) => (
@@ -451,20 +459,43 @@ const CustomerManagement = () => {
                               </div>
                             </TableCell>
                             <TableCell>
+                              {/* {
+                                customer?.tiffin ? (
+                                  <Utensils className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <Plus className="h-4 w-4" />
+                                )
+                              }
                               <div className="flex items-center space-x-2">
                                 <Switch
                                   id="status-toggle"
                                   checked={Boolean(customer?.tiffin)}
-                                  onCheckedChange={(checked) => {
-                                    if (checked) {
-                                      navigate(`/add-tiffin?customerId=${customer._id}`);
-                                    }
+                                  // onCheckedChange={(checked) => {
+                                  //   if (checked) {
+                                  //     navigate(`/add-tiffin?customerId=${customer._id}`);
+                                  //   }
 
-                                  }}
+                                  // }}
                                   className="cursor-pointer"
                                 />
 
-                              </div>
+                              </div> */}
+                              <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedCustomerForTiffin(customer);
+                                    setIsAddTiffinModalOpen(true);
+                                  }}
+                                  title="Add Tiffin Plan"
+                                  // className={!customer?.tiffin ? 'text-green-600 border-green-600 hover:bg-green-50' : ''}
+                                >
+                                  {customer?.tiffin ? (
+                                    <Utensils className="h-4 w-4" />
+                                  ) : (
+                                    <Plus className="h-4 w-4" />
+                                  )}
+                                </Button>
                             </TableCell>
                             {/* <TableCell>
                       <div>
@@ -485,6 +516,7 @@ const CustomerManagement = () => {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center space-x-2">
+                                
                                 <Dialog>
                                   <DialogTrigger asChild>
                                     <Button variant="outline" size="sm">
@@ -507,7 +539,7 @@ const CustomerManagement = () => {
                   )
                 }
 
-                
+
               </TableBody>
             </Table>
           </div>
@@ -515,6 +547,19 @@ const CustomerManagement = () => {
           <DataTablePagination currentPage={page} totalPages={totalPages} totalItems={totalItems} itemsPerPage={limit} startIndex={(page - 1) * limit + 1} endIndex={Math.min(page * limit, totalItems)} hasNextPage={page < totalPages} hasPreviousPage={page > 1} onPageChange={setPage} onNextPage={() => setPage((p) => p + 1)} onPreviousPage={() => setPage((p) => p - 1)} onItemsPerPageChange={setLimit} />
         </CardContent>
       </Card>
+
+      {/* Add Customer Dialog */}
+      {
+        isCustomerDialogOpen && (
+          <Dialog open={isCustomerDialogOpen} onOpenChange={setIsCustomerDialogOpen}>
+            <CustomerForm
+              open={isCustomerDialogOpen}
+              onClose={() => { setIsCustomerDialogOpen(false) }}
+              refetchCustomers={refetchCustomers}
+            />
+          </Dialog>
+        )
+      }
 
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-[450px]">
@@ -631,6 +676,29 @@ const CustomerManagement = () => {
               {isPending ? 'Saving...' : 'Save changes'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAddTiffinModalOpen} onOpenChange={setIsAddTiffinModalOpen}>
+        <DialogContent className="max-w-7xl h-[95vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedCustomerForTiffin?.name ? `Add Tiffin for ${selectedCustomerForTiffin.name}` : 'Add Tiffin'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            {selectedCustomerForTiffin && (
+              <AddTiffin
+                customerId={selectedCustomerForTiffin._id}
+                onSuccess={() => {
+                  setIsAddTiffinModalOpen(false);
+                  // Refresh customer data if needed
+                  refetchCustomers();
+                }}
+                areas={areas}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

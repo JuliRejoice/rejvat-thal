@@ -18,7 +18,6 @@ import InvoiceAdvanceAmount from "./InvoiceAdvanceAmount";
 import { toast } from "sonner";
 import { Dirham } from "@/components/Svg";
 import { useAuth } from "@/contexts/AuthContext";
-import { Config } from "@/utils/Config";
 
 interface InvoiceItem {
   id: string;
@@ -79,6 +78,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
   const [advanceAmount, setAdvanceAmount] = useState(0);
   const [advancePaymentMethod, setAdvancePaymentMethod] = useState('');
   const [roundingValue, setRoundingValue] = useState(0);
+  const [description, setDescription] = useState('');
 
   // Add new item
   const handleAddItem = () => {
@@ -151,6 +151,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
       restaurantId: user?.role === "manager" ? user.restaurantId?._id : null,
       customerId: selectedCustomer._id,
       advancePayment: advanceAmount,
+      advanceDescription: description,
     };
 
     if (advanceAmount === 0) {
@@ -339,16 +340,22 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 <span>{finalTotal}</span>
               </div>
             </div>
+            
+          </CardContent>
+        </Card>
+
+        <Card className="border-none">
+          <CardContent className="space-y-4">
             <InvoiceAdvanceAmount
               total={finalTotal}
               advanceAmount={advanceAmount}
               advancePaymentMethod={advancePaymentMethod}
-              onSave={(amount, status, paymentMethod) => {
+              onSave={(amount, status, paymentMethod, description) => {
                 setAdvanceAmount(amount);
                 setAdvancePaymentMethod(paymentMethod);
+                setDescription(description);
               }}
               paymentMethods={paymentMethods}
-              incomeCategories={incomeCategories}
             />
 
             {dueAmount > 0 && (
@@ -360,11 +367,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-none">
-          <CardContent className="space-y-4">
             <Separator />
             <Button
               onClick={handleCreateInvoice}

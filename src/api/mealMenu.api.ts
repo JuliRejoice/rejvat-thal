@@ -22,6 +22,8 @@ export interface MealMenu {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  singleMealPrice: number;
+  doubleMealPrice: number;
 }
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner';
@@ -37,6 +39,8 @@ export interface CreateMealMenuPayload {
   }>;
   price: number;
   itemPrice: number;
+  singleMealPrice: number;
+  doubleMealPrice: number;
 }
 
 export interface UpdateMealMenuPayload extends Partial<CreateMealMenuPayload> {

@@ -134,18 +134,6 @@ export const invoiceApi = {
     }
   },
 
-  // Update an existing invoice
-  updateInvoice: async (data: UpdateInvoicePayload): Promise<Invoice> => {
-    try {
-      const { id, ...updateData } = data;
-      const response = await axiosInstance.put(`/invoice/${id}`, updateData);
-      return response.data;
-    } catch (error) {
-      console.error("Error updating invoice:", error);
-      throw error;
-    }
-  },
-
   // Get all invoices with pagination and filters
   getInvoices: async (params: GetInvoicesParams = {}): Promise<{ items: Invoice[], total: number }> => {
     try {
@@ -165,39 +153,6 @@ export const invoiceApi = {
       throw error;
     }
   },
-
-  // Get a single invoice by ID
-  getInvoiceById: async (id: string): Promise<Invoice> => {
-    try {
-      const response = await axiosInstance.get(`/invoice/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching invoice ${id}:`, error);
-      throw error;
-    }
-  },
-
-  // Delete an invoice
-  deleteInvoice: async (id: string): Promise<{ success: boolean }> => {
-    try {
-      await axiosInstance.delete(`/invoice/${id}`);
-      return { success: true };
-    } catch (error) {
-      console.error(`Error deleting invoice ${id}:`, error);
-      throw error;
-    }
-  },
-
-  // Get invoice statistics
-  getInvoiceStatistics: async (): Promise<InvoiceStatistics> => {
-    try {
-      const response = await axiosInstance.get("/invoice/statistics");
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching invoice statistics:", error);
-      throw error;
-    }
-  }
 };
 
 export default invoiceApi;

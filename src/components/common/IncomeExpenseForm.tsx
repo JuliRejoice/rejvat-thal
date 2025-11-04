@@ -20,7 +20,7 @@ import { getAllExpenseCategory } from "@/api/expenseCategory.api";
 import { getAllIncomeCategory } from "@/api/incomeCategories.api";
 import { getAllVendors } from "@/api/vendor.api";
 import { getThresholdAmont } from "@/api/settings.api";
-
+import { useAuth } from "@/contexts/AuthContext";
 type IncomeExpenseFormMode = "create" | "edit";
 type IncomeExpenseType = "income" | "expense";
 
@@ -53,6 +53,7 @@ export function IncomeExpenseForm({
   const [incomeCategoriesOptions, setIncomeCategoriesOptions] = useState<
     { id: string; name: string }[]
   >([]);
+  const { user } = useAuth();
 
   const {
     register,
@@ -97,7 +98,7 @@ export function IncomeExpenseForm({
       },
       {
         queryKey: ["income-categories"],
-        queryFn: () => getAllIncomeCategory({}),
+        queryFn: () => getAllIncomeCategory({restaurantId: user?.restaurantId?._id}),
         enabled: type === "income",
       },
       {

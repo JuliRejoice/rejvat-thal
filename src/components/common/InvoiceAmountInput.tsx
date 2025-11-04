@@ -14,19 +14,24 @@ interface AmountInputProps {
   label: string;
   value: number;
   setValue: (v: number) => void;
+  title?: string;
+  setTitle?: (title: string) => void;
   subtotal?: number;
   isPercentage?: boolean;
-  onSave?: (amount: number) => void;
+  onSave?: (amount: number, title?: string) => void;
 }
 
 const AmountInputDialog: React.FC<AmountInputProps> = ({
   label,
   value = 0,
   setValue,
+  title: propTitle = '',
+  setTitle,
   subtotal = null,
   isPercentage = false,
   onSave,
 }) => {
+  const [title, setTitleLocal] = useState(propTitle);
   const [tempValue, setTempValue] = useState<number>(value);
   const [open, setOpen] = useState(false);
 
@@ -35,8 +40,12 @@ const AmountInputDialog: React.FC<AmountInputProps> = ({
   }, [value]);
 
   const handleApply = () => {
-    setValue(isNaN(tempValue) ? 0 : tempValue);
-    onSave?.(isNaN(tempValue) ? 0 : tempValue);
+    const finalValue = isNaN(tempValue) ? 0 : tempValue;
+    setValue(finalValue);
+    if (setTitle) {
+      setTitle(title);
+    }
+    onSave?.(finalValue, title);
   };
 
   const displayAmount = isPercentage ? (subtotal * value) / 100 : value;
@@ -62,29 +71,43 @@ const AmountInputDialog: React.FC<AmountInputProps> = ({
         <DialogContent className="sm:max-w-sm mx-auto mt-24 p-6 rounded-lg shadow-lg">
           <DialogTitle className="text-lg font-bold mb-4">{label}</DialogTitle>
 
-          <div className="relative w-full mb-4">
-            {!isPercentage && (
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                <Dirham size={14} />
-              </div>
-            )}
-            <Input
-              type="number"
-              className={`w-full p-2 rounded-sm ${!isPercentage ? 'pl-8' : ''}`}
-              value={isNaN(tempValue) ? "" : tempValue}
-              onFocus={() => {
-                if (tempValue === 0) setTempValue(NaN);
-              }}
-              onBlur={() => {
-                if (isNaN(tempValue)) setTempValue(0);
-              }}
-              onChange={(e) => {
-                const val = e.target.value;
-                setTempValue(val === "" ? NaN : parseFloat(val));
-              }}
-              placeholder={isPercentage ? "%" : "0.00"}
-            />
+          <div className="space-y-4">
+           
+            <div className="relative">
+              {!isPercentage && (
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <Dirham size={14} />
+                </div>
+              )}
+              <Input
+                type="number"
+                className={`w-full p-2 rounded-sm ${!isPercentage ? 'pl-8' : ''}`}
+                value={isNaN(tempValue) ? "" : tempValue}
+                onFocus={() => {
+                  if (tempValue === 0) setTempValue(NaN);
+                }}
+                onBlur={() => {
+                  if (isNaN(tempValue)) setTempValue(0);
+                }}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setTempValue(val === "" ? NaN : parseFloat(val));
+                }}
+                placeholder={isPercentage ? "%" : "0.00"}
+              />
+            </div>
+             <div className="space-y-2">
+              <Input
+                type="text"
+                placeholder="Description (max 20 chars)"
+                value={title}
+                onChange={(e) => setTitleLocal(e.target.value)}
+                className="w-full"
+                maxLength={20}
+              />
+            </div>
           </div>
+          
 
           <div className="flex justify-end gap-2">
             <DialogClose asChild>
@@ -100,18 +123,20 @@ const AmountInputDialog: React.FC<AmountInputProps> = ({
         </DialogContent>
       </Dialog>
 
-      <div className="flex items-center gap-1 font-medium">
-        {isPercentage ? (
-          <>
-            <Dirham size={12} />
-            <span>{displayAmount.toFixed(2)}</span>
-          </>
-        ) : (
-          <>
-            <Dirham size={12} />
-            <span>{value.toFixed(2)}</span>
-          </>
-        )}
+      <div className="flex flex-col items-end">
+        <div className="flex items-center gap-1 font-medium">
+          {isPercentage ? (
+            <>
+              <Dirham size={12} />
+              <span>{displayAmount.toFixed(2)}</span>
+            </>
+          ) : (
+            <>
+              <Dirham size={12} />
+              <span>{value.toFixed(2)}</span>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

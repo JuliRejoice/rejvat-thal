@@ -1,14 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogTitle,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { Dirham } from "@/components/Svg";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -17,15 +9,20 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
+import { Dirham } from "@/components/Svg";
 import { toast } from "sonner";
 
 interface InvoiceAdvanceAmountProps {
   total: number;
-  onSave: (amount: number, status: string, paymentMethod: string) => void;
+  onSave: (
+    amount: number,
+    status: string,
+    paymentMethod: string,
+    description: string
+  ) => void;
   advanceAmount: number;
-  advancePaymentMethod?: string; // optional, in case you pass saved method from parent
+  advancePaymentMethod?: string;
   paymentMethods?: any;
-  incomeCategories?: any;
 }
 
 const InvoiceAdvanceAmount: React.FC<InvoiceAdvanceAmountProps> = ({
@@ -34,14 +31,12 @@ const InvoiceAdvanceAmount: React.FC<InvoiceAdvanceAmountProps> = ({
   advanceAmount,
   advancePaymentMethod,
   paymentMethods,
-  incomeCategories,
 }) => {
-  const [open, setOpen] = useState(false);
   const [advanceAmountInput, setAdvanceAmountInput] = useState<string>("");
-  const [savedAmount, setSavedAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>();
+  const [description, setDescription] = useState<string>("");
+  const [savedAmount, setSavedAmount] = useState<number>(0);
 
-  // Initialize saved data from props
   useEffect(() => {
     if (advanceAmount > 0) {
       setSavedAmount(advanceAmount);
@@ -49,8 +44,6 @@ const InvoiceAdvanceAmount: React.FC<InvoiceAdvanceAmountProps> = ({
       setPaymentMethod(advancePaymentMethod);
     }
   }, [advanceAmount, advancePaymentMethod]);
-
-  console.log(paymentMethod,advancePaymentMethod,'advancePaymentMethod')
 
   const numericValue = parseFloat(advanceAmountInput) || 0;
 
@@ -77,107 +70,84 @@ const InvoiceAdvanceAmount: React.FC<InvoiceAdvanceAmountProps> = ({
         : "paid";
 
     setSavedAmount(numericValue);
-    onSave(numericValue, status, paymentMethod);
-    setOpen(false);
+    onSave(numericValue, status, paymentMethod || "", description);
+    toast.success("Advance amount saved!");
   };
 
   return (
-    <div className="flex items-center justify-between gap-3">
-      <Dialog
-        open={open}
-        onOpenChange={(isOpen) => {
-          setOpen(isOpen);
-          if (isOpen && savedAmount > 0) {
-            setAdvanceAmountInput(savedAmount.toString());
-            setPaymentMethod(advancePaymentMethod); 
-          }
-          if(!isOpen){
-            setAdvanceAmountInput(savedAmount > 0 ? savedAmount.toString() : "");
-            setPaymentMethod(advancePaymentMethod);
-            setOpen(false);
-          }
-        }}
-      >
-        <DialogTrigger asChild>
-          <span className="font-medium text-blue-700 cursor-pointer">
-            + Advance Amount
-            {savedAmount > 0 && (
-              <span className="px-2 py-1 ml-1 rounded-full text-xs font-medium bg-success/10 text-success">
-                {paymentMethods?.find((method: any) => method._id === advancePaymentMethod)?.type}
-              </span>
-            )}
-          </span>
-        </DialogTrigger>
+    <div className="flex flex-col gap-3 border p-4 rounded-lg bg-muted/20">
+      {/* Top Summary */}
+      
+      {/* Row 1: Amount + Method */}
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
+          <Label className="text-xs">Pay Amount</Label>
+          <Input
+            type="number"
+            placeholder="0"
+            value={advanceAmountInput}
+            onFocus={(e) => {
+              if (e.target.value === "0") setAdvanceAmountInput("");
+            }}
+            onChange={(e) =>
+              setAdvanceAmountInput(e.target.value.replace(/^0+(?=\d)/, ""))
+            }
+          />
+        </div>
 
-        <DialogContent className="sm:max-w-sm">
-          <DialogTitle>Enter Advance Amount</DialogTitle>
+        <div className="flex flex-col gap-1 flex-1 min-w-[160px]">
+          <Label className="text-xs">Payment Method</Label>
+          <Select
+            value={paymentMethod || undefined}
+            onValueChange={(value) => setPaymentMethod(value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select method" />
+            </SelectTrigger>
+            <SelectContent>
+              {paymentMethods?.map((method: any) => (
+                <SelectItem key={method._id} value={method._id}>
+                  {method.type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-          <div className="flex flex-col gap-3 mt-4">
-            {/* Amount input */}
-            <div className="space-y-2">
-              <Label>Amount</Label>
-              <Input
-                type="number"
-                placeholder="Enter amount"
-                value={advanceAmountInput}
-                onFocus={(e) => {
-                  if (e.target.value === "0") setAdvanceAmountInput("");
-                }}
-                onChange={(e) =>
-                  setAdvanceAmountInput(e.target.value.replace(/^0+(?=\d)/, ""))
-                }
-              />
-            </div>
+      {/* Row 2: Description + Save button */}
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+          <Label className="text-xs">Description</Label>
+          <Input
+            type="text"
+            placeholder="Advance description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </div>
 
-            {/* Payment method selection */}
-            {numericValue > 0 && (
-              <div className="space-y-2">
-                <Label>Payment Method</Label>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select payment method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {paymentMethods?.map((method: any) => (
-                      <SelectItem key={method._id} value={method._id}>
-                        {method.type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Action buttons */}
-            <div className="flex justify-end gap-2 pt-2">
-              <DialogClose asChild>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setAdvanceAmountInput(
-                      savedAmount > 0 ? savedAmount.toString() : ""
-                    );
-                    setPaymentMethod(paymentMethod);
-                  }}
-                >
-                  Cancel
-                </Button>
-              </DialogClose>
-              <Button onClick={handleSave} disabled={numericValue > 0 && !paymentMethod}>
-                {getButtonLabel()}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Display saved amount */}
-      {savedAmount > 0 && (
-        <div className="flex items-center gap-1 font-medium text-blue-700">
+        <Button
+          size="sm"
+          className="h-9 mt-1"
+          onClick={handleSave}
+          disabled={numericValue > 0 && !paymentMethod}
+        >
+          {getButtonLabel()}
+        </Button>
+      </div>
+      {/* {savedAmount > 0 && (
+        <div className="flex items-center gap-1 text-blue-700 text-sm">
           <Dirham size={12} />
           <span>{savedAmount}</span>
+          {paymentMethods?.find((m: any) => m._id === paymentMethod)?.type && (
+            <span className="px-2 py-0.5 ml-1 rounded-full text-xs font-medium bg-success/10 text-success">
+              {paymentMethods?.find((m: any) => m._id === paymentMethod)?.type}
+            </span>
+          )}
         </div>
-      )}
+      )} */}
+  
     </div>
   );
 };

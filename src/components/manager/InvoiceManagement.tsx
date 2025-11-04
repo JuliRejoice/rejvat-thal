@@ -63,11 +63,11 @@ const InvoiceManagement = () => {
     ],
   });
 
-    const [
-    getPaymentMethodsQuery,
-    getIncomeCategoriesQuery,
-    getThresholdAmountQuery,
-  ] = queriesResults;
+      const [
+      getPaymentMethodsQuery,
+      getIncomeCategoriesQuery,
+      getThresholdAmountQuery,
+    ] = queriesResults;
 
   const { data: paymentMethods } = getPaymentMethodsQuery;
   const { data: incomeCategories } = getIncomeCategoriesQuery;
@@ -117,7 +117,6 @@ const InvoiceManagement = () => {
     totalItems: totalItems,
   });
 
-  console.log(totalItems, "totalItems");
   const fetchInvoices = async (
     page: number = currentPage,
     limit: number = itemsPerPage
@@ -183,7 +182,6 @@ const InvoiceManagement = () => {
 
   const handleCreateInvoice = async (invoiceData: any) => {
 
-    console.log(invoiceData, "invoiceData")
     try {
       setIsSubmitting(true);
       // Add the current user and restaurant ID to the invoice data
@@ -598,7 +596,7 @@ const InvoiceManagement = () => {
                         <TableCell>
                           {format(invoice.createdAt, "dd MMM yyyy")}
                         </TableCell>
-                        <TableCell>{invoice.items.length} items</TableCell>
+                        <TableCell>{invoice.items?.length} items</TableCell>
                         <TableCell className="text-right font-medium">
                           <div className="flex items-center gap-1">
                             <Dirham size={12} />

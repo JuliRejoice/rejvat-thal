@@ -61,14 +61,14 @@ const Index = () => {
         <Route path="/forget-password" element={<ForgetPassForm />} />
         <Route path="/otp-verification" element={<OTPVerificationForm />} />
         <Route path="/reset-password" element={<ResetPasswordForm />} />
-        <Route
+        {/* <Route
           path="/add-tiffin"
           element={
             <RouteLayout useLayout={false}>
               <AddTiffin />
             </RouteLayout>
           }
-        />
+        /> */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -78,14 +78,14 @@ const Index = () => {
   return (
     <Routes>
       {/* Public routes that are still accessible when authenticated */}
-      <Route
+      {/* <Route
         path="/add-tiffin"
         element={
           <RouteLayout useLayout={false}>
             <AddTiffin />
           </RouteLayout>
         }
-      />
+      /> */}
 
       {/* Protected routes with MainLayout */}
       <Route element={<MainLayout><Outlet /></MainLayout>}>
